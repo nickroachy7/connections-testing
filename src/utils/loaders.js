@@ -1,0 +1,188 @@
+import { redirect } from 'react-router-dom';
+import { supabase, getUserTeams, getUserInventory } from '../services/supabase';
+import { searchPlayers, getActivePlayers } from '../services/nflApi';
+
+// Auth check helper
+export async function requireAuth() {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.user) {
+    // Redirect to login instead of throwing error
+    throw redirect('/login');
+  }
+  return session.user;
+}
+
+// Load user profile
+export async function loadUserProfile(userId) {
+  const { data, error } = await supabase
+    .from('users')
+    .select('*')
+    .eq('id', userId)
+    .single();
+  
+  if (error) throw error;
+  return data;
+}
+
+// Dashboard loader
+export async function dashboardLoader() {
+  try {
+    const user = await requireAuth();
+    
+    const [profile, teams] = await Promise.all([
+      loadUserProfile(user.id),
+      getUserTeams(user.id)
+    ]);
+    
+    return { user, profile, teams };
+  } catch (error) {
+    // If it's already a redirect, re-throw it
+    if (error instanceof Response) throw error;
+    console.error('Dashboard loader error:', error);
+    // Return minimal data on error
+    return { user: null, profile: null, teams: [] };
+  }
+}
+
+// Team Manager loader
+export async function teamManagerLoader({ params }) {
+  try {
+    const user = await requireAuth();
+    
+    const [profile, teams] = await Promise.all([
+      loadUserProfile(user.id),
+      getUserTeams(user.id)
+    ]);
+    
+    // Get team from URL param if available
+    let activeTeam = null;
+    if (params.teamId) {
+      activeTeam = teams.find(t => t.id === params.teamId);
+      if (!activeTeam) {
+        // Team not found or doesn't belong to user, redirect to team selection
+        throw redirect('/teams');
+      }
+    } else {
+      // No teamId in URL, use active team
+      activeTeam = teams.find(t => t.is_active);
+    }
+    
+    if (!activeTeam) {
+      return { user, profile, teams, activeTeam: null, inventory: { players: [], tokens: [] } };
+    }
+    
+    const inventory = await getUserInventory(user.id, activeTeam.id);
+    
+    return { user, profile, teams, activeTeam, inventory };
+  } catch (error) {
+    // If it's already a redirect, re-throw it
+    if (error instanceof Response) throw error;
+    console.error('TeamManager loader error:', error);
+    return { user: null, profile: null, teams: [], activeTeam: null, inventory: { players: [], tokens: [] } };
+  }
+}
+
+// Players loader
+export async function playersLoader({ request }) {
+  const url = new URL(request.url);
+  const searchTerm = url.searchParams.get('search') || '';
+  const positionFilter = url.searchParams.get('position') || 'all';
+  const sortBy = url.searchParams.get('sort') || 'name';
+  
+  let players = [];
+  
+  try {
+    if (searchTerm) {
+      const data = await searchPlayers(searchTerm, 50);
+      players = data?.data || [];
+    } else {
+      const data = await getActivePlayers({ per_page: 50 });
+      players = data?.data || [];
+    }
+  } catch (err) {
+    console.error('Error loading players:', err);
+    // Return empty array on error instead of throwing
+    players = [];
+  }
+  
+  // Load fantasy points
+  let fantasyPoints = {};
+  try {
+    const { data } = await supabase
+      .from('player_game_stats')
+      .select('player_id, fantasy_points');
+    
+    if (data) {
+      fantasyPoints = data.reduce((acc, stat) => {
+        acc[stat.player_id] = (acc[stat.player_id] || 0) + stat.fantasy_points;
+        return acc;
+      }, {});
+    }
+  } catch (err) {
+    console.error('Error loading fantasy points:', err);
+  }
+  
+  return { 
+    players, 
+    fantasyPoints,
+    searchTerm,
+    positionFilter,
+    sortBy
+  };
+}
+
+// Leaderboard loader
+export async function leaderboardLoader() {
+  // Calculate current week
+  const today = new Date();
+  const seasonYear = today.getFullYear();
+  const weekNumber = Math.floor((today.getTime() - new Date(seasonYear, 8, 1).getTime()) / (7 * 24 * 60 * 60 * 1000)) + 1;
+  
+  const { data, error } = await supabase
+    .from('weekly_lineups')
+    .select(`
+      *,
+      team:user_teams!inner(
+        team_name,
+        profile:users!inner(username)
+      )
+    `)
+    .eq('week_number', weekNumber)
+    .eq('season_year', seasonYear)
+    .order('total_points', { ascending: false })
+    .limit(100);
+  
+  if (error) {
+    console.error('Error loading leaderboard:', error);
+    return { leaderboard: [], weekNumber, seasonYear };
+  }
+  
+  return { leaderboard: data || [], weekNumber, seasonYear };
+}
+
+// Inventory loader
+export async function inventoryLoader() {
+  try {
+    const user = await requireAuth();
+    
+    const [profile, teams] = await Promise.all([
+      loadUserProfile(user.id),
+      getUserTeams(user.id)
+    ]);
+    
+    const activeTeam = teams.find(t => t.is_active);
+    
+    if (!activeTeam) {
+      return { user, profile, teams, activeTeam: null, inventory: { players: [], tokens: [] } };
+    }
+    
+    const inventory = await getUserInventory(user.id, activeTeam.id);
+    
+    return { user, profile, teams, activeTeam, inventory };
+  } catch (error) {
+    // If it's already a redirect, re-throw it
+    if (error instanceof Response) throw error;
+    console.error('Inventory loader error:', error);
+    return { user: null, profile: null, teams: [], activeTeam: null, inventory: { players: [], tokens: [] } };
+  }
+}

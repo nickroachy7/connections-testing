@@ -1,0 +1,16 @@
+{
+  "name": "supabase-functions",
+  "version": "1.0.0",
+  "description": "Supabase Edge Functions for NFL Connections Fantasy Game",
+  "main": "index.js",
+  "scripts": {
+    "serve": "supabase functions serve",
+    "deploy": "supabase functions deploy"
+  },
+  "dependencies": {
+    "@supabase/functions-js": "^2.3.1"
+  },
+  "devDependencies": {
+    "supabase": "^1.136.0"
+  }
+}
