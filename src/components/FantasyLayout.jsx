@@ -1,4 +1,4 @@
-import { Outlet, useLoaderData } from 'react-router-dom';
+import { Outlet, useLoaderData, useLocation } from 'react-router-dom';
 import { FantasyProvider, useFantasy } from '../contexts/FantasyContext';
 import FantasyNavBanner from './FantasyNavBanner';
 
@@ -6,7 +6,11 @@ import FantasyNavBanner from './FantasyNavBanner';
 function FantasyLayoutInner() {
   const loaderData = useLoaderData();
   const { user, profile, activeTeam } = loaderData;
-  const { lineup, projections, liveGameData, currentWeek } = useFantasy();
+  const { lineup, projections, liveGameData, currentWeek, inventory } = useFantasy();
+  const location = useLocation();
+
+  // Enable preview mode ONLY on starting-lineup page
+  const isStartingLineupPage = location.pathname.includes('/starting-lineup');
 
   return (
     <div className="min-h-screen bg-dk-black-primary">
@@ -25,6 +29,7 @@ function FantasyLayoutInner() {
           projections={projections}
           team={activeTeam}
           currentWeek={currentWeek}
+          previewMode={isStartingLineupPage}
         />
       </header>
 
@@ -36,7 +41,8 @@ function FantasyLayoutInner() {
           lineup,
           projections,
           liveGameData,
-          currentWeek
+          currentWeek,
+          inventory
         }} />
       </main>
     </div>
