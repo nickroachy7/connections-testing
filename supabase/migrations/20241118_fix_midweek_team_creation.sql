@@ -20,10 +20,10 @@ DECLARE
   v_max_week INTEGER := 18; -- NFL regular season max week
 BEGIN
   -- Get current week from config
-  SELECT current_week, season_year 
+  SELECT nfl_season_config.current_week, nfl_season_config.season_year 
   INTO v_current_week, v_season_year
   FROM nfl_season_config
-  WHERE is_active = true
+  WHERE nfl_season_config.is_active = true
   LIMIT 1;
   
   -- Check if current week has already been finalized
@@ -31,9 +31,9 @@ BEGIN
   SELECT EXISTS(
     SELECT 1 
     FROM weekly_lineups 
-    WHERE week_number = v_current_week 
-      AND season_year = v_season_year
-      AND status = 'completed'
+    WHERE weekly_lineups.week_number = v_current_week 
+      AND weekly_lineups.season_year = v_season_year
+      AND weekly_lineups.status = 'completed'
     LIMIT 1
   ) INTO v_week_finalized;
   

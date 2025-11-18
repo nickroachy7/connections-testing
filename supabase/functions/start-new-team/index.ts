@@ -48,7 +48,7 @@ serve(async (req) => {
     }
 
     // Call the database function to create team with smart week assignment
-    const { data: teamId, error: teamError } = await supabaseClient
+    const { data, error: teamError } = await supabaseClient
       .rpc('create_new_team', {
         p_user_id: user.id,
         p_team_name: team_name,
@@ -63,6 +63,9 @@ serve(async (req) => {
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
       )
     }
+
+    // The RPC returns a UUID directly
+    const teamId = data
 
     // Get the created team details
     const { data: team, error: fetchError } = await supabaseClient
