@@ -253,9 +253,9 @@ Deno.serve(async (req) => {
         apiCalls++;
         console.log(`Batch ${Math.floor(i/batchSize)+1}: Fetching ${currentSeason} stats for ${batchPlayerIds.length} players`);
         
-        // Build URL with proper array format: ?seasons[]=2025&player_ids[]=1&player_ids[]=2
+        // Build URL with correct format: ?season=2025&player_ids[]=1&player_ids[]=2
         const playerIdsParams = batchPlayerIds.map(id => `player_ids[]=${id}`).join('&');
-        const url = `https://api.balldontlie.io/nfl/v1/season_stats?seasons[]=${currentSeason}&${playerIdsParams}`;
+        const url = `https://api.balldontlie.io/nfl/v1/season_stats?season=${currentSeason}&${playerIdsParams}`;
         
         const response = await fetch(url, {
           headers: { 'Authorization': nflApiKey }
