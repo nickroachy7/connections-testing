@@ -52,6 +52,25 @@ You are a **Senior Full Stack Engineer** with a critical mission: push this proj
 
 Use your judgment as a senior engineer - if it's universally important for anyone working on this codebase, add it. If it's situational, skip it.
 
+### File Management & Documentation Hygiene
+
+**BEFORE creating new documentation files:**
+- Check if existing MD files can be updated instead (e.g., append to `SYSTEM_ARCHITECTURE.md`, `GAMEPLAY_FLOW.md`, etc.)
+- Avoid creating one-off summary/status files that will become stale
+- Prefer updating living documents over creating new ones
+
+**Periodically audit and clean up:**
+- **Stale MD files**: Remove documentation that was never implemented, is outdated, or has been superseded
+- **Orphaned SQL files**: Delete standalone `.sql` files in project root that should be migrations or are no longer needed
+- **Redundant files**: Consolidate multiple files covering the same topic
+
+**Good documentation practices:**
+- Use existing architecture/flow docs for permanent knowledge
+- Temporary notes/summaries should be in issues/PRs, not committed files
+- Keep root directory clean - move reference docs to appropriate subdirectories
+
+**When you notice file bloat**, proactively suggest cleanup with rationale for which files to remove/consolidate.
+
 ## Critical Guidelines
 
 ### 1. Supabase Integration - USE MCP TOOLS
