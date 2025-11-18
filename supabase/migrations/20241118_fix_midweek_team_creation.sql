@@ -70,14 +70,14 @@ CREATE OR REPLACE FUNCTION create_new_team(
   p_contest_type_id UUID,
   p_team_image_url TEXT DEFAULT NULL
 )
-RETURNS UUID AS $$
+RETURNS TABLE(team_id UUID) AS $$
 DECLARE
   v_team_id UUID;
   v_starting_week INTEGER;
   v_season_year INTEGER;
   v_starter_pack_id UUID;
-  v_player_card RECORD;
-  v_token_card RECORD;
+  v_player_card_id UUID;
+  v_token_card_id UUID;
 BEGIN
   -- Validate contest type exists and is active
   IF NOT EXISTS (SELECT 1 FROM contest_types WHERE id = p_contest_type_id AND is_active = true) THEN
@@ -90,122 +90,88 @@ BEGIN
   INTO v_starting_week, v_season_year
   FROM get_starting_week_for_new_team();
   
-  -- Create the new team (not active by default - user must select it)
+  -- Create the new team
+  -- Note: teams table doesn't have season_year column
   INSERT INTO teams (
     user_id, 
     team_name, 
     contest_type_id,
     is_active, 
     current_week, 
-    coins, 
+    coins,
+    losses,
+    is_bot,
     team_image_url
   )
   VALUES (
     p_user_id, 
     p_team_name, 
     p_contest_type_id,
-    false, 
-    v_starting_week,  -- Use calculated starting week instead of current_week
-    1000, 
+    true,  -- Active by default
+    v_starting_week,  -- Use calculated starting week
+    1000,  -- Starting coins
+    0,     -- No losses yet
+    false, -- Not a bot
     p_team_image_url
   )
   RETURNING id INTO v_team_id;
   
-  -- Get starter pack
+  -- Get starter pack ID
   SELECT id INTO v_starter_pack_id
   FROM packs
   WHERE pack_type = 'starter'
   LIMIT 1;
   
-  -- Give starter pack players (8 players: 1 QB, 2 RB, 2 WR, 1 TE, 1 K, 1 DEF)
-  -- NOTE: Tier assignment happens in open-pack Edge Function based on contest_type's starter_tier_config
+  -- Award starter pack inventory (8 random players + 2 random tokens)
+  -- Note: Only insert columns that exist in the tables
   
-  -- QB
-  SELECT id INTO v_player_card FROM player_cards 
-  WHERE position = 'Quarterback' AND is_active = true 
-  ORDER BY RANDOM() LIMIT 1;
-  IF FOUND THEN
-    INSERT INTO user_player_inventory (user_id, team_id, player_card_id)
-    VALUES (p_user_id, v_team_id, v_player_card);
-  END IF;
-  
-  -- RB (2)
-  FOR v_player_card IN 
-    SELECT id FROM player_cards 
-    WHERE position = 'Running Back' AND is_active = true 
-    ORDER BY RANDOM() LIMIT 2
+  -- Players (user_player_inventory has: user_id, team_id, player_card_id)
+  FOR v_player_card_id IN (
+    SELECT id
+    FROM player_cards
+    WHERE is_active = true
+    ORDER BY RANDOM()
+    LIMIT 8
+  )
   LOOP
-    INSERT INTO user_player_inventory (user_id, team_id, player_card_id)
-    VALUES (p_user_id, v_team_id, v_player_card.id);
-  END LOOP;
-  
-  -- WR (2)
-  FOR v_player_card IN 
-    SELECT id FROM player_cards 
-    WHERE position = 'Wide Receiver' AND is_active = true 
-    ORDER BY RANDOM() LIMIT 2
-  LOOP
-    INSERT INTO user_player_inventory (user_id, team_id, player_card_id)
-    VALUES (p_user_id, v_team_id, v_player_card.id);
-  END LOOP;
-  
-  -- TE
-  SELECT id INTO v_player_card FROM player_cards 
-  WHERE position = 'Tight End' AND is_active = true 
-  ORDER BY RANDOM() LIMIT 1;
-  IF FOUND THEN
-    INSERT INTO user_player_inventory (user_id, team_id, player_card_id)
-    VALUES (p_user_id, v_team_id, v_player_card);
-  END IF;
-  
-  -- K
-  SELECT id INTO v_player_card FROM player_cards 
-  WHERE position = 'Kicker' AND is_active = true 
-  ORDER BY RANDOM() LIMIT 1;
-  IF FOUND THEN
-    INSERT INTO user_player_inventory (user_id, team_id, player_card_id)
-    VALUES (p_user_id, v_team_id, v_player_card);
-  END IF;
-  
-  -- DEF
-  SELECT id INTO v_player_card FROM player_cards 
-  WHERE position = 'Defense' AND is_active = true 
-  ORDER BY RANDOM() LIMIT 1;
-  IF FOUND THEN
-    INSERT INTO user_player_inventory (user_id, team_id, player_card_id)
-    VALUES (p_user_id, v_team_id, v_player_card);
-  END IF;
-  
-  -- Give starter tokens (3 random tokens)
-  FOR v_token_card IN 
-    SELECT id FROM token_cards 
-    ORDER BY RANDOM() LIMIT 3
-  LOOP
-    INSERT INTO user_token_inventory (user_id, team_id, token_card_id)
-    VALUES (p_user_id, v_team_id, v_token_card.id);
-  END LOOP;
-  
-  -- Log transaction
-  INSERT INTO transactions (user_id, team_id, transaction_type, coins_change, coins_after, metadata)
-  VALUES (
-    p_user_id,
-    v_team_id,
-    'starter_pack',
-    0,
-    1000,
-    jsonb_build_object(
-      'pack_id', v_starter_pack_id, 
-      'team_creation', true,
-      'contest_type_id', p_contest_type_id,
-      'starting_week', v_starting_week
+    INSERT INTO user_player_inventory (
+      user_id,
+      team_id,
+      player_card_id
     )
-  );
+    VALUES (
+      p_user_id,
+      v_team_id,
+      v_player_card_id
+    );
+  END LOOP;
+
+  -- Tokens (user_token_inventory has: user_id, team_id, token_card_id)
+  -- Note: token_cards table doesn't have is_active column
+  FOR v_token_card_id IN (
+    SELECT id
+    FROM token_cards
+    ORDER BY RANDOM()
+    LIMIT 2
+  )
+  LOOP
+    INSERT INTO user_token_inventory (
+      user_id,
+      team_id,
+      token_card_id
+    )
+    VALUES (
+      p_user_id,
+      v_team_id,
+      v_token_card_id
+    );
+  END LOOP;
   
-  RETURN v_team_id;
+  RETURN QUERY SELECT v_team_id;
 END;
 $$ LANGUAGE plpgsql;
 
-COMMENT ON FUNCTION create_new_team IS 'Creates a new team with starter pack (8 players + 3 tokens + 1000 coins) linked to a specific contest type. Automatically assigns team to next week if current week is already finalized.';
+COMMENT ON FUNCTION create_new_team IS 'Creates a new team with starter pack (8 players + 2 tokens + 1000 coins) linked to a specific contest type. Automatically assigns team to next week if current week is already finalized. Returns table with team_id.';
 
 -- ============================================================================
 -- STEP 3: Update create_bot_team to use same logic

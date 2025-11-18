@@ -811,7 +811,9 @@ export default function Dashboard() {
 
     try {
       const result = await startNewTeam(teamName);
-      setPackContents(result.starter_pack_contents);
+      // Result now contains {team, starter_pack_id, message}
+      // Note: starter_pack_contents is not returned anymore
+      setPackContents(null); // Clear pack contents
       // Reload teams via revalidator
       revalidator.revalidate();
       setShowCreateTeam(false);

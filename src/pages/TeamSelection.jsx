@@ -129,17 +129,19 @@ export default function TeamSelection() {
         // Navigate to pack opening page
         navigate(`/teams/${newTeamId}/open-pack/${userPack.id}`)
       } else {
-        // Regular team creation
-        const { data, error } = await supabase.rpc('create_new_team', {
-          p_user_id: user.id,
-          p_team_name: newTeamName.trim(),
-          p_contest_type_id: selectedContestType,
-          p_team_image_url: null
+        // Regular team creation - use edge function instead of direct RPC
+        const { data, error } = await supabase.functions.invoke('start-new-team', {
+          body: {
+            team_name: newTeamName.trim(),
+            contest_type_id: selectedContestType,
+            team_image_url: null
+          }
         })
 
         if (error) throw error
 
-        const newTeamId = data
+        // Edge function returns {team, starter_pack_id, message}
+        const newTeamId = data.team.id
 
         success(`Team "${newTeamName}" created!`)
         
