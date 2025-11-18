@@ -7,38 +7,156 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const SCORING = {
-  PASS_YD: 0.04, PASS_TD: 4, PASS_INT: -2,
-  RUSH_YD: 0.1, RUSH_TD: 6,
-  REC_YD: 0.1, REC: 1, REC_TD: 6,
-  FG: 3, XP: 1,
+// Base fantasy scoring constants (PPR varies by contest type)
+const BASE_SCORING = {
+  PASS_YD: 0.04,        // 1 pt per 25 yards
+  PASS_TD: 4,
+  PASS_INT: -2,
+  RUSH_YD: 0.1,         // 1 pt per 10 yards
+  RUSH_TD: 6,
+  REC_YD: 0.1,          // 1 pt per 10 yards
+  REC_TD: 6,
+  FG: 3,
+  XP: 1,
+  DEF_SACK: 1,
+  DEF_INT: 2,
+  DEF_FR: 2,
+  DEF_TD: 6,
 };
 
-function calculateFantasyPoints(stats: any, position: string): number {
+// PPR multipliers by scoring type
+const PPR_MULTIPLIERS = {
+  'standard': 0.0,    // No PPR
+  'half_ppr': 0.5,    // Half PPR (default)
+  'full_ppr': 1.0     // Full PPR
+};
+
+/**
+ * Calculate fantasy points based on season stats and scoring type
+ * Supports standard, half_ppr, and full_ppr scoring
+ */
+function calculateFantasyPoints(stats: any, position: string, scoringType: string = 'half_ppr'): number {
   let points = 0;
+  const pprValue = PPR_MULTIPLIERS[scoringType as keyof typeof PPR_MULTIPLIERS] || PPR_MULTIPLIERS['half_ppr'];
+  
   if (position === 'Quarterback') {
-    points += (stats.passing_yards || 0) * SCORING.PASS_YD;
-    points += (stats.passing_touchdowns || 0) * SCORING.PASS_TD;
-    points += (stats.passing_interceptions || 0) * SCORING.PASS_INT;
-    points += (stats.rushing_yards || 0) * SCORING.RUSH_YD;
-    points += (stats.rushing_touchdowns || 0) * SCORING.RUSH_TD;
+    points += (stats.passing_yards || 0) * BASE_SCORING.PASS_YD;
+    points += (stats.passing_touchdowns || 0) * BASE_SCORING.PASS_TD;
+    points += (stats.passing_interceptions || 0) * BASE_SCORING.PASS_INT;
+    points += (stats.rushing_yards || 0) * BASE_SCORING.RUSH_YD;
+    points += (stats.rushing_touchdowns || 0) * BASE_SCORING.RUSH_TD;
+    // QBs rarely catch passes, but include for completeness
+    points += (stats.receptions || 0) * pprValue;
+    points += (stats.receiving_yards || 0) * BASE_SCORING.REC_YD;
+    points += (stats.receiving_touchdowns || 0) * BASE_SCORING.REC_TD;
   } else if (position === 'Running Back') {
-    points += (stats.rushing_yards || 0) * SCORING.RUSH_YD;
-    points += (stats.rushing_touchdowns || 0) * SCORING.RUSH_TD;
-    points += (stats.receptions || 0) * SCORING.REC;
-    points += (stats.receiving_yards || 0) * SCORING.REC_YD;
-    points += (stats.receiving_touchdowns || 0) * SCORING.REC_TD;
+    points += (stats.rushing_yards || 0) * BASE_SCORING.RUSH_YD;
+    points += (stats.rushing_touchdowns || 0) * BASE_SCORING.RUSH_TD;
+    points += (stats.receptions || 0) * pprValue;
+    points += (stats.receiving_yards || 0) * BASE_SCORING.REC_YD;
+    points += (stats.receiving_touchdowns || 0) * BASE_SCORING.REC_TD;
   } else if (position === 'Wide Receiver' || position === 'Tight End') {
-    points += (stats.receptions || 0) * SCORING.REC;
-    points += (stats.receiving_yards || 0) * SCORING.REC_YD;
-    points += (stats.receiving_touchdowns || 0) * SCORING.REC_TD;
-    points += (stats.rushing_yards || 0) * SCORING.RUSH_YD;
-    points += (stats.rushing_touchdowns || 0) * SCORING.RUSH_TD;
+    points += (stats.receptions || 0) * pprValue;
+    points += (stats.receiving_yards || 0) * BASE_SCORING.REC_YD;
+    points += (stats.receiving_touchdowns || 0) * BASE_SCORING.REC_TD;
+    points += (stats.rushing_yards || 0) * BASE_SCORING.RUSH_YD;
+    points += (stats.rushing_touchdowns || 0) * BASE_SCORING.RUSH_TD;
   } else if (position === 'Place kicker' || position === 'Kicker') {
-    points += (stats.field_goals_made || 0) * SCORING.FG;
-    points += (stats.extra_points_made || 0) * SCORING.XP;
+    points += (stats.field_goals_made || 0) * BASE_SCORING.FG;
+    points += (stats.extra_points_made || 0) * BASE_SCORING.XP;
+  } else if (position === 'Defense') {
+    points += (stats.sacks || 0) * BASE_SCORING.DEF_SACK;
+    points += (stats.interceptions || 0) * BASE_SCORING.DEF_INT;
+    points += (stats.fumbles_recovered || 0) * BASE_SCORING.DEF_FR;
+    points += (stats.touchdowns || 0) * BASE_SCORING.DEF_TD;
   }
   return points;
+}
+
+/**
+ * Get injury multiplier based on status
+ * Returns 0 if player is ruled out, otherwise adjusts projection based on injury severity
+ */
+function getInjuryMultiplier(injuryStatus: string | null): number {
+  if (!injuryStatus || injuryStatus === 'healthy') return 1.0;
+  
+  const status = injuryStatus.toLowerCase();
+  
+  // Player definitely not playing
+  if (status.includes('out') || 
+      status.includes('ir') || 
+      status.includes('injured reserve') ||
+      status.includes('suspended') ||
+      status.includes('pup') ||
+      status.includes('physically unable to perform')) {
+    return 0.0;
+  }
+  
+  // Very unlikely to play
+  if (status.includes('doubtful')) {
+    return 0.3;
+  }
+  
+  // Game-time decision, may have limitations
+  if (status.includes('questionable') || status.includes('gtd')) {
+    return 0.8;
+  }
+  
+  // Probable means likely to play with minor impact
+  if (status.includes('probable')) {
+    return 0.95;
+  }
+  
+  return 1.0; // Healthy or unlisted
+}
+
+/**
+ * Generate human-readable projection notes
+ */
+function generateProjectionNotes(
+  gamesPlayed: number,
+  seasonAvg: number,
+  projected: number,
+  injuryStatus: string | null,
+  injuryMultiplier: number,
+  scoringType: string
+): string {
+  const notes: string[] = [];
+  
+  // Scoring system note
+  const scoringLabel = scoringType === 'standard' ? 'Standard' : 
+                       scoringType === 'half_ppr' ? 'Half-PPR' : 'Full PPR';
+  notes.push(`${scoringLabel} scoring`);
+  
+  // Games played context
+  if (gamesPlayed === 0) {
+    notes.push('No games played this season - using baseline projection');
+  } else if (gamesPlayed < 3) {
+    notes.push(`Limited sample size (${gamesPlayed} games)`);
+  } else {
+    notes.push(`${gamesPlayed} games played`);
+  }
+  
+  // Injury status impact
+  if (injuryMultiplier === 0) {
+    notes.push(`RULED OUT (${injuryStatus}) - 0 points expected`);
+  } else if (injuryMultiplier < 1.0) {
+    const reduction = Math.round((1 - injuryMultiplier) * 100);
+    notes.push(`Injury concern (${injuryStatus}) - ${reduction}% reduction`);
+  }
+  
+  // Performance context
+  if (seasonAvg > 20) {
+    notes.push('Elite producer');
+  } else if (seasonAvg > 15) {
+    notes.push('Strong performer');
+  } else if (seasonAvg > 10) {
+    notes.push('Solid contributor');
+  } else if (seasonAvg > 5) {
+    notes.push('Streaming option');
+  }
+  
+  return notes.join(' • ');
 }
 
 Deno.serve(async (req) => {
@@ -47,7 +165,6 @@ Deno.serve(async (req) => {
   try {
     const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
     const nflApiKey = Deno.env.get('BALLDONTLIE_API_KEY') || '';
-    const nflApi = new BalldontlieAPI({ apiKey: nflApiKey });
     const currentSeason = 2025;
 
     // Get current NFL week from nfl_season_config
@@ -62,6 +179,18 @@ Deno.serve(async (req) => {
     const currentWeek = weekData || 10;
     console.log(`Starting projection updates for season: ${currentSeason}, week: ${currentWeek}`);
 
+    // Get all active contest types to know what scoring systems are in use
+    const { data: contestTypes, error: contestError } = await supabase
+      .from('contest_types')
+      .select('id, scoring_type')
+      .eq('is_active', true);
+    
+    if (contestError) throw contestError;
+    
+    // Default to half_ppr for projections, but we'll store notes about scoring type
+    const defaultScoringType = 'half_ppr';
+    console.log(`Contest types in use: ${contestTypes?.map(ct => ct.scoring_type).join(', ') || 'half_ppr'}`);
+
     const { data: players, error: playersError } = await supabase
       .from('player_cards')
       .select('id, player_id, position')
@@ -69,9 +198,47 @@ Deno.serve(async (req) => {
 
     if (playersError) throw playersError;
 
-    let updated = 0, apiCalls = 0, successfulCalls = 0;
+    let updated = 0, apiCalls = 0, successfulCalls = 0, injuryChecks = 0;
     const batchSize = 25; // BallDontLie API supports multiple player_ids per call
 
+    // First, fetch injury data for all players in batches
+    console.log('Fetching injury data for all players...');
+    const injuryMap = new Map<string, string>();
+    
+    for (let i = 0; i < players.length; i += batchSize) {
+      const batch = players.slice(i, i + batchSize);
+      const batchPlayerIds = batch.map(p => parseInt(p.player_id));
+      
+      try {
+        const playerIdsParams = batchPlayerIds.map(id => `player_ids[]=${id}`).join('&');
+        const injuryUrl = `https://api.balldontlie.io/nfl/v1/injuries?${playerIdsParams}`;
+        
+        const injuryResponse = await fetch(injuryUrl, {
+          headers: { 'Authorization': nflApiKey }
+        });
+        
+        if (injuryResponse.ok) {
+          const injuryData = await injuryResponse.json();
+          if (injuryData?.data && injuryData.data.length > 0) {
+            injuryChecks++;
+            injuryData.data.forEach((injury: any) => {
+              if (injury.player?.id && injury.designation) {
+                injuryMap.set(injury.player.id.toString(), injury.designation);
+              }
+            });
+            console.log(`Injury batch ${Math.floor(i/batchSize)+1}: Found ${injuryData.data.length} injury reports`);
+          }
+        }
+        
+        await new Promise(r => setTimeout(r, 100));
+      } catch (e) {
+        console.log(`Injury API error for batch ${Math.floor(i/batchSize)+1}:`, e);
+      }
+    }
+    
+    console.log(`Total injury statuses retrieved: ${injuryMap.size}`);
+
+    // Now process stats and projections
     for (let i = 0; i < players.length; i += batchSize) {
       const batch = players.slice(i, i + batchSize);
       
@@ -116,28 +283,52 @@ Deno.serve(async (req) => {
       
       const updates = batch.map((player) => {
         let projected = 0, seasonAvg = 0, gamesPlayed = 0;
+        const injuryStatus = injuryMap.get(player.player_id) || 'healthy';
+        const injuryMultiplier = getInjuryMultiplier(injuryStatus);
 
         const stats = batchStatsMap.get(player.player_id);
         
         if (stats && stats.games_played > 0) {
           gamesPlayed = stats.games_played;
-          const totalPoints = calculateFantasyPoints(stats, player.position);
+          const totalPoints = calculateFantasyPoints(stats, player.position, defaultScoringType);
           seasonAvg = totalPoints / gamesPlayed;
-          projected = seasonAvg;
           
+          // Apply baseline projection adjustments (slightly conservative)
           const multipliers: Record<string, number> = {
             'Quarterback': 1.0, 'Running Back': 0.95, 'Wide Receiver': 0.95,
             'Tight End': 0.90, 'Kicker': 0.85, 'Place kicker': 0.85, 'Defense': 0.90,
           };
-          projected *= multipliers[player.position] || 1.0;
+          projected = seasonAvg * (multipliers[player.position] || 1.0);
           
+          // Apply injury multiplier
+          projected = projected * injuryMultiplier;
+          
+          // Apply position-based bounds
           const bounds: Record<string, { min: number; max: number }> = {
             'Quarterback': {min:0, max:35}, 'Running Back': {min:0, max:30}, 'Wide Receiver': {min:0, max:30},
             'Tight End': {min:0, max:20}, 'Kicker': {min:0, max:15}, 'Place kicker': {min:0, max:15}, 'Defense': {min:0, max:18},
           };
           const bound = bounds[player.position] || {min:0, max:25};
           projected = Math.max(bound.min, Math.min(bound.max, projected));
+        } else {
+          // No stats - use baseline projection with injury multiplier
+          const baselines: Record<string, number> = {
+            'Quarterback': 18, 'Running Back': 12, 'Wide Receiver': 10,
+            'Tight End': 8, 'Kicker': 8, 'Place kicker': 8, 'Defense': 8,
+          };
+          seasonAvg = baselines[player.position] || 8;
+          projected = seasonAvg * injuryMultiplier;
         }
+        
+        // Generate human-readable projection notes
+        const projectionNotes = generateProjectionNotes(
+          gamesPlayed,
+          seasonAvg,
+          projected,
+          injuryStatus,
+          injuryMultiplier,
+          defaultScoringType
+        );
 
         return {
           id: player.id,
@@ -147,7 +338,9 @@ Deno.serve(async (req) => {
           season_avg_points: Math.round(seasonAvg * 10) / 10,
           games_played_season: gamesPlayed,
           games_played: gamesPlayed,
-          injury_status: 'healthy',
+          injury_status: injuryStatus,
+          injury_designation: injuryStatus,
+          projection_notes: projectionNotes,
           last_projection_update: new Date().toISOString(),
           last_updated: new Date().toISOString(),
         };
@@ -157,8 +350,12 @@ Deno.serve(async (req) => {
         const { error } = await supabase.from('player_cards').update(update).eq('id', update.id);
         if (!error) updated++;
       }
-      console.log(`Batch ${Math.floor(i/batchSize)+1}/${Math.ceil(players.length/batchSize)} - API Calls: ${apiCalls}, Successful: ${successfulCalls}`);
+      console.log(`Batch ${Math.floor(i/batchSize)+1}/${Math.ceil(players.length/batchSize)} complete`);
     }
+
+    console.log(`✅ Projection update complete: ${updated}/${players.length} players updated`);
+    console.log(`📊 Stats API calls: ${apiCalls} (${successfulCalls} successful)`);
+    console.log(`🏥 Injury checks: ${injuryChecks} batches, ${injuryMap.size} total injury statuses found`);
 
     return new Response(JSON.stringify({
       success: true, 
@@ -166,8 +363,11 @@ Deno.serve(async (req) => {
       total_players: players.length, 
       api_calls: apiCalls,
       successful_calls: successfulCalls,
+      injury_checks: injuryChecks,
+      injuries_found: injuryMap.size,
       season: currentSeason,
-      week: currentWeek
+      week: currentWeek,
+      scoring_type: defaultScoringType
     }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   } catch (error) {
     console.error('Function error:', error);

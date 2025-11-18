@@ -67,10 +67,10 @@ export default function Dashboard() {
 
   // Load lineup data when inventory changes (from loader)
   useEffect(() => {
-    if (initialInventory && activeTeam) {
+    if (initialInventory?.players && activeTeam && currentWeek) {
       loadLineupData(initialInventory);
     }
-  }, [initialInventory, activeTeam]);
+  }, [initialInventory, activeTeam, currentWeek]); // Don't include loadLineupData itself
   
   // Load leaderboard data
   useEffect(() => {
@@ -226,10 +226,96 @@ export default function Dashboard() {
   };
 
   const loadLineupData = useCallback(async (inventory) => {
-    if (!inventory) return;
+    console.log('🔍 loadLineupData called with inventory:', inventory);
+    console.log('🔍 inventory?.players length:', inventory?.players?.length);
+    console.log('🔍 activeTeam:', activeTeam?.id);
+    console.log('🔍 currentWeek:', currentWeek);
+    
+    if (!inventory?.players || !activeTeam || !currentWeek) {
+      console.log('❌ Missing required data, returning early');
+      return;
+    }
     
     try {
-      // Load lineup from inventory
+      // Check if current week is finalized - if so, load from weekly_lineups snapshot
+      const { data: weeklyLineup } = await supabase
+        .from('weekly_lineups')
+        .select('lineup_snapshot, status')
+        .eq('team_id', activeTeam.id)
+        .eq('week_number', currentWeek.week)
+        .eq('season_year', currentWeek.year)
+        .maybeSingle();
+
+      // If week is finalized, load from snapshot
+      if (weeklyLineup?.status === 'completed' && weeklyLineup.lineup_snapshot) {
+        console.log('📸 Dashboard: Loading finalized Week', currentWeek.week, 'lineup from snapshot');
+          
+          const snapshot = weeklyLineup.lineup_snapshot;
+          const newLineup = {
+            QB: null,
+            RB1: null,
+            RB2: null,
+            WR1: null,
+            WR2: null,
+            WR3: null,
+            TE: null,
+            FLEX: null,
+            BENCH: []
+          };
+
+          // Map snapshot to lineup structure
+          // Snapshot contains complete player objects with player_card_id
+          const positionsInSnapshot = new Set();
+          
+          console.log('📸 Snapshot positions:', Object.keys(snapshot));
+          console.log('📸 Inventory has', inventory.players.length, 'players');
+          
+          for (const [position, playerData] of Object.entries(snapshot)) {
+            if (position === 'BENCH' || !playerData || !playerData.player_card_id) continue;
+            
+            console.log(`📸 Looking for ${position}: ${playerData.player_name} (${playerData.player_card_id})`);
+            
+            // Find the matching player from inventory
+            const player = inventory.players.find(p => p.player_card_id === playerData.player_card_id);
+            if (player) {
+              console.log(`  ✅ Found ${player.player_card.player_name}`);
+              newLineup[position] = player;
+              positionsInSnapshot.add(playerData.player_card_id);
+            } else {
+              console.log(`  ❌ NOT FOUND in inventory!`);
+            }
+          }
+
+          // Load bench (all players not in starting lineup from snapshot)
+          newLineup.BENCH = inventory.players.filter(p => !positionsInSnapshot.has(p.player_card_id));
+
+          setLineup(newLineup);
+          console.log('📸 Loaded finalized lineup with', positionsInSnapshot.size, 'starters');
+          
+          // Continue with projections and live data loading
+          if (inventory.players && inventory.players.length > 0) {
+            const dbProjections = new Map();
+            inventory.players.forEach(p => {
+              if (p.player_card) {
+                const weeklyProjValue = p.player_card.weekly_projected_points != null ? parseFloat(p.player_card.weekly_projected_points) : null;
+                const projValue = p.player_card.projected_points != null ? parseFloat(p.player_card.projected_points) : null;
+                const weeklyProj = weeklyProjValue ?? projValue ?? getBaselineProjection(p.player_card.position);
+                
+                dbProjections.set(p.player_card.player_id, {
+                  projected: weeklyProj,
+                  source: weeklyProjValue != null ? 'weekly_db' : (projValue != null ? 'season_db' : 'baseline')
+                });
+              }
+            });
+            setProjections(dbProjections);
+          }
+          
+          await loadLiveGameData(inventory.players);
+          return; // Exit early - we loaded from snapshot
+      }
+
+      // Fallback: Load active lineup from inventory (for non-finalized weeks)
+      console.log('📋 Dashboard: Loading active lineup from inventory');
       const startingPlayers = inventory.players.filter(p => p.is_in_lineup);
       const bench = inventory.players.filter(p => !p.is_in_lineup);
       
@@ -277,16 +363,22 @@ export default function Dashboard() {
       console.error('Error loading lineup data:', err);
       setError(err.message || 'Failed to load lineup');
     }
-  }, [activeTeam]);
+  }, [activeTeam, currentWeek]); // Add currentWeek dependency
 
   const loadLiveGameData = async (players) => {
+    if (!currentWeek) {
+      console.log('⚠️ Dashboard: No currentWeek available for loading game data');
+      return;
+    }
+
     try {
-      // Calculate current week
-      const today = new Date();
-      const seasonYear = today.getFullYear();
-      const weekNumber = Math.floor((today.getTime() - new Date(seasonYear, 8, 1).getTime()) / (7 * 24 * 60 * 60 * 1000)) + 1;
+      console.log('📊 Dashboard: Loading game data for Week', currentWeek.week);
       
-      // Load games for current week
+      // Use current week from config, not calculated from today's date
+      const weekNumber = currentWeek.week;
+      const seasonYear = currentWeek.year;
+      
+      // Load games for the week being displayed
       const { data: gamesData, error: gamesError } = await supabase
         .from('game_scores')
         .select('*')
@@ -295,26 +387,37 @@ export default function Dashboard() {
       
       if (gamesError) throw gamesError;
       
-      // Load player stats for current week
+      console.log('📊 Dashboard: Found', gamesData?.length || 0, 'games for Week', weekNumber);
+      
+      // Load player stats for the week
       if (gamesData && gamesData.length > 0) {
         const gameIds = gamesData.map(g => g.game_id);
         
         const { data: statsData, error: statsError } = await supabase
           .from('player_game_stats')
-          .select('*')
+          .select(`
+            *,
+            player_card:player_cards!inner(
+              player_id,
+              player_name
+            )
+          `)
           .in('game_id', gameIds);
         
         if (statsError) throw statsError;
 
-        // Create a map of player_id -> game data
+        console.log('📊 Dashboard: Found stats for', statsData?.length || 0, 'players');
+
+        // Create a map of player_id (BallDontLie ID) -> game data
         const gameDataMap = new Map();
         
         statsData?.forEach(stat => {
           const game = gamesData.find(g => g.game_id === stat.game_id);
-          if (game) {
-            gameDataMap.set(stat.player_id, {
+          if (game && stat.player_card?.player_id) {
+            console.log('📊 Dashboard: Mapping player', stat.player_card.player_name, 'ID:', stat.player_card.player_id, 'Points:', stat.fantasy_points);
+            gameDataMap.set(stat.player_card.player_id, {
               gameStatus: game.game_status,
-              currentPoints: stat.fantasy_points,
+              currentPoints: parseFloat(stat.fantasy_points || 0),
               quarter: game.quarter,
               timeRemaining: game.time_remaining,
               gameStartTime: game.game_start_time,
@@ -1047,9 +1150,9 @@ export default function Dashboard() {
         {activeTeam && initialInventory && (
           <section aria-label="Starting Lineup Grid" className="mt-6">
             <LineupGridReadOnly
-              lineup={contextLineup || lineup}
-              liveGameData={contextLiveGameData || liveGameData}
-              projections={contextProjections || projections}
+              lineup={lineup}
+              liveGameData={liveGameData}
+              projections={projections}
               inventory={initialInventory}
             />
           </section>

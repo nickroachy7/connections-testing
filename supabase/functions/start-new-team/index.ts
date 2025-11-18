@@ -48,7 +48,7 @@ serve(async (req) => {
     }
 
     // Call the database function to create team with smart week assignment
-    // Note: RPC now returns a table with team_id column
+    // Note: RPC now returns a table with team_id and starter_pack_user_pack_id columns
     const { data: result, error: teamError } = await supabaseClient
       .rpc('create_new_team', {
         p_user_id: user.id,
@@ -73,6 +73,7 @@ serve(async (req) => {
     }
 
     const teamId = result[0].team_id
+    const userPackId = result[0].starter_pack_user_pack_id
 
     // Get the created team details
     const { data: team, error: fetchError } = await supabaseClient
@@ -104,6 +105,7 @@ serve(async (req) => {
       JSON.stringify({ 
         team,
         starter_pack_id: starterPack?.id,
+        user_pack_id: userPackId,
         message: team.current_week ? `Team created! Your first week will be Week ${team.current_week}.` : 'Team created successfully!'
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }

@@ -24,7 +24,8 @@ export default function LineupGrid({
   inventory,
   onRemoveToken,
   autoSaving = false,
-  filterPosition = null
+  filterPosition = null,
+  isPreviewMode = false // If true, ignore player locks (previewing next week)
 }) {
   const [dragOverSlot, setDragOverSlot] = useState(null);
   const [hoveredSlot, setHoveredSlot] = useState(null);
@@ -199,7 +200,9 @@ export default function LineupGrid({
     const gameStatus = gameData?.gameStatus?.toLowerCase();
     const isGameLiveOrFinal = gameStatus === 'live' || gameStatus === 'halftime' || gameStatus === 'final';
     
-    const isLocked = player?.is_locked || isGameLiveOrFinal;
+    // Determine if player is locked
+    // In preview mode, ignore database locks (we're setting next week's lineup)
+    const isLocked = isPreviewMode ? false : (player?.is_locked || isGameLiveOrFinal);
     const isDragOver = dragOverSlot === slot.key;
     const isHovered = hoveredSlot === slot.key;
     const appliedToken = inventory?.tokens?.find(t => t.applied_to_player_id === player?.id && t.is_active);
@@ -343,5 +346,6 @@ LineupGrid.propTypes = {
   inventory: PropTypes.object,
   onRemoveToken: PropTypes.func,
   autoSaving: PropTypes.bool,
-  filterPosition: PropTypes.string
+  filterPosition: PropTypes.string,
+  isPreviewMode: PropTypes.bool
 };

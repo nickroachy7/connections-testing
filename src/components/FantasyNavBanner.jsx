@@ -16,11 +16,13 @@ export default function FantasyNavBanner({
   lineup,
   projections,
   team, // ADD team prop to get contest info
-  currentWeek: contextCurrentWeek // Get current week from FantasyContext to prevent flash
+  currentWeek: contextCurrentWeek, // Get current week from FantasyContext to prevent flash
+  previewMode = false // If true, show next week when current week is finalized (for Starting Lineup page only)
 }) {
   const navigate = useNavigate();
   const location = useLocation();
   const [currentWeek, setCurrentWeek] = useState(contextCurrentWeek || null);
+  const [displayWeek, setDisplayWeek] = useState(null); // The week to actually display (may be +1 in preview mode)
   const [projectedPoints, setProjectedPoints] = useState(0);
   const [globalStats, setGlobalStats] = useState(null);
   const [isLive, setIsLive] = useState(false);
@@ -29,6 +31,7 @@ export default function FantasyNavBanner({
   const [projectedFinal, setProjectedFinal] = useState(0);
   const [teamImage, setTeamImage] = useState(null);
   const [localTeamName, setLocalTeamName] = useState(teamName);
+  const [hasWeeklyLineup, setHasWeeklyLineup] = useState(false); // Track if team has lineup for current week
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState(teamName);
   const [uploading, setUploading] = useState(false);
@@ -37,6 +40,7 @@ export default function FantasyNavBanner({
   const [simulatedSeasonId, setSimulatedSeasonId] = useState(null);
   const [simulatedAverage, setSimulatedAverage] = useState(null);
   const averageCalculatedRef = useRef(false);
+  const [weekIsFinalized, setWeekIsFinalized] = useState(false); // Track if current week is finalized
 
   const navItems = [
     { path: `/teams/${teamId}/dashboard`, label: 'DASHBOARD' },
@@ -85,6 +89,53 @@ export default function FantasyNavBanner({
       setCurrentWeek(contextCurrentWeek);
     }
   }, [contextCurrentWeek]);
+
+  // Check finalization status and set displayWeek
+  useEffect(() => {
+    if (!currentWeek || !teamId) {
+      setDisplayWeek(null);
+      return;
+    }
+
+    const checkWeekStatus = async () => {
+      console.log('🔄 Checking week status - previewMode:', previewMode, 'currentWeek:', currentWeek.week);
+      
+      // Check if CURRENT week is finalized
+      const { data: lineupData } = await supabase
+        .from('weekly_lineups')
+        .select('status')
+        .eq('team_id', teamId)
+        .eq('week_number', currentWeek.week)
+        .eq('season_year', currentWeek.year)
+        .maybeSingle();
+
+      const isFinalized = lineupData?.status === 'completed';
+      setWeekIsFinalized(isFinalized);
+
+      // PREVIEW MODE LOGIC (Starting Lineup page only)
+      // If current week is finalized AND we're in preview mode, show next week
+      if (previewMode && isFinalized) {
+        const nextWeek = {
+          week: currentWeek.week + 1,
+          year: currentWeek.year
+        };
+        setDisplayWeek(nextWeek);
+        // Force state updates for preview mode
+        setIsLive(false);
+        setIsFinal(false);
+        setGlobalStats(null);
+        setHasWeeklyLineup(false);
+        console.log('🔮 PREVIEW MODE ACTIVATED: Current week', currentWeek.week, 'is finalized. Showing next week', nextWeek.week);
+      } else {
+        // Normal mode: show current week
+        setDisplayWeek(currentWeek);
+        // Don't clear states here - let fetchStats handle it
+        console.log('📅 NORMAL MODE: Showing current week', currentWeek.week, '(previewMode:', previewMode, ', isFinalized:', isFinalized, ')');
+      }
+    };
+
+    checkWeekStatus();
+  }, [currentWeek, teamId, previewMode]); // Re-run when previewMode changes!
 
   // Focus input when editing starts
   useEffect(() => {
@@ -366,7 +417,7 @@ export default function FantasyNavBanner({
 
   // Fetch global stats and user's lineup data
   useEffect(() => {
-    if (!currentWeek || !teamId) return;
+    if (!displayWeek || !teamId) return;
 
     let retryCount = 0;
     const maxRetries = 3;
@@ -381,13 +432,24 @@ export default function FantasyNavBanner({
           setIsLive(false);
           console.log('🤖 Simulated season detected - forcing PROJECTED status');
         }
+
+        // In preview mode, we're looking at next week which has no data yet
+        // So we force PROJECTED status and skip database queries
+        if (previewMode && weekIsFinalized && displayWeek.week > currentWeek.week) {
+          console.log('🔮 PREVIEW MODE ACTIVE: Showing next week', displayWeek.week, 'with PROJECTED status');
+          setIsLive(false);
+          setIsFinal(false);
+          setGlobalStats(null);
+          setHasWeeklyLineup(false);
+          return; // Skip all database queries for next week
+        }
         
-        // Get global stats for current week
+        // Get global stats for display week
         const { data: globalData, error: globalError } = await supabase
           .from('weekly_global_stats')
           .select('*')
-          .eq('week_number', currentWeek.week)
-          .eq('season_year', currentWeek.year)
+          .eq('week_number', displayWeek.week)
+          .eq('season_year', displayWeek.year)
           .maybeSingle();
 
         if (globalError) throw globalError;
@@ -395,13 +457,13 @@ export default function FantasyNavBanner({
         console.log('📊 Global Stats:', globalData);
         setGlobalStats(globalData);
 
-        // Get user's lineup for current week
+        // Get user's lineup for display week
         const { data: lineupData, error: lineupError } = await supabase
           .from('weekly_lineups')
           .select('total_points, status, lineup_snapshot')
           .eq('team_id', teamId)
-          .eq('week_number', currentWeek.week)
-          .eq('season_year', currentWeek.year)
+          .eq('week_number', displayWeek.week)
+          .eq('season_year', displayWeek.year)
           .maybeSingle();
 
         if (lineupError && lineupError.code !== 'PGRST116') throw lineupError;
@@ -411,13 +473,16 @@ export default function FantasyNavBanner({
         // Check if week is finalized (lineup status is 'completed')
         const weekIsFinalized = lineupData?.status === 'completed';
         setIsFinal(weekIsFinalized);
+        setWeekIsFinalized(weekIsFinalized);
+        setHasWeeklyLineup(!!lineupData); // Track if lineup exists
         console.log('🏁 Week finalized:', weekIsFinalized);
 
-        // Check if week is live (BEFORE checking lineupData)
-        // This ensures we show LIVE status even if weekly_lineups doesn't exist yet
+        // Check if week is live
+        // ONLY show LIVE if the team has a weekly_lineup entry for this week
         let weekIsLive = false;
         
-        if (!simulatedSeasonId) {
+        if (lineupData && !simulatedSeasonId) {
+          // Team must have a weekly_lineup entry to be "live"
           // For regular seasons, check if the week is "live"
           // A week is live if ANY game has started (even if finished)
           // BUT NOT if the week is finalized
@@ -438,8 +503,8 @@ export default function FantasyNavBanner({
             const { data: startedGames } = await supabase
               .from('game_scores')
               .select('id, game_status')
-              .eq('week_number', currentWeek.week)
-              .eq('season_year', currentWeek.year)
+              .eq('week_number', displayWeek.week)
+              .eq('season_year', displayWeek.year)
               .in('game_status', ['live', 'halftime', 'final']);  // Any game that has started
 
             weekIsLive = startedGames && startedGames.length > 0;
@@ -451,7 +516,7 @@ export default function FantasyNavBanner({
         
         // Set the live status
         setIsLive(weekIsLive);
-        console.log('🔴 Setting isLive to:', weekIsLive);
+        console.log('🔴 Setting isLive to:', weekIsLive, '(has lineup:', !!lineupData, ')');
 
         if (lineupData) {
           // Calculate live or projected points based on week status
@@ -672,7 +737,7 @@ export default function FantasyNavBanner({
               event: '*',
               schema: 'public',
               table: 'weekly_global_stats',
-              filter: `week_number=eq.${currentWeek.week}`
+              filter: `week_number=eq.${displayWeek.week}`
             },
             (payload) => {
               console.log('🔄 Real-time global stats update:', payload.new);
@@ -744,7 +809,7 @@ export default function FantasyNavBanner({
         clearInterval(pollingInterval);
       }
     };
-  }, [currentWeek, teamId, simulatedSeasonId, liveGameData, lineup]); // Re-run when liveGameData or lineup changes
+  }, [displayWeek, teamId, simulatedSeasonId, liveGameData, lineup, previewMode, weekIsFinalized]); // Re-run when displayWeek, liveGameData, lineup, or preview state changes
 
   // Calculate bar percentage
   const userScore = (isLive || isFinal) ? livePoints : projectedPoints;
@@ -767,8 +832,14 @@ export default function FantasyNavBanner({
   // When you're the only team, you're right at average (not above or below)
   const isAboveAverage = hasGlobalStats ? userScore >= averageScore : true;
 
-  // Check if team hasn't started yet (current_week > current NFL week)
-  const teamHasntStarted = team?.current_week && currentWeek?.week && team.current_week > currentWeek.week;
+  // Check if team hasn't started yet
+  // Show blue banner if:
+  // 1. Team's current_week is in the future, OR
+  // 2. Team's current_week equals NFL week but has no weekly_lineup entry yet
+  const teamHasntStarted = team?.current_week && currentWeek?.week && (
+    team.current_week > currentWeek.week || 
+    (team.current_week === currentWeek.week && !hasWeeklyLineup)
+  );
 
   return (
     <>
@@ -907,16 +978,16 @@ export default function FantasyNavBanner({
           <div className="flex items-center gap-4">
             {/* Left Side - Week & Live Badge */}
             <div className="flex items-center gap-2">
-              {currentWeek ? (
+              {displayWeek ? (
                 <span className="text-sm font-dk-display font-bold text-dk-white-muted uppercase">
-                  Week {currentWeek.week}
+                  Week {displayWeek.week}
                 </span>
               ) : (
                 <span className="text-sm font-dk-display font-bold text-dk-white-muted uppercase opacity-50">
                   Loading...
                 </span>
               )}
-              {(isLive || isFinal) && (
+              {(isLive || isFinal) && !previewMode && (
                 <span className={`px-2 py-0.5 ${isFinal ? 'bg-blue-600' : 'bg-red-500'} text-white text-xs font-dk-display font-bold rounded flex items-center gap-1`}>
                   {!isFinal && <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span>}
                   {isFinal ? 'FINAL' : 'LIVE'}
@@ -1110,5 +1181,7 @@ FantasyNavBanner.propTypes = {
   liveGameData: PropTypes.instanceOf(Map),
   lineup: PropTypes.object,
   projections: PropTypes.instanceOf(Map),
-  team: PropTypes.object
+  team: PropTypes.object,
+  currentWeek: PropTypes.object,
+  previewMode: PropTypes.bool
 };

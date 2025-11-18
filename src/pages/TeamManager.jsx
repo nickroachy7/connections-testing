@@ -27,9 +27,9 @@ export default function TeamManager() {
   const navigate = useNavigate();
   const revalidator = useRevalidator();
   
-  // Team & Inventory state  
+  // Team & Inventory state - ensure inventory is never null
   const [activeTeam, setActiveTeam] = useState(initialActiveTeam);
-  const [inventory, setInventory] = useState(initialInventory);
+  const [inventory, setInventory] = useState(initialInventory || { players: [], tokens: [] });
 
   // Handle case where user is null (loader error or not logged in)
   useEffect(() => {
@@ -97,6 +97,7 @@ export default function TeamManager() {
   const [liveGameData, setLiveGameData] = useState(new Map());
   const [currentWeek, setCurrentWeek] = useState(null);
   const [syncingGames, setSyncingGames] = useState(false);
+  const [isPreviewMode, setIsPreviewMode] = useState(false); // Track if current week is finalized (preview next week)
 
   // Function to manually sync games
   const syncGamesFromAPI = async () => {
@@ -147,6 +148,28 @@ export default function TeamManager() {
       console.log('🎮 Using week from config:', weekNumber, 'year:', seasonYear);
       
       setCurrentWeek({ week: weekNumber, year: seasonYear });
+
+      // Check if current week is finalized (enables preview mode)
+      if (activeTeam) {
+        const { data: weeklyLineup } = await supabase
+          .from('weekly_lineups')
+          .select('status')
+          .eq('team_id', activeTeam.id)
+          .eq('week_number', weekNumber)
+          .eq('season_year', seasonYear)
+          .maybeSingle();
+
+        const isFinalized = weeklyLineup?.status === 'completed';
+        setIsPreviewMode(isFinalized);
+        console.log('🔮 Preview mode:', isFinalized ? 'ENABLED (week finalized)' : 'DISABLED');
+        
+        // In preview mode, clear live game data and only show projections
+        if (isFinalized) {
+          console.log('🔮 Preview mode: Clearing live game data, showing only projections for next week');
+          setLiveGameData(new Map());
+          return; // Skip loading live game data for previous week
+        }
+      }
       
       // Load games for current week
       const { data: gamesData, error: gamesError } = await supabase
@@ -1157,8 +1180,8 @@ export default function TeamManager() {
     }
   };
 
-  // Filter players
-  const filteredPlayers = inventory.players.filter(player => {
+  // Filter players - add null safety
+  const filteredPlayers = (inventory?.players || []).filter(player => {
     const matchesPosition = filters.position === 'all' || player.player_card.position === filters.position;
     const matchesSearch = filters.search === '' || 
       player.player_card.player_name.toLowerCase().includes(filters.search.toLowerCase()) ||
@@ -1167,8 +1190,8 @@ export default function TeamManager() {
     return matchesPosition && matchesSearch;
   });
 
-  // Filter tokens
-  const filteredTokens = inventory.tokens.filter(token => {
+  // Filter tokens - add null safety
+  const filteredTokens = (inventory?.tokens || []).filter(token => {
     const matchesType = filters.tokenType === 'all' || token.token_card.token_type === filters.tokenType;
     const matchesSearch = filters.search === '' || 
       token.token_card.token_name.toLowerCase().includes(filters.search.toLowerCase());
@@ -1380,12 +1403,13 @@ export default function TeamManager() {
             onTokenDrop={handleTokenDrop}
             onClickToAdd={handleClickToAdd}
             onRemovePlayer={handleRemovePlayer}
-            liveGameData={liveGameData}
+            liveGameData={isPreviewMode ? new Map() : liveGameData}
             projections={projections}
             inventory={inventory}
             onRemoveToken={handleRemoveToken}
             autoSaving={autoSaving}
             filterPosition={benchFilterPosition}
+            isPreviewMode={isPreviewMode}
           />
         </section>
       </div>
@@ -1404,7 +1428,7 @@ export default function TeamManager() {
           onPlayerDragStart={handlePlayerDragStart}
           onTokenDragStart={handleTokenDragStart}
           onPlayerDrop={(e) => handlePlayerDrop(e, 'BENCH')}
-          liveGameData={liveGameData}
+          liveGameData={isPreviewMode ? new Map() : liveGameData}
           projections={projections}
           inventory={inventory}
           onRemoveToken={handleRemoveToken}
@@ -1421,7 +1445,7 @@ export default function TeamManager() {
         position={playerSelectionModal.position}
         availablePlayers={getAvailablePlayersForPosition(playerSelectionModal.position)}
         onSelectPlayer={handleSelectPlayer}
-        liveGameData={liveGameData}
+        liveGameData={isPreviewMode ? new Map() : liveGameData}
         projections={projections}
         inventory={inventory}
       />

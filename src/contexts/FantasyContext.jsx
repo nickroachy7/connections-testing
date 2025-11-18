@@ -38,8 +38,8 @@ export function FantasyProvider({ children, user, activeTeam }) {
   // Current week - initialize immediately
   const [currentWeek, setCurrentWeek] = useState(null);
   
-  // Inventory state
-  const [inventory, setInventory] = useState(null);
+  // Inventory state - initialize with empty structure to prevent null errors
+  const [inventory, setInventory] = useState({ players: [], tokens: [] });
   
   // Loading states
   const [loading, setLoading] = useState(true);

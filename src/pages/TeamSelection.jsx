@@ -116,18 +116,8 @@ export default function TeamSelection() {
 
         success(`Simulated season "${newTeamName}" created with 12 teams!`)
         
-        // Get the unopened starter pack for this team
-        const { data: userPack, error: packError } = await supabase
-          .from('user_packs')
-          .select('id')
-          .eq('team_id', newTeamId)
-          .eq('is_opened', false)
-          .single()
-
-        if (packError) throw packError
-
-        // Navigate to pack opening page
-        navigate(`/teams/${newTeamId}/open-pack/${userPack.id}`)
+        // Navigate directly to team dashboard
+        navigate(`/teams/${newTeamId}`)
       } else {
         // Regular team creation - use edge function instead of direct RPC
         const { data, error } = await supabase.functions.invoke('start-new-team', {
@@ -140,23 +130,14 @@ export default function TeamSelection() {
 
         if (error) throw error
 
-        // Edge function returns {team, starter_pack_id, message}
+        // Edge function returns {team, starter_pack_id, user_pack_id, message}
         const newTeamId = data.team.id
+        const userPackId = data.user_pack_id
 
         success(`Team "${newTeamName}" created!`)
         
-        // Get the unopened starter pack for this team
-        const { data: userPack, error: packError} = await supabase
-          .from('user_packs')
-          .select('id')
-          .eq('team_id', newTeamId)
-          .eq('is_opened', false)
-          .single()
-
-        if (packError) throw packError
-
-        // Navigate to pack opening page instead of dashboard
-        navigate(`/teams/${newTeamId}/open-pack/${userPack.id}`)
+        // Navigate to pack opening experience
+        navigate(`/teams/${newTeamId}/open-pack/${userPackId}`)
       }
     } catch (error) {
       console.error('Error creating team:', error)
