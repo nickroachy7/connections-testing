@@ -23,6 +23,7 @@ export default function PackShop() {
   const [packs, setPacks] = useState([]);
   const [teams, setTeams] = useState([]);
   const [selectedTeam, setSelectedTeam] = useState(null);
+  const [selectedTeamData, setSelectedTeamData] = useState(null); // Store full team object
   const [opening, setOpening] = useState({});
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -35,6 +36,7 @@ export default function PackShop() {
       const activeTeam = userTeams.find(t => t.is_active);
       if (activeTeam) {
         setSelectedTeam(activeTeam.id);
+        setSelectedTeamData(activeTeam); // Store full team object with coins
       }
     } catch (err) {
       console.error('Error loading teams:', err);
@@ -87,7 +89,9 @@ export default function PackShop() {
       return;
     }
 
-    if (profile.total_coins < pack.coin_cost) {
+    // Check team-specific coins, not profile coins
+    const teamCoins = selectedTeamData?.coins ?? 0;
+    if (teamCoins < pack.coin_cost) {
       setError('Insufficient coins');
       return;
     }
@@ -110,8 +114,8 @@ export default function PackShop() {
 
       if (purchaseError) throw purchaseError;
 
-      // Refresh profile to update coins
-      await refreshProfile();
+      // Refresh team data to update coins display
+      await loadTeams();
       
       // Redirect to pack opening page
       navigate(`/teams/${selectedTeam}/open-pack/${purchasedPack}`);
@@ -236,16 +240,16 @@ export default function PackShop() {
                     <span className="text-2xl font-bold text-primary-green-400">
                       💰 {pack.coin_cost}
                     </span>
-                    {profile.total_coins < pack.coin_cost && (
+                    {(selectedTeamData?.coins ?? 0) < pack.coin_cost && (
                       <span className="text-xs bg-red-600 text-red-100 px-2 py-1 rounded">
                         Insufficient Coins
                       </span>
                     )}
                   </div>
                   
-                                    <button
+                  <button
                     onClick={() => handleOpenPack(pack)}
-                    disabled={opening[pack.id] || !selectedTeam || profile.total_coins < pack.coin_cost}
+                    disabled={opening[pack.id] || !selectedTeam || (selectedTeamData?.coins ?? 0) < pack.coin_cost}
                     className="w-full py-3 px-4 bg-primary-green-500 hover:bg-primary-green-400 disabled:bg-gray-600 disabled:cursor-not-allowed text-primary-black-950 rounded-lg font-semibold transition-colors"
                   >
                     {opening[pack.id] ? 'Opening...' : 'Open Pack'}

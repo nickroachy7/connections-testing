@@ -74,6 +74,7 @@ export default function TeamManager() {
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [autoSaving, setAutoSaving] = useState(false);
+  const [lastSaved, setLastSaved] = useState(null);
   
   // Auto-save refs
   const autoSaveTimeoutRef = useRef(null);
@@ -273,7 +274,7 @@ export default function TeamManager() {
     } catch (err) {
       console.error('Error loading live game data:', err);
     }
-  }, []); // Remove inventory from dependencies!
+  }, [inventory?.players]); // Fixed: now properly depends on inventory to prevent stale closures
 
   // Load inventory when active team changes
   const loadInventory = useCallback(async () => {
@@ -671,21 +672,17 @@ export default function TeamManager() {
     e.dataTransfer.effectAllowed = 'copy';
     e.dataTransfer.setData('text/plain', `token:${token.id}`);
     console.log('🎯 Token data set:', `token:${token.id}`);
-    
-    // Also store in window for debugging
-    window.currentDraggedToken = token;
   };
 
   const handleTokenDrop = async (e, player) => {
     console.log('🎯 Token drop attempt on player:', player?.player_card?.player_name);
     console.log('🎯 Dragged token (state):', draggedToken?.token_card?.token_name);
-    console.log('🎯 Dragged token (window):', window.currentDraggedToken?.token_card?.token_name);
     console.log('🎯 Player locked:', player?.is_locked);
     
     e.preventDefault();
     e.stopPropagation();
     
-    const tokenToUse = draggedToken || window.currentDraggedToken;
+    const tokenToUse = draggedToken;
     
     if (!tokenToUse || !player || player.is_locked) {
       console.log('❌ Token drop blocked:', { tokenToUse: !!tokenToUse, player: !!player, isLocked: player?.is_locked });
@@ -697,7 +694,6 @@ export default function TeamManager() {
       setError(getRosterLimitErrorMessage());
       setTimeout(() => setError(''), 5000);
       setDraggedToken(null);
-      window.currentDraggedToken = null;
       return;
     }
     
@@ -721,7 +717,6 @@ export default function TeamManager() {
       }));
       
       setDraggedToken(null);
-      window.currentDraggedToken = null;
       
       // Trigger auto-save after token application
       triggerAutoSave();
@@ -732,7 +727,7 @@ export default function TeamManager() {
     }
   };
 
-  // Save lineup
+  // Save lineup - optimized for instant background saves
   const handleSaveLineup = async (isAutoSave = false) => {
     if (!activeTeam) return;
     
@@ -766,16 +761,21 @@ export default function TeamManager() {
         });
       });
       
-      // Batch update
-      for (const update of updates) {
-        await supabase
-          .from('user_player_inventory')
-          .update({
-            is_in_lineup: update.is_in_lineup,
-            lineup_position: update.lineup_position
-          })
-          .eq('id', update.id);
-      }
+      // Batch update - use Promise.all for parallel execution
+      await Promise.all(
+        updates.map(update =>
+          supabase
+            .from('user_player_inventory')
+            .update({
+              is_in_lineup: update.is_in_lineup,
+              lineup_position: update.lineup_position
+            })
+            .eq('id', update.id)
+        )
+      );
+      
+      // Update last saved timestamp
+      setLastSaved(new Date());
     } catch (err) {
       console.error('Error saving lineup:', err);
       if (!isAutoSave) {
@@ -790,7 +790,16 @@ export default function TeamManager() {
     }
   };
 
-  // Debounced auto-save function
+  // Immediate save function (no debounce) - for page navigation
+  const saveImmediately = useCallback(() => {
+    if (autoSaveTimeoutRef.current) {
+      clearTimeout(autoSaveTimeoutRef.current);
+      autoSaveTimeoutRef.current = null;
+    }
+    handleSaveLineup(true);
+  }, [activeTeam, lineup]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Debounced auto-save function - faster 500ms for better UX
   const triggerAutoSave = useCallback(() => {
     if (!activeTeam) return;
     
@@ -799,10 +808,10 @@ export default function TeamManager() {
       clearTimeout(autoSaveTimeoutRef.current);
     }
     
-    // Set new timeout to save after 1 second of no changes
+    // Set new timeout to save after 500ms (reduced from 1s for instant feel)
     autoSaveTimeoutRef.current = setTimeout(() => {
       handleSaveLineup(true);
-    }, 1000);
+    }, 500);
   }, [activeTeam, lineup]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-save whenever lineup changes (after initial load)
@@ -822,7 +831,34 @@ export default function TeamManager() {
         clearTimeout(autoSaveTimeoutRef.current);
       }
     };
-  }, [lineup, triggerAutoSave, activeTeam]);
+  }, [lineup, activeTeam]); // Removed triggerAutoSave to prevent infinite loop
+
+  // Save immediately when user navigates away or switches tabs
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden && activeTeam && !initialLoadRef.current) {
+        // Page is being hidden - save immediately without debounce
+        console.log('💾 Page hidden - saving lineup immediately');
+        saveImmediately();
+      }
+    };
+
+    const handleBeforeUnload = () => {
+      // Page is being closed/refreshed - save immediately
+      if (activeTeam && !initialLoadRef.current) {
+        console.log('💾 Page unloading - saving lineup immediately');
+        saveImmediately();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [activeTeam, saveImmediately]);
 
   // Quick sell handler
   const handleQuickSell = async (inventoryId, cardType, baseValue) => {
@@ -1318,6 +1354,24 @@ export default function TeamManager() {
               <ContestInfoBanner team={activeTeam} />
             </div>
           )}
+          
+          {/* Auto-save indicator - subtle and non-intrusive */}
+          <div className="mb-3 flex items-center justify-end gap-2 text-xs text-primary-black-400">
+            {autoSaving && (
+              <div className="flex items-center gap-1.5">
+                <div className="animate-spin h-3 w-3 border-2 border-primary-green-500 border-t-transparent rounded-full"></div>
+                <span>Saving...</span>
+              </div>
+            )}
+            {!autoSaving && lastSaved && (
+              <div className="flex items-center gap-1.5">
+                <svg className="w-3 h-3 text-primary-green-500" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+                <span>All changes saved</span>
+              </div>
+            )}
+          </div>
           
           <LineupGrid
             lineup={lineup}

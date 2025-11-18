@@ -24,6 +24,7 @@ export default function FantasyNavBanner({
   const [projectedPoints, setProjectedPoints] = useState(0);
   const [globalStats, setGlobalStats] = useState(null);
   const [isLive, setIsLive] = useState(false);
+  const [isFinal, setIsFinal] = useState(false);
   const [livePoints, setLivePoints] = useState(0);
   const [projectedFinal, setProjectedFinal] = useState(0);
   const [teamImage, setTeamImage] = useState(null);
@@ -407,6 +408,11 @@ export default function FantasyNavBanner({
 
         console.log('👤 User Lineup:', lineupData);
 
+        // Check if week is finalized (lineup status is 'completed')
+        const weekIsFinalized = lineupData?.status === 'completed';
+        setIsFinal(weekIsFinalized);
+        console.log('🏁 Week finalized:', weekIsFinalized);
+
         // Check if week is live (BEFORE checking lineupData)
         // This ensures we show LIVE status even if weekly_lineups doesn't exist yet
         let weekIsLive = false;
@@ -414,7 +420,8 @@ export default function FantasyNavBanner({
         if (!simulatedSeasonId) {
           // For regular seasons, check if the week is "live"
           // A week is live if ANY game has started (even if finished)
-          if (liveGameData && liveGameData.size > 0) {
+          // BUT NOT if the week is finalized
+          if (!weekIsFinalized && liveGameData && liveGameData.size > 0) {
             // Check if ANY player has a game that's started (live, halftime, or final)
             for (const [playerId, gameData] of liveGameData.entries()) {
               const statusLower = gameData?.gameStatus?.toLowerCase();
@@ -427,7 +434,7 @@ export default function FantasyNavBanner({
           }
           
           // Fallback: Query database for games that have started
-          if (!weekIsLive && (!liveGameData || liveGameData.size === 0)) {
+          if (!weekIsLive && (!liveGameData || liveGameData.size === 0) && !weekIsFinalized) {
             const { data: startedGames } = await supabase
               .from('game_scores')
               .select('id, game_status')
@@ -448,7 +455,13 @@ export default function FantasyNavBanner({
 
         if (lineupData) {
           // Calculate live or projected points based on week status
-          if (weekIsLive) {
+          if (weekIsFinalized) {
+            // Week is finalized - show final score from database
+            const finalScore = lineupData.total_points || 0;
+            setLivePoints(finalScore);
+            setProjectedFinal(finalScore);
+            console.log('🏁 FINAL - Score:', finalScore);
+          } else if (weekIsLive) {
             // Calculate from lineup directly - get live stats for each player
             if (lineup) {
               let calculatedTotal = 0;
@@ -734,7 +747,7 @@ export default function FantasyNavBanner({
   }, [currentWeek, teamId, simulatedSeasonId, liveGameData, lineup]); // Re-run when liveGameData or lineup changes
 
   // Calculate bar percentage
-  const userScore = isLive ? livePoints : projectedPoints;
+  const userScore = (isLive || isFinal) ? livePoints : projectedPoints;
   const hasGlobalStats = globalStats && globalStats.total_active_teams > 0;
   
   // For simulated seasons, use simulated average; otherwise use global stats
@@ -754,8 +767,27 @@ export default function FantasyNavBanner({
   // When you're the only team, you're right at average (not above or below)
   const isAboveAverage = hasGlobalStats ? userScore >= averageScore : true;
 
+  // Check if team hasn't started yet (current_week > current NFL week)
+  const teamHasntStarted = team?.current_week && currentWeek?.week && team.current_week > currentWeek.week;
+
   return (
     <>
+      {/* Team Hasn't Started Banner */}
+      {teamHasntStarted && (
+        <div className="bg-blue-900/30 border-b-2 border-blue-500">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+            <div className="flex items-center justify-center gap-2">
+              <svg className="w-5 h-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+              </svg>
+              <span className="text-blue-100 font-semibold text-sm">
+                Your first week will be Week {team.current_week}. The current week ({currentWeek.week}) is already in progress.
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Hidden file input */}
       <input
         ref={fileInputRef}
@@ -884,10 +916,10 @@ export default function FantasyNavBanner({
                   Loading...
                 </span>
               )}
-              {isLive && (
-                <span className="px-2 py-0.5 bg-red-500 text-white text-xs font-dk-display font-bold rounded flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span>
-                  LIVE
+              {(isLive || isFinal) && (
+                <span className={`px-2 py-0.5 ${isFinal ? 'bg-blue-600' : 'bg-red-500'} text-white text-xs font-dk-display font-bold rounded flex items-center gap-1`}>
+                  {!isFinal && <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span>}
+                  {isFinal ? 'FINAL' : 'LIVE'}
                 </span>
               )}
             </div>
@@ -903,9 +935,11 @@ export default function FantasyNavBanner({
                 {/* User's Bar */}
                 <div
                   className={`absolute top-0 bottom-0 left-0 transition-all duration-500 ${
-                    isLive 
-                      ? 'bg-gradient-to-r from-red-500 to-red-400'
-                      : 'bg-gradient-to-r from-dk-green-primary to-green-400'
+                    isFinal
+                      ? 'bg-gradient-to-r from-blue-500 to-blue-400'
+                      : isLive 
+                        ? 'bg-gradient-to-r from-red-500 to-red-400'
+                        : 'bg-gradient-to-r from-dk-green-primary to-green-400'
                   }`}
                   style={{ width: `${userPercentage}%` }}
                 />
@@ -919,8 +953,8 @@ export default function FantasyNavBanner({
 
             {/* Right Side - Score Badges */}
             <div className="flex items-center gap-2">
-              {/* Projected Final Badge (show when live and has projected value) */}
-              {isLive && projectedFinal >= livePoints && (
+              {/* Projected Final Badge (show when live and has projected value, but NOT when finalized) */}
+              {isLive && !isFinal && projectedFinal >= livePoints && (
                 <div className="rounded-lg px-3 py-1.5 shadow-lg border-2 bg-gradient-to-r from-blue-600 to-indigo-600 border-blue-400">
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-white font-semibold uppercase tracking-wider">
@@ -935,13 +969,15 @@ export default function FantasyNavBanner({
               
               {/* Current Score Badge */}
               <div className={`rounded-lg px-3 py-1.5 shadow-lg border-2 ${
-                isLive 
-                  ? 'bg-gradient-to-r from-red-600 to-red-700 border-red-400' 
-                  : 'bg-gradient-to-r from-green-600 to-emerald-600 border-green-400'
+                isFinal
+                  ? 'bg-gradient-to-r from-blue-600 to-blue-700 border-blue-400'
+                  : isLive 
+                    ? 'bg-gradient-to-r from-red-600 to-red-700 border-red-400' 
+                    : 'bg-gradient-to-r from-green-600 to-emerald-600 border-green-400'
               }`}>
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-white font-semibold uppercase tracking-wider">
-                    {isLive ? 'LIVE' : 'PROJECTED'}
+                    {isFinal ? 'FINAL' : (isLive ? 'LIVE' : 'PROJECTED')}
                   </span>
                   <span className="text-xl text-white font-black leading-none">
                     {userScore.toFixed(1)}

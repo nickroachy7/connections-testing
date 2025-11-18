@@ -438,7 +438,7 @@ export function FantasyProvider({ children, user, activeTeam }) {
       });
       channelsRef.current = [];
     };
-  }, [user, currentWeek, inventory?.players, loadLiveGameData]);
+  }, [user, currentWeek, inventory?.players]); // Removed loadLiveGameData to prevent infinite loop
 
   const value = {
     lineup,

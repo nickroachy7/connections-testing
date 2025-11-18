@@ -95,7 +95,7 @@ Deno.serve(async (req) => {
       const { error: updateLineupError } = await supabase
         .from('weekly_lineups')
         .update({
-          status: 'finalized',
+          status: 'completed',
           beat_average: beatAverage
         })
         .eq('id', lineup.id)
