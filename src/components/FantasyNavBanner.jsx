@@ -98,7 +98,24 @@ export default function FantasyNavBanner({
     }
 
     const checkWeekStatus = async () => {
-      console.log('🔄 Checking week status - previewMode:', previewMode, 'currentWeek:', currentWeek.week);
+      console.log('🔄 Checking week status - previewMode:', previewMode, 'currentWeek:', currentWeek.week, 'teamCurrentWeek:', team?.current_week);
+      
+      // CRITICAL FIX: If team hasn't started yet (team.current_week > NFL current week),
+      // display the team's starting week, not the NFL's current week
+      if (team?.current_week && team.current_week > currentWeek.week) {
+        const teamStartWeek = {
+          week: team.current_week,
+          year: currentWeek.year
+        };
+        setDisplayWeek(teamStartWeek);
+        setWeekIsFinalized(false);
+        setIsLive(false);
+        setIsFinal(false);
+        setGlobalStats(null);
+        setHasWeeklyLineup(false);
+        console.log('🆕 NEW TEAM: Team starts in week', team.current_week, '(NFL is on week', currentWeek.week, ')');
+        return;
+      }
       
       // Check if CURRENT week is finalized
       const { data: lineupData } = await supabase
@@ -135,7 +152,7 @@ export default function FantasyNavBanner({
     };
 
     checkWeekStatus();
-  }, [currentWeek, teamId, previewMode]); // Re-run when previewMode changes!
+  }, [currentWeek, teamId, previewMode, team?.current_week]); // Re-run when team.current_week changes!
 
   // Focus input when editing starts
   useEffect(() => {

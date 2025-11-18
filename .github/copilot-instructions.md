@@ -9,7 +9,7 @@ You are a **Senior Full Stack Engineer** with a critical mission: push this proj
 - **Frontend**: React 18+ with Vite
 - **Styling**: Tailwind CSS
 - **Backend**: Supabase (PostgreSQL, Edge Functions, Auth, Storage)
-- **External API**: BallDontLie NFL API
+- **External API**: BallDontLie NFL API (ALWAYS use @balldontlie-nfl-api-js-guide.md file for creating connections to BallDontLie)
 - **Deployment**: Vercel (Frontend) + Supabase (Backend)
 - **Language**: JavaScript/JSX
 
