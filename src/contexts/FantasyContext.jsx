@@ -17,6 +17,15 @@ function getBaselineProjection(position) {
 }
 
 export function FantasyProvider({ children, user, activeTeam }) {
+  // Track previous team ID to detect team changes BEFORE render
+  const prevTeamIdRef = useRef(null);
+  const isTeamChanging = prevTeamIdRef.current !== null && prevTeamIdRef.current !== activeTeam?.id;
+  
+  // Update ref AFTER we've detected the change
+  useEffect(() => {
+    prevTeamIdRef.current = activeTeam?.id;
+  }, [activeTeam?.id]);
+  
   // Lineup state - shared across all pages
   const [lineup, setLineup] = useState({
     QB: null,
@@ -72,6 +81,27 @@ export function FantasyProvider({ children, user, activeTeam }) {
     loadCurrentWeek();
   }, []); // Run once on mount
 
+  // Clear ALL data when switching teams to prevent stale data flash
+  useEffect(() => {
+    console.log('🔄 [FantasyContext] Active team changed, clearing ALL data. Team:', activeTeam?.team_name, 'Week:', activeTeam?.current_week);
+    // Clear everything to prevent any stale data from showing during team switch
+    setLiveGameData(new Map());
+    setProjections(new Map());
+    setLineup({
+      QB: null,
+      RB1: null,
+      RB2: null,
+      WR1: null,
+      WR2: null,
+      WR3: null,
+      TE: null,
+      FLEX: null,
+      BENCH: []
+    });
+    setInventory({ players: [], tokens: [] });
+    setLoading(true); // Set loading state while switching
+  }, [activeTeam?.id]); // Clear when team changes
+
   // Load live game data
   const loadLiveGameData = useCallback(async (inventoryData = null) => {
     console.log('🎮 [FantasyContext] loadLiveGameData called');
@@ -93,15 +123,28 @@ export function FantasyProvider({ children, user, activeTeam }) {
       const weekNumber = seasonConfig.current_week;
       const seasonYear = seasonConfig.season_year;
       
-      console.log('🎮 [FantasyContext] Using week from config:', weekNumber, 'year:', seasonYear);
+      console.log('🎮 [FantasyContext] NFL week:', weekNumber, 'Team current_week:', activeTeam?.current_week);
       
       setCurrentWeek({ week: weekNumber, year: seasonYear });
       
-      // Load games for current week
+      // CRITICAL FIX: Load games for the TEAM's current week, not the NFL's current week
+      // This prevents showing stale data when team is behind/ahead of real NFL schedule
+      const teamWeek = activeTeam?.current_week || weekNumber;
+      
+      // If team hasn't started yet (team.current_week > NFL week), don't load any game data
+      if (activeTeam?.current_week && activeTeam.current_week > weekNumber) {
+        console.log('🎮 [FantasyContext] Team hasnt started yet (starts week', activeTeam.current_week, ') - clearing game data');
+        setLiveGameData(new Map());
+        return;
+      }
+      
+      console.log('🎮 [FantasyContext] Loading game data for team week:', teamWeek);
+      
+      // Load games for TEAM's current week (not NFL's current week)
       const { data: gamesData, error: gamesError } = await supabase
         .from('game_scores')
         .select('*')
-        .eq('week_number', weekNumber)
+        .eq('week_number', teamWeek)
         .eq('season_year', seasonYear);
       
       if (gamesError) {
@@ -169,7 +212,8 @@ export function FantasyProvider({ children, user, activeTeam }) {
             quarter: game.quarter,
             currentPoints: stat.fantasy_points || 0,
             stats: stat.stats,
-            lastUpdated: stat.last_updated
+            lastUpdated: stat.last_updated,
+            weekNumber: teamWeek // Add week number for validation
           });
         }
       });

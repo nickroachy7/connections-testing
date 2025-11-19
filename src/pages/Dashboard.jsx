@@ -388,22 +388,23 @@ export default function Dashboard() {
     }
 
     try {
-      console.log('📊 Dashboard: Loading game data for Week', currentWeek.week);
-      
-      // Use current week from config, not calculated from today's date
-      const weekNumber = currentWeek.week;
+      // CRITICAL FIX: Use team's current week, not NFL's current week
+      // This prevents showing stale FINAL stats from previous weeks
+      const teamWeek = activeTeam?.current_week || currentWeek.week;
       const seasonYear = currentWeek.year;
       
-      // Load games for the week being displayed
+      console.log('📊 Dashboard: Loading game data for team week', teamWeek, '(NFL week:', currentWeek.week, ', Team:', activeTeam?.team_name, ')');
+      
+      // Load games for the TEAM's week (not NFL's week)
       const { data: gamesData, error: gamesError } = await supabase
         .from('game_scores')
         .select('*')
-        .eq('week_number', weekNumber)
+        .eq('week_number', teamWeek)
         .eq('season_year', seasonYear);
       
       if (gamesError) throw gamesError;
       
-      console.log('📊 Dashboard: Found', gamesData?.length || 0, 'games for Week', weekNumber);
+      console.log('📊 Dashboard: Found', gamesData?.length || 0, 'games for Week', teamWeek);
       
       // Load player stats for the week
       if (gamesData && gamesData.length > 0) {
