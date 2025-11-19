@@ -1,4 +1,4 @@
-import { Outlet, useLoaderData, useLocation } from 'react-router-dom';
+import { Outlet, useLoaderData, useLocation, useRevalidator } from 'react-router-dom';
 import { FantasyProvider, useFantasy } from '../contexts/FantasyContext';
 import FantasyNavBanner from './FantasyNavBanner';
 
@@ -6,11 +6,17 @@ import FantasyNavBanner from './FantasyNavBanner';
 function FantasyLayoutInner() {
   const loaderData = useLoaderData();
   const { user, profile, activeTeam } = loaderData;
-  const { lineup, projections, liveGameData, currentWeek, inventory } = useFantasy();
+  const { lineup, projections, liveGameData, currentWeek, inventory, loadInventory } = useFantasy();
   const location = useLocation();
+  const revalidator = useRevalidator();
 
   // Enable preview mode ONLY on starting-lineup page
   const isStartingLineupPage = location.pathname.includes('/starting-lineup');
+
+  // Function to refresh profile data (including coins)
+  const refreshProfile = () => {
+    revalidator.revalidate();
+  };
 
   return (
     <div className="min-h-screen bg-dk-black-primary">
@@ -42,7 +48,9 @@ function FantasyLayoutInner() {
           projections,
           liveGameData,
           currentWeek,
-          inventory
+          inventory,
+          loadInventory,
+          refreshProfile
         }} />
       </main>
     </div>

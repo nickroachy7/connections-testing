@@ -105,18 +105,19 @@ Deno.serve(async (req) => {
       baseValue = tokenInventory.token_card.base_value
     }
 
-    // Get user's current coin balance
-    const { data: userProfile, error: profileError } = await supabase
-      .from('users')
-      .select('total_coins')
-      .eq('id', user.id)
+    // Get team's current coin balance (cards belong to teams)
+    const teamId = cardData.team_id
+    const { data: team, error: teamError } = await supabase
+      .from('teams')
+      .select('coins')
+      .eq('id', teamId)
       .single()
     
-    if (profileError || !userProfile) {
-      throw new Error('User profile not found')
+    if (teamError || !team) {
+      throw new Error('Team not found')
     }
 
-    const newCoinBalance = userProfile.total_coins + baseValue
+    const newCoinBalance = team.coins + baseValue
 
     // Perform the transaction
     // 1. Delete the inventory item
@@ -141,11 +142,11 @@ Deno.serve(async (req) => {
       throw new Error(`Failed to delete ${card_type} card: ${deleteError.message}`)
     }
 
-    // 2. Update user's coin balance
+    // 2. Update team's coin balance
     const { error: updateError } = await supabase
-      .from('users')
-      .update({ total_coins: newCoinBalance })
-      .eq('id', user.id)
+      .from('teams')
+      .update({ coins: newCoinBalance })
+      .eq('id', teamId)
     
     if (updateError) {
       throw new Error(`Failed to update coin balance: ${updateError.message}`)
