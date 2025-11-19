@@ -27,6 +27,9 @@ export default function Dashboard() {
   const [error, setError] = useState('');
   const [packContents, setPackContents] = useState(null);
   
+  // Use context inventory as primary source (always fresh from FantasyContext)
+  const inventory = initialInventory;
+  
   // Lineup state for read-only display
   const [lineup, setLineup] = useState({
     QB: null,
@@ -65,12 +68,19 @@ export default function Dashboard() {
     }
   }, [user, navigate]);
 
-  // Load lineup data when inventory changes (from loader)
+  // Load lineup data when inventory changes (from context)
   useEffect(() => {
-    if (initialInventory?.players && activeTeam && contextCurrentWeek) {
-      loadLineupData(initialInventory);
+    console.log('📊 [Dashboard] Inventory changed, reloading lineup:', {
+      hasInventory: !!inventory,
+      playerCount: inventory?.players?.length,
+      activeTeam: activeTeam?.id,
+      currentWeek: contextCurrentWeek?.week
+    });
+    
+    if (inventory?.players && activeTeam && contextCurrentWeek) {
+      loadLineupData(inventory);
     }
-  }, [initialInventory, activeTeam, contextCurrentWeek]); // Don't include loadLineupData to avoid circular dependency
+  }, [inventory, activeTeam, contextCurrentWeek]); // Use inventory directly, not initialInventory
   
   // Load leaderboard data
   useEffect(() => {
