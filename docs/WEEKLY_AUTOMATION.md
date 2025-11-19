@@ -150,8 +150,8 @@ two_point_conversions: 2 pts
 **Win/Loss Logic:**
 ```javascript
 const globalAverage = totalPoints / weeklyLineups.length
-const beatAverage = lineup.total_points >= globalAverage
-const result = beatAverage ? 'win' : 'loss'
+const beatMedian = lineup.total_points >= globalMedian
+const result = beatMedian ? 'win' : 'loss'
 const isEliminated = newLosses >= team.contest_type.max_losses
 ```
 

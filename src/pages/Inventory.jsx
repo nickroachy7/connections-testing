@@ -6,7 +6,7 @@ import RosterLimitBanner from '../components/RosterLimitBanner';
 import RosterCount from '../components/RosterCount';
 
 export default function Inventory() {
-  const { user, profile, activeTeam, inventory: loaderInventory } = useOutletContext();
+  const { user, profile, activeTeam, inventory: loaderInventory, refreshProfile } = useOutletContext();
   const [inventory, setInventory] = useState(loaderInventory || { players: [], tokens: [] });
   const [filters, setFilters] = useState({
     position: 'all',
@@ -251,8 +251,8 @@ export default function Inventory() {
     };
   }, [user, currentWeek]);
 
-  const handleQuickSell = async (inventoryId, cardType, baseValue) => {
-    if (!window.confirm(`Are you sure you want to sell this card for ${baseValue} coins?`)) {
+  const handleQuickSell = async (inventoryId, cardType, baseValue, skipConfirm = false) => {
+    if (!skipConfirm && !window.confirm(`Are you sure you want to sell this card for ${baseValue} coins?`)) {
       return;
     }
 
@@ -329,6 +329,7 @@ export default function Inventory() {
             liveGameData={liveGameData}
             onQuickSell={handleQuickSell}
             onBulkSellComplete={loadInventory}
+            onReloadProfile={refreshProfile}
             selling={selling}
             filters={filters}
             onFilterChange={setFilters}

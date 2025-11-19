@@ -11,7 +11,8 @@ import PropTypes from 'prop-types';
  */
 export default function TokensCarousel({
   availableTokens,
-  onTokenDragStart
+  onTokenDragStart,
+  onTokenDragEnd
 }) {
   const getRarityColor = (rarity) => {
     switch (rarity) {
@@ -60,6 +61,7 @@ export default function TokensCarousel({
               key={token.id}
               draggable
               onDragStart={(e) => onTokenDragStart(e, token)}
+              onDragEnd={onTokenDragEnd}
               className={`
                 flex items-center gap-4 p-4 rounded-lg border-2 transition-all cursor-move
                 bg-gradient-to-r ${getRarityColor(token.token_card.rarity)} ${getRarityGlow(token.token_card.rarity)}
@@ -118,5 +120,6 @@ export default function TokensCarousel({
 
 TokensCarousel.propTypes = {
   availableTokens: PropTypes.array.isRequired,
-  onTokenDragStart: PropTypes.func.isRequired
+  onTokenDragStart: PropTypes.func.isRequired,
+  onTokenDragEnd: PropTypes.func
 };

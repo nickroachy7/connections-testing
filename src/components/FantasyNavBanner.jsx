@@ -836,8 +836,8 @@ export default function FantasyNavBanner({
   const averageScore = simulatedSeasonId && simulatedAverage
     ? parseFloat(simulatedAverage)
     : (hasGlobalStats 
-        ? (isLive ? (globalStats?.average_score || 0) : (globalStats?.average_score || 0))
-        : userScore); // When you're the only team, you ARE the average
+        ? (isLive ? (globalStats?.median_score || 0) : (globalStats?.median_score || 0))
+        : userScore); // When you're the only team, you ARE the median
   
   const maxScore = hasGlobalStats 
     ? (globalStats?.highest_score || userScore * 1.5) 
@@ -1081,10 +1081,10 @@ export default function FantasyNavBanner({
               isAboveAverage ? 'text-dk-green-primary' : 'text-orange-400'
             }`}>
               {userScore > averageScore 
-                ? `↑ ${(userScore - averageScore).toFixed(1)} pts above average`
+                ? `↑ ${(userScore - averageScore).toFixed(1)} pts above median`
                 : userScore < averageScore
-                  ? `↓ ${(averageScore - userScore).toFixed(1)} pts below average`
-                  : `= Right at average`
+                  ? `↓ ${(averageScore - userScore).toFixed(1)} pts below median`
+                  : `= Right at median`
               }
             </p>
           )}

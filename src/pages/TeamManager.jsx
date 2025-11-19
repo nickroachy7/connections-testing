@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useNavigate, useRevalidator, useOutletContext } from 'react-router-dom';
+import { useNavigate, useRevalidator, useOutletContext, useLocation } from 'react-router-dom';
 import { getUserInventory, quickSellCard, supabase } from '../services/supabase';
 import { calculateBatchProjections, getInstantBaselineProjections } from '../utils/projections';
 import { shouldBlockLineupChanges, shouldBlockTokenActions, getRosterLimitErrorMessage } from '../utils/rosterLimits';
@@ -23,9 +23,10 @@ function getBaselineProjection(position) {
 }
 
 export default function TeamManager() {
-  const { user, profile, teams, activeTeam: initialActiveTeam, inventory: contextInventory } = useOutletContext();
+  const { user, profile, teams, activeTeam: initialActiveTeam, inventory: contextInventory, loadInventory: reloadInventoryFromContext } = useOutletContext();
   const navigate = useNavigate();
   const revalidator = useRevalidator();
+  const location = useLocation();
   
   // Team & Inventory state - use context inventory as primary source (always fresh)
   const [activeTeam, setActiveTeam] = useState(initialActiveTeam);
@@ -41,7 +42,6 @@ export default function TeamManager() {
   // Update inventory when context inventory changes (e.g., after pack opening)
   useEffect(() => {
     if (contextInventory && contextInventory.players) {
-      console.log('📦 [TeamManager] Context inventory updated, reloading lineup');
       setInventory(contextInventory);
       
       // Reload lineup from new inventory
@@ -89,7 +89,6 @@ export default function TeamManager() {
       });
       
       setProjections(dbProjections);
-      console.log('⚡ [TeamManager] Projections updated from context:', dbProjections.size, 'players');
     }
   }, [contextInventory]);
   
@@ -118,8 +117,7 @@ export default function TeamManager() {
   const [comparisonMode, setComparisonMode] = useState(false);
   const [selectedForComparison, setSelectedForComparison] = useState([]);
   
-  // Bulk actions state
-  const [bulkSelectMode, setBulkSelectMode] = useState(false);
+  // Bulk actions state - Array of {id, type: 'player'|'token', value, item}
   const [selectedForBulkAction, setSelectedForBulkAction] = useState([]);
   
   // UI state
@@ -134,6 +132,7 @@ export default function TeamManager() {
   // Auto-save refs
   const autoSaveTimeoutRef = useRef(null);
   const initialLoadRef = useRef(true);
+  const saveLineupRef = useRef(null);
   
   // Player selection modal state
   const [playerSelectionModal, setPlayerSelectionModal] = useState({
@@ -143,6 +142,9 @@ export default function TeamManager() {
   
   // Bench filter state for slot selection
   const [benchFilterPosition, setBenchFilterPosition] = useState(null);
+  
+  // Token filter state - when user clicks + on a player card
+  const [tokenFilterPlayerId, setTokenFilterPlayerId] = useState(null);
   
   // Projections state
   const [projections, setProjections] = useState(new Map());
@@ -179,11 +181,11 @@ export default function TeamManager() {
 
   // Load live game data - NO LONGER depends on inventory in useEffect
   const loadLiveGameData = useCallback(async (inventoryData = null) => {
-    console.log('🎮 loadLiveGameData called!');
+    // console.log('🎮 loadLiveGameData called!');
     try {
       // Use passed inventory data or fall back to state
       const playersData = inventoryData?.players || inventory?.players;
-      console.log('Players data available:', playersData?.length || 0);
+      // console.log('Players data available:', playersData?.length || 0);
       
       // Get current week from nfl_season_config table
       const { data: seasonConfig, error: seasonError } = await supabase
@@ -200,7 +202,7 @@ export default function TeamManager() {
       const weekNumber = seasonConfig.current_week;
       const seasonYear = seasonConfig.season_year;
       
-      console.log('🎮 Using week from config:', weekNumber, 'year:', seasonYear);
+      // console.log('🎮 Using week from config:', weekNumber, 'year:', seasonYear);
       
       setCurrentWeek({ week: weekNumber, year: seasonYear });
 
@@ -216,11 +218,11 @@ export default function TeamManager() {
 
         const isFinalized = weeklyLineup?.status === 'completed';
         setIsPreviewMode(isFinalized);
-        console.log('🔮 Preview mode:', isFinalized ? 'ENABLED (week finalized)' : 'DISABLED');
+        // console.log('🔮 Preview mode:', isFinalized ? 'ENABLED (week finalized)' : 'DISABLED');
         
         // In preview mode, clear live game data and only show projections
         if (isFinalized) {
-          console.log('🔮 Preview mode: Clearing live game data, showing only projections for next week');
+          // console.log('🔮 Preview mode: Clearing live game data, showing only projections for next week');
           setLiveGameData(new Map());
           return; // Skip loading live game data for previous week
         }
@@ -233,7 +235,7 @@ export default function TeamManager() {
         .eq('week_number', weekNumber)
         .eq('season_year', seasonYear);
       
-      console.log('Games query result:', { weekNumber, seasonYear, gamesCount: gamesData?.length, error: gamesError });
+      // console.log('Games query result:', { weekNumber, seasonYear, gamesCount: gamesData?.length, error: gamesError });
       
       if (gamesError) throw gamesError;
       
@@ -262,16 +264,7 @@ export default function TeamManager() {
           console.error('Error loading player stats:', statsError);
         }
         
-        console.log('📊 Loaded stats for', statsData?.length || 0, 'player records');
-        
-        // Debug: Check if Darnold's stats are in the result
-        const darnoldStat = statsData?.find(s => s.player_cards?.player_id === '70');
-        if (darnoldStat) {
-          console.log('🎮 DARNOLD FOUND in statsData:', darnoldStat);
-        } else {
-          console.log('🎮 DARNOLD NOT FOUND in statsData!');
-          console.log('🎮 All player IDs in statsData:', statsData?.map(s => s.player_cards?.player_id).filter(Boolean));
-        }
+        // console.log('📊 Loaded stats for', statsData?.length || 0, 'player records');
         
         // Create a map of player_id -> game data for players with stats
         const gameDataMap = new Map();
@@ -280,10 +273,6 @@ export default function TeamManager() {
           const game = gamesData.find(g => g.game_id === stat.game_id);
           if (game && stat.player_cards) {
             const playerId = stat.player_cards.player_id;
-            
-            if (playerId === '70') {
-              console.log(`🎮 DARNOLD: Adding to gameDataMap with ${stat.fantasy_points} points, status: ${game.game_status}`);
-            }
             
             gameDataMap.set(playerId, {
               gameStatus: game.game_status,
@@ -302,8 +291,8 @@ export default function TeamManager() {
         // Also check for scheduled games and add player entries for those
         // We need to get players from inventory and match them to teams in scheduled games
         if (playersData && playersData.length > 0) {
-          console.log('Processing', playersData.length, 'players for game matching');
-          console.log('Available games this week:', gamesData.length);
+          // console.log('Processing', playersData.length, 'players for game matching');
+          // console.log('Available games this week:', gamesData.length);
           
           for (const playerCard of playersData) {
             // Skip if we already have data for this player
@@ -320,7 +309,7 @@ export default function TeamManager() {
               const isHome = teamGame.home_team === playerTeamAbbr;
               const opponent = isHome ? teamGame.away_team : teamGame.home_team;
               
-              console.log(`Found game for ${playerCard.player_card.player_name} (${playerTeamAbbr}): ${isHome ? 'vs' : '@'} ${opponent}, status: ${teamGame.game_status}`);
+              // console.log(`Found game for ${playerCard.player_card.player_name} (${playerTeamAbbr}): ${isHome ? 'vs' : '@'} ${opponent}, status: ${teamGame.game_status}`);
               
               gameDataMap.set(playerCard.player_card.player_id, {
                 gameStatus: teamGame.game_status,
@@ -340,14 +329,7 @@ export default function TeamManager() {
         }
         
         setLiveGameData(gameDataMap);
-        console.log('Live game data loaded:', gameDataMap.size, 'players with game data');
-        
-        // Debug: Check if Darnold is in final map
-        if (gameDataMap.has('70')) {
-          console.log('🎮 DARNOLD FINAL: In gameDataMap with data:', gameDataMap.get('70'));
-        } else {
-          console.log('🎮 DARNOLD FINAL: NOT in gameDataMap!');
-        }
+        // console.log('Live game data loaded:', gameDataMap.size, 'players with game data');
       }
     } catch (err) {
       console.error('Error loading live game data:', err);
@@ -411,13 +393,10 @@ export default function TeamManager() {
               injuryStatus: p.player_card.injury_status || 'healthy',
               isFromDatabase: true
             });
-            
-            console.log(`Player ${p.player_card.player_id}: DB value = "${p.player_card.weekly_projected_points}", Parsed = ${weeklyProj}`);
           }
         });
         
         setProjections(dbProjections);
-        console.log('⚡ INSTANT projections loaded from database for', dbProjections.size, 'players');
       }
       
       // Load live game data after inventory is loaded
@@ -585,6 +564,16 @@ export default function TeamManager() {
     
     // Check roster limit
     if (shouldBlockLineupChanges(inventory)) {
+      const playerCount = inventory?.players?.length || 0;
+      const tokenCount = inventory?.tokens?.length || 0;
+      const totalCount = playerCount + tokenCount;
+      console.error('🚫 Lineup change blocked - Roster over limit:', {
+        players: playerCount,
+        tokens: tokenCount,
+        total: totalCount,
+        limit: 20,
+        overBy: totalCount - 20
+      });
       setError(getRosterLimitErrorMessage());
       setTimeout(() => setError(''), 5000);
       setDraggedPlayer(null);
@@ -747,9 +736,16 @@ export default function TeamManager() {
   const handleTokenDragStart = (e, token) => {
     console.log('🎯 Token drag started:', token.token_card.token_name, 'ID:', token.id);
     setDraggedToken(token);
+    window.currentDraggedToken = true; // Set global flag for drag detection
     e.dataTransfer.effectAllowed = 'copy';
     e.dataTransfer.setData('text/plain', `token:${token.id}`);
     console.log('🎯 Token data set:', `token:${token.id}`);
+  };
+
+  const handleTokenDragEnd = () => {
+    console.log('🎯 Token drag ended');
+    window.currentDraggedToken = false; // Clear global flag
+    setDraggedToken(null);
   };
 
   const handleTokenDrop = async (e, player) => {
@@ -759,6 +755,9 @@ export default function TeamManager() {
     
     e.preventDefault();
     e.stopPropagation();
+    
+    // Clear the global flag
+    window.currentDraggedToken = false;
     
     const tokenToUse = draggedToken;
     
@@ -798,6 +797,62 @@ export default function TeamManager() {
       
       // Trigger auto-save after token application
       triggerAutoSave();
+      
+      // Clear token filter if active
+      if (tokenFilterPlayerId) {
+        setTokenFilterPlayerId(null);
+      }
+    } catch (err) {
+      console.error('Error applying token:', err);
+      setError('Failed to apply token');
+      setTimeout(() => setError(''), 3000);
+    }
+  };
+
+  // Handle one-click token application from filtered list
+  const handleApplyTokenToPlayer = async (token, playerId) => {
+    // Find the player
+    const player = [...Object.values(lineup), ...lineup.BENCH]
+      .flat()
+      .find(p => p && p.id === playerId);
+    
+    if (!player || player.is_locked) {
+      setError('Cannot apply token to locked player');
+      setTimeout(() => setError(''), 3000);
+      return;
+    }
+    
+    // Check roster limit
+    if (shouldBlockTokenActions(inventory)) {
+      setError(getRosterLimitErrorMessage());
+      setTimeout(() => setError(''), 5000);
+      return;
+    }
+    
+    try {
+      await supabase
+        .from('user_token_inventory')
+        .update({
+          applied_to_player_id: player.id,
+          is_active: true
+        })
+        .eq('id', token.id);
+      
+      // Update token inventory locally
+      setInventory(prev => ({
+        ...prev,
+        tokens: prev.tokens.map(t => 
+          t.id === token.id 
+            ? { ...t, applied_to_player_id: player.id, is_active: true }
+            : t
+        )
+      }));
+      
+      // Trigger auto-save
+      triggerAutoSave();
+      
+      // Clear token filter
+      setTokenFilterPlayerId(null);
     } catch (err) {
       console.error('Error applying token:', err);
       setError('Failed to apply token');
@@ -854,6 +909,9 @@ export default function TeamManager() {
       
       // Update last saved timestamp
       setLastSaved(new Date());
+      
+      // Note: We don't reload inventory here to avoid infinite loops
+      // The context will be revalidated when navigating to other pages
     } catch (err) {
       console.error('Error saving lineup:', err);
       if (!isAutoSave) {
@@ -867,6 +925,9 @@ export default function TeamManager() {
       }
     }
   };
+  
+  // Store the latest save function in a ref
+  saveLineupRef.current = handleSaveLineup;
 
   // Immediate save function (no debounce) - for page navigation
   const saveImmediately = useCallback(() => {
@@ -877,7 +938,7 @@ export default function TeamManager() {
     handleSaveLineup(true);
   }, [activeTeam, lineup]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Debounced auto-save function - faster 500ms for better UX
+  // Debounced auto-save function - faster 300ms for better UX
   const triggerAutoSave = useCallback(() => {
     if (!activeTeam) return;
     
@@ -886,10 +947,10 @@ export default function TeamManager() {
       clearTimeout(autoSaveTimeoutRef.current);
     }
     
-    // Set new timeout to save after 500ms (reduced from 1s for instant feel)
+    // Set new timeout to save after 300ms (reduced for faster saves when navigating)
     autoSaveTimeoutRef.current = setTimeout(() => {
       handleSaveLineup(true);
-    }, 500);
+    }, 300);
   }, [activeTeam, lineup]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-save whenever lineup changes (after initial load)
@@ -913,18 +974,32 @@ export default function TeamManager() {
 
   // Save immediately when user navigates away or switches tabs
   useEffect(() => {
-    const handleVisibilityChange = () => {
+    const handleVisibilityChange = async () => {
       if (document.hidden && activeTeam && !initialLoadRef.current) {
         // Page is being hidden - save immediately without debounce
         console.log('💾 Page hidden - saving lineup immediately');
-        saveImmediately();
+        if (autoSaveTimeoutRef.current) {
+          clearTimeout(autoSaveTimeoutRef.current);
+          autoSaveTimeoutRef.current = null;
+        }
+        await saveImmediately();
+        
+        // Reload context inventory so Dashboard shows updated lineup
+        if (reloadInventoryFromContext) {
+          await reloadInventoryFromContext();
+        }
       }
     };
 
-    const handleBeforeUnload = () => {
+    const handleBeforeUnload = (e) => {
       // Page is being closed/refreshed - save immediately
       if (activeTeam && !initialLoadRef.current) {
         console.log('💾 Page unloading - saving lineup immediately');
+        if (autoSaveTimeoutRef.current) {
+          clearTimeout(autoSaveTimeoutRef.current);
+          autoSaveTimeoutRef.current = null;
+        }
+        // Use sendBeacon for more reliable saves on page unload
         saveImmediately();
       }
     };
@@ -937,6 +1012,66 @@ export default function TeamManager() {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
   }, [activeTeam, saveImmediately]);
+
+  // Intercept all navigation clicks to save before navigating
+  useEffect(() => {
+    const handleLinkClick = async (e) => {
+      // Check if click is on a navigation link
+      const link = e.target.closest('a[href]');
+      if (link && activeTeam) {
+        const targetHref = link.getAttribute('href');
+        
+        // Don't intercept external links or same-page navigation
+        if (targetHref.startsWith('http') || targetHref === window.location.pathname) {
+          return;
+        }
+        
+        // Prevent default navigation
+        e.preventDefault();
+        e.stopPropagation();
+        
+        console.log('🔗 Navigation intercepted to:', targetHref);
+        
+        // Clear any pending auto-save
+        if (autoSaveTimeoutRef.current) {
+          clearTimeout(autoSaveTimeoutRef.current);
+          autoSaveTimeoutRef.current = null;
+        }
+        
+        try {
+          // Step 1: Save lineup to database
+          if (saveLineupRef.current) {
+            console.log('💾 Step 1: Saving lineup to database...');
+            await saveLineupRef.current(true);
+            console.log('✅ Step 1 complete: Lineup saved to database');
+          }
+          
+          // Step 2: Reload FantasyContext inventory from database
+          if (reloadInventoryFromContext) {
+            console.log('🔄 Step 2: Reloading inventory from database...');
+            await reloadInventoryFromContext();
+            console.log('✅ Step 2 complete: Inventory reloaded in context');
+          }
+          
+          // Step 3: Small delay to ensure React state updates propagate
+          await new Promise(resolve => setTimeout(resolve, 100));
+          console.log('✅ Step 3 complete: State propagated');
+          
+        } catch (error) {
+          console.error('❌ Error during save/reload:', error);
+        }
+        
+        console.log('➡️ Step 4: Navigating to:', targetHref);
+        // Now navigate - FantasyContext should have fresh data
+        navigate(targetHref);
+      }
+    };
+
+    document.addEventListener('click', handleLinkClick, true);
+    return () => {
+      document.removeEventListener('click', handleLinkClick, true);
+    };
+  }, [activeTeam, reloadInventoryFromContext, navigate, location.pathname]);
 
   // Quick sell handler
   const handleQuickSell = async (inventoryId, cardType, baseValue) => {
@@ -994,6 +1129,28 @@ export default function TeamManager() {
         benchSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
     }, 100); // Small delay to ensure state updates first
+  };
+
+  // Handle click to add token to player - filters tokens in bench panel
+  const handleClickToAddToken = (player) => {
+    setTokenFilterPlayerId(player.id);
+    setBenchFilterPosition(null); // Clear player filter
+    // Scroll to bench section smoothly with centered positioning
+    setTimeout(() => {
+      const benchSection = document.querySelector('[data-bench-section]');
+      if (benchSection) {
+        benchSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 100);
+  };
+
+  // Get the player object for the token filter
+  const getTokenFilterPlayer = () => {
+    if (!tokenFilterPlayerId) return null;
+    
+    // Search in lineup and bench
+    const allPlayers = [...Object.values(lineup).filter(p => p && typeof p === 'object'), ...lineup.BENCH].flat();
+    return allPlayers.find(p => p && p.id === tokenFilterPlayerId);
   };
 
   // Handle moving a player from bench to a specific slot
@@ -1197,18 +1354,28 @@ export default function TeamManager() {
   };
 
   // Bulk action handlers
-  const toggleBulkSelect = (player) => {
-    if (selectedForBulkAction.find(p => p.id === player.id)) {
-      setSelectedForBulkAction(selectedForBulkAction.filter(p => p.id !== player.id));
+  const toggleBulkSelect = (item, cardType) => {
+    const itemId = item.id;
+    if (selectedForBulkAction.find(s => s.id === itemId)) {
+      setSelectedForBulkAction(selectedForBulkAction.filter(s => s.id !== itemId));
     } else {
-      setSelectedForBulkAction([...selectedForBulkAction, player]);
+      const value = cardType === 'player' ? item.player_card.base_value : item.token_card.base_value;
+      setSelectedForBulkAction([...selectedForBulkAction, { id: itemId, type: cardType, value, item }]);
     }
   };
 
   const handleBulkQuickSell = async () => {
-    const totalValue = selectedForBulkAction.reduce((sum, p) => sum + p.player_card.base_value, 0);
+    const totalValue = selectedForBulkAction.reduce((sum, s) => sum + s.value, 0);
+    const playerCount = selectedForBulkAction.filter(s => s.type === 'player').length;
+    const tokenCount = selectedForBulkAction.filter(s => s.type === 'token').length;
     
-    if (!window.confirm(`Sell ${selectedForBulkAction.length} cards for ${totalValue} coins total?`)) {
+    const itemText = playerCount && tokenCount 
+      ? `${playerCount} player${playerCount > 1 ? 's' : ''} and ${tokenCount} token${tokenCount > 1 ? 's' : ''}`
+      : playerCount 
+        ? `${playerCount} player${playerCount > 1 ? 's' : ''}`
+        : `${tokenCount} token${tokenCount > 1 ? 's' : ''}`;
+    
+    if (!window.confirm(`Sell ${itemText} for ${totalValue} coins total?`)) {
       return;
     }
 
@@ -1216,15 +1383,15 @@ export default function TeamManager() {
     setError('');
 
     try {
-      let totalCoins = 0;
+      // Sell all cards in parallel for instant execution
+      await Promise.all(
+        selectedForBulkAction.map(selection => 
+          quickSellCard(selection.id, selection.type)
+        )
+      );
       
-      for (const player of selectedForBulkAction) {
-        const result = await quickSellCard(player.id, 'player', player.player_card.base_value);
-        totalCoins += result.coins_earned;
-      }
-      
+      // Clear selection and reload inventory after all sales complete
       setSelectedForBulkAction([]);
-      setBulkSelectMode(false);
       await loadInventory();
     } catch (err) {
       console.error('Error bulk selling:', err);
@@ -1457,6 +1624,7 @@ export default function TeamManager() {
             onPlayerDragStart={handlePlayerDragStart}
             onTokenDrop={handleTokenDrop}
             onClickToAdd={handleClickToAdd}
+            onClickToAddToken={handleClickToAddToken}
             onRemovePlayer={handleRemovePlayer}
             liveGameData={isPreviewMode ? new Map() : liveGameData}
             projections={projections}
@@ -1482,14 +1650,25 @@ export default function TeamManager() {
           availableTokens={availableTokens}
           onPlayerDragStart={handlePlayerDragStart}
           onTokenDragStart={handleTokenDragStart}
+          onTokenDragEnd={handleTokenDragEnd}
           onPlayerDrop={(e) => handlePlayerDrop(e, 'BENCH')}
           liveGameData={isPreviewMode ? new Map() : liveGameData}
           projections={projections}
           inventory={inventory}
           onRemoveToken={handleRemoveToken}
           filterPosition={benchFilterPosition}
+          tokenFilterPlayerId={tokenFilterPlayerId}
+          tokenFilterPlayer={getTokenFilterPlayer()}
+          onApplyTokenToPlayer={handleApplyTokenToPlayer}
           onMoveToSlot={handleMoveToSlot}
-          onClearFilter={() => setBenchFilterPosition(null)}
+          onClearFilter={() => {
+            setBenchFilterPosition(null);
+            setTokenFilterPlayerId(null);
+          }}
+          selectedForBulkAction={selectedForBulkAction}
+          onToggleBulkSelect={toggleBulkSelect}
+          onBulkSell={handleBulkQuickSell}
+          selling={selling}
         />
       </section>
 

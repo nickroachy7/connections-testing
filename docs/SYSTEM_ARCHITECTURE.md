@@ -52,14 +52,14 @@ WEEK N FINALIZATION (Tue 12:01 AM)
 │  Runs: Tuesday 12:01 AM                                             │
 ├─────────────────────────────────────────────────────────────────────┤
 │  1. Query: weekly_lineups WHERE status = 'pending'                 │
-│  2. Calculate: globalAverage = avg(total_points)                   │
+│  2. Calculate: globalMedian = median(total_points)                    │
 │  3. For each lineup:                                                │
-│     • beatAverage = (total_points >= globalAverage)                │
-│     • result = beatAverage ? 'win' : 'loss'                        │
+│     • beatMedian = (total_points >= globalMedian)                   │
+│     • result = beatMedian ? 'win' : 'loss'                         │
 │  4. UPDATE: weekly_lineups.status = 'finalized'                    │
 │  5. UPDATE: teams (wins++, losses++, is_active)                    │
 │  6. INSERT: transactions (log result)                              │
-│  7. UPSERT: weekly_global_stats (average_score, etc.)              │
+│  7. UPSERT: weekly_global_stats (median_score, etc.)               │
 └─────────────────────────────────────────────────────────────────────┘
 
          Database state after finalization:
@@ -71,7 +71,7 @@ WEEK N FINALIZATION (Tue 12:01 AM)
          ├───────────────────────────┤
          │ weekly_lineups            │
          │   status = 'finalized'    │
-         │   beat_average = true/false│
+         │   beat_median = true/false│
          └───────────────────────────┘
 
 

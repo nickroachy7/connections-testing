@@ -17,19 +17,28 @@ export default function BenchAndTokensPanel({
   availableTokens,
   onPlayerDragStart,
   onTokenDragStart,
+  onTokenDragEnd,
   onPlayerDrop,
   liveGameData,
   projections,
   inventory,
   filterPosition = null,
+  tokenFilterPlayerId = null,
+  tokenFilterPlayer = null,
+  onApplyTokenToPlayer,
   onMoveToSlot,
-  onClearFilter
+  onClearFilter,
+  selectedForBulkAction = [],
+  onToggleBulkSelect,
+  onBulkSell,
+  selling = {}
 }) {
   const [activeTab, setActiveTab] = useState('all'); // 'all', 'players', or 'tokens'
   const [isDragOver, setIsDragOver] = useState(false);
 
   // When filterPosition is set, automatically switch to players tab and filter
-  const effectiveTab = filterPosition ? 'players' : activeTab;
+  // When tokenFilterPlayerId is set, automatically switch to tokens tab
+  const effectiveTab = filterPosition ? 'players' : tokenFilterPlayerId ? 'tokens' : activeTab;
   
   // Helper to check if a player is eligible for the filter position
   const isPlayerEligibleForPosition = (player, position) => {
@@ -124,6 +133,11 @@ export default function BenchAndTokensPanel({
         !isPlayerGameLiveOrFinal(player)
       )
     : sortedBenchPlayers;
+
+  // Filter tokens when user clicks + on a player card
+  const filteredTokens = tokenFilterPlayerId 
+    ? availableTokens.filter(token => !token.applied_to_player_id && !token.is_active)
+    : availableTokens;
 
   const getTierBadgeInfo = (tier) => {
     const tiers = {
@@ -247,6 +261,7 @@ export default function BenchAndTokensPanel({
   const renderPlayerRow = (player, index) => {
     const appliedToken = inventory?.tokens?.find(t => t.applied_to_player_id === player.id && t.is_active);
     const isLocked = player?.is_locked || isPlayerGameLiveOrFinal(player); // Lock if DB says so OR game is live/final
+    const isSelected = selectedForBulkAction.some(s => s.id === player.id);
     
     return (
       <div
@@ -262,11 +277,26 @@ export default function BenchAndTokensPanel({
         className={`
           flex items-center gap-4 px-4 py-4 transition-all 
           ${isLocked ? 'cursor-not-allowed opacity-60 bg-red-900/20' : 'cursor-move hover:bg-primary-green-500/10 hover:border-primary-green-500'}
-          ${!isLocked && 'border-l-4 border-transparent'}
-          ${isLocked && 'border-l-4 border-red-500/50'}
-          ${index % 2 === 0 && !isLocked ? 'bg-primary-black-900' : !isLocked ? 'bg-primary-black-800/50' : ''}
+          ${!isLocked && 'border-l-4'}
+          ${isLocked ? 'border-red-500/50' : isSelected ? 'border-primary-green-500 bg-primary-green-500/20' : 'border-transparent'}
+          ${index % 2 === 0 && !isLocked && !isSelected ? 'bg-primary-black-900' : !isLocked && !isSelected ? 'bg-primary-black-800/50' : ''}
         `}
       >
+        {/* Checkbox - Always Visible */}
+        <div className="flex-shrink-0 flex items-center justify-center w-6">
+          {!isLocked ? (
+            <input
+              type="checkbox"
+              checked={isSelected}
+              onChange={() => onToggleBulkSelect && onToggleBulkSelect(player, 'player')}
+              onClick={(e) => e.stopPropagation()}
+              className="w-5 h-5 rounded border-2 border-primary-black-600 bg-primary-black-800 checked:bg-primary-green-500 checked:border-primary-green-500 cursor-pointer hover:border-primary-green-500 transition-colors"
+            />
+          ) : (
+            <div className="w-5 h-5"></div>
+          )}
+        </div>
+        
         {/* Position Badge */}
         <span className="px-2 py-0.5 bg-primary-black-700 text-primary-black-300 rounded text-xs font-semibold flex-shrink-0">
           {player.player_card.position === 'Quarterback' ? 'QB' :
@@ -396,9 +426,9 @@ export default function BenchAndTokensPanel({
         }`}>
             <div className="px-4 py-4">
               <div className="flex items-center justify-between gap-6">
-                {/* Title - Switches between "Bench" and "Select Player" */}
+                {/* Title - Switches between "Bench" and "Select Player/Token" */}
                 {filterPosition ? (
-                  // Filter Mode - Replaces the header
+                  // Player Filter Mode - Replaces the header
                   <div className="flex items-center gap-3 flex-1">
                     <span className="text-2xl">🎯</span>
                     <div>
@@ -407,6 +437,19 @@ export default function BenchAndTokensPanel({
                       </h3>
                       <p className="text-xs text-primary-black-400 mt-0.5">
                         Showing {filteredBenchPlayers.length} eligible player{filteredBenchPlayers.length !== 1 ? 's' : ''}
+                      </p>
+                    </div>
+                  </div>
+                ) : tokenFilterPlayerId && tokenFilterPlayer ? (
+                  // Token Filter Mode - Same style as player filter
+                  <div className="flex items-center gap-3 flex-1">
+                    <span className="text-2xl">💎</span>
+                    <div>
+                      <h3 className="text-xl font-bold text-primary-green-400">
+                        Select Token for {tokenFilterPlayer.player_card.player_name}
+                      </h3>
+                      <p className="text-xs text-primary-black-400 mt-0.5">
+                        Showing {filteredTokens.length} available token{filteredTokens.length !== 1 ? 's' : ''}
                       </p>
                     </div>
                   </div>
@@ -425,8 +468,8 @@ export default function BenchAndTokensPanel({
                   </div>
                 )}
 
-                {/* Right Side - Clear Filter Button or Tab Filters */}
-                {filterPosition ? (
+                {/* Right Side - Clear Filter Button, Sell Button, or Tab Filters */}
+                {(filterPosition || tokenFilterPlayerId) ? (
                   <button
                     onClick={onClearFilter}
                     className="px-4 py-2 bg-primary-black-700 hover:bg-primary-black-600 text-primary-black-300 rounded-lg text-sm font-semibold transition-colors"
@@ -435,6 +478,28 @@ export default function BenchAndTokensPanel({
                   </button>
                 ) : (
                   <div className="flex gap-2">
+                    {selectedForBulkAction.length > 0 && (
+                      <>
+                        <div className="flex items-center gap-3 px-3 py-1.5 bg-primary-black-800 rounded-lg">
+                        <div className="text-xs">
+                          <span className="text-primary-black-400">Selected:</span>{' '}
+                          <span className="font-bold text-primary-green-400">{selectedForBulkAction.length}</span>{' '}
+                          <span className="text-primary-black-500">•</span>{' '}
+                          <span className="font-bold text-primary-green-400">
+                            💰 {selectedForBulkAction.reduce((sum, s) => sum + s.value, 0)}
+                          </span>
+                        </div>
+                        </div>
+                        <button
+                          onClick={onBulkSell}
+                          disabled={selling?.bulk}
+                          className="px-4 py-2 bg-red-600 hover:bg-red-500 disabled:bg-red-800 disabled:cursor-not-allowed text-white rounded-lg text-sm font-bold transition-all shadow-lg"
+                        >
+                          {selling?.bulk ? 'Selling...' : `Sell ${selectedForBulkAction.length}`}
+                        </button>
+                        <div className="w-px bg-primary-black-700"></div>
+                      </>
+                    )}
                     <button
                       onClick={() => setActiveTab('all')}
                       className={`
@@ -517,21 +582,35 @@ export default function BenchAndTokensPanel({
                 {/* Tokens Section */}
                 {availableTokens.length > 0 && (
                   <div>
-                    {availableTokens.map((token, index) => {
+                    {filteredTokens.map((token, index) => {
                       // Continue alternating from where players left off
                       const rowIndex = filteredBenchPlayers.length + index;
+                      const isSelected = selectedForBulkAction.some(s => s.id === token.id);
                       
                       return (
                         <div
                           key={token.id}
-                          draggable
-                          onDragStart={(e) => onTokenDragStart(e, token)}
+                          draggable={!tokenFilterPlayerId}
+                          onDragStart={(e) => !tokenFilterPlayerId && onTokenDragStart(e, token)}
+                          onDragEnd={onTokenDragEnd}
                           className={`
-                            flex items-center gap-4 px-4 py-4 transition-all cursor-move
-                            hover:bg-primary-green-500/10 border-l-4 border-transparent hover:border-primary-green-500
-                            ${rowIndex % 2 === 0 ? 'bg-primary-black-900' : 'bg-primary-black-800/50'}
+                            flex items-center gap-4 px-4 py-4 transition-all border-l-4
+                            ${tokenFilterPlayerId ? 'cursor-default' : 'cursor-move'}
+                            ${isSelected ? 'border-primary-green-500 bg-primary-green-500/20' : 'border-transparent hover:bg-primary-green-500/10 hover:border-primary-green-500'}
+                            ${rowIndex % 2 === 0 && !isSelected ? 'bg-primary-black-900' : !isSelected ? 'bg-primary-black-800/50' : ''}
                           `}
                         >
+                          {/* Checkbox */}
+                          <div className="flex-shrink-0 flex items-center justify-center w-6">
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => onToggleBulkSelect && onToggleBulkSelect(token, 'token')}
+                              onClick={(e) => e.stopPropagation()}
+                              className="w-5 h-5 rounded border-2 border-primary-black-600 bg-primary-black-800 checked:bg-primary-green-500 checked:border-primary-green-500 cursor-pointer hover:border-primary-green-500 transition-colors"
+                            />
+                          </div>
+                          
                           {/* Position Badge for Token */}
                           <span className="px-2 py-0.5 bg-primary-black-700 text-primary-black-300 rounded text-xs font-semibold flex-shrink-0">
                             TK
@@ -557,23 +636,43 @@ export default function BenchAndTokensPanel({
                             </p>
                           </div>
 
-                          {/* Bonus Points */}
-                          <div className="flex-shrink-0 text-center px-4">
-                            <div className="text-xl font-bold text-primary-green-400">
-                              +{token.token_card.bonus_points}
-                            </div>
-                            <div className="text-xs text-primary-black-500">points</div>
+                          {/* Move Button or Empty Space - Shows in middle when filtering */}
+                          <div className="flex-1 flex items-center justify-center px-4">
+                            {tokenFilterPlayerId && onApplyTokenToPlayer ? (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onApplyTokenToPlayer(token, tokenFilterPlayerId);
+                                }}
+                                className="px-6 py-2 bg-primary-green-500 hover:bg-primary-green-400 text-primary-black-950 rounded-lg text-sm font-bold transition-all hover:scale-105 shadow-lg"
+                              >
+                                Move →
+                              </button>
+                            ) : null}
                           </div>
 
-                          {/* Value */}
-                          <div className="flex-shrink-0 text-xs text-primary-black-400 font-medium">
-                            💰 {token.token_card.base_value}
-                          </div>
+                          {/* Bonus Points and Value - Only show when not filtering */}
+                          {!tokenFilterPlayerId && (
+                            <>
+                              {/* Bonus Points */}
+                              <div className="flex-shrink-0 text-center px-4">
+                                <div className="text-xl font-bold text-primary-green-400">
+                                  +{token.token_card.bonus_points}
+                                </div>
+                                <div className="text-xs text-primary-black-500">points</div>
+                              </div>
 
-                          {/* Drag Handle */}
-                          <div className="flex-shrink-0 text-primary-black-600 text-xl">
-                            ⋮⋮
-                          </div>
+                              {/* Value */}
+                              <div className="flex-shrink-0 text-xs text-primary-black-400 font-medium">
+                                💰 {token.token_card.base_value}
+                              </div>
+
+                              {/* Drag Handle */}
+                              <div className="flex-shrink-0 text-primary-black-600 text-xl">
+                                ⋮⋮
+                              </div>
+                            </>
+                          )}
                         </div>
                       );
                     })}
@@ -628,17 +727,33 @@ export default function BenchAndTokensPanel({
                 </div>
               </div>
             ) : (
-              availableTokens.map((token, index) => (
+              filteredTokens.map((token, index) => {
+                const isSelected = selectedForBulkAction.some(s => s.id === token.id);
+                
+                return (
                 <div
                   key={token.id}
-                  draggable
-                  onDragStart={(e) => onTokenDragStart(e, token)}
+                  draggable={!tokenFilterPlayerId}
+                  onDragStart={(e) => !tokenFilterPlayerId && onTokenDragStart(e, token)}
+                  onDragEnd={onTokenDragEnd}
                   className={`
-                    flex items-center gap-4 px-4 py-4 transition-all cursor-move
-                    hover:bg-primary-green-500/10 border-l-4 border-transparent hover:border-primary-green-500
-                    ${index % 2 === 0 ? 'bg-primary-black-900' : 'bg-primary-black-800/50'}
+                    flex items-center gap-4 px-4 py-4 transition-all border-l-4
+                    ${tokenFilterPlayerId ? 'cursor-default' : 'cursor-move'}
+                    ${isSelected ? 'border-primary-green-500 bg-primary-green-500/20' : 'border-transparent hover:bg-primary-green-500/10 hover:border-primary-green-500'}
+                    ${index % 2 === 0 && !isSelected ? 'bg-primary-black-900' : !isSelected ? 'bg-primary-black-800/50' : ''}
                   `}
                 >
+                  {/* Checkbox */}
+                  <div className="flex-shrink-0 flex items-center justify-center w-6">
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={() => onToggleBulkSelect && onToggleBulkSelect(token, 'token')}
+                      onClick={(e) => e.stopPropagation()}
+                      className="w-5 h-5 rounded border-2 border-primary-black-600 bg-primary-black-800 checked:bg-primary-green-500 checked:border-primary-green-500 cursor-pointer hover:border-primary-green-500 transition-colors"
+                    />
+                  </div>
+                  
                   {/* Position Badge for Token */}
                   <span className="px-2 py-0.5 bg-primary-black-700 text-primary-black-300 rounded text-xs font-semibold flex-shrink-0">
                     TK
@@ -664,25 +779,46 @@ export default function BenchAndTokensPanel({
                     </p>
                   </div>
 
-                  {/* Bonus Points */}
-                  <div className="flex-shrink-0 text-center px-4">
-                    <div className="text-xl font-bold text-primary-green-400">
-                      +{token.token_card.bonus_points}
-                    </div>
-                    <div className="text-xs text-primary-black-500">points</div>
+                  {/* Move Button or Empty Space - Shows in middle when filtering */}
+                  <div className="flex-1 flex items-center justify-center px-4">
+                    {tokenFilterPlayerId && onApplyTokenToPlayer ? (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onApplyTokenToPlayer(token, tokenFilterPlayerId);
+                        }}
+                        className="px-6 py-2 bg-primary-green-500 hover:bg-primary-green-400 text-primary-black-950 rounded-lg text-sm font-bold transition-all hover:scale-105 shadow-lg"
+                      >
+                        Move →
+                      </button>
+                    ) : null}
                   </div>
 
-                  {/* Value */}
-                  <div className="flex-shrink-0 text-xs text-primary-black-400 font-medium">
-                    💰 {token.token_card.base_value}
-                  </div>
+                  {/* Bonus Points and Value - Only show when not filtering */}
+                  {!tokenFilterPlayerId && (
+                    <>
+                      {/* Bonus Points */}
+                      <div className="flex-shrink-0 text-center px-4">
+                        <div className="text-xl font-bold text-primary-green-400">
+                          +{token.token_card.bonus_points}
+                        </div>
+                        <div className="text-xs text-primary-black-500">points</div>
+                      </div>
 
-                  {/* Drag Handle */}
-                  <div className="flex-shrink-0 text-primary-black-600 text-xl">
-                    ⋮⋮
-                  </div>
+                      {/* Value */}
+                      <div className="flex-shrink-0 text-xs text-primary-black-400 font-medium">
+                        💰 {token.token_card.base_value}
+                      </div>
+
+                      {/* Drag Handle */}
+                      <div className="flex-shrink-0 text-primary-black-600 text-xl">
+                        ⋮⋮
+                      </div>
+                    </>
+                  )}
                 </div>
-              ))
+                );
+              })
             )}
           </div>
         )}
@@ -694,11 +830,13 @@ export default function BenchAndTokensPanel({
           <p className="text-xs text-primary-black-400 text-center">
             {filterPosition
               ? '💡 Click "Move →" to add player to your lineup • Drag & drop still works too!'
-              : effectiveTab === 'all'
-                ? '💡 Drag bench players to lineup • Drag lineup players anywhere outside to bench them • Swap same positions'
-                : effectiveTab === 'players' 
-                  ? '💡 Drag bench players to lineup • Drag lineup players outside to bench them • Swap same positions'
-                  : '💡 Drag tokens directly onto player cards in your lineup to apply bonuses'
+              : tokenFilterPlayerId
+                ? '💡 Click "Move →" to add token to the selected player • Drag & drop still works too!'
+                : effectiveTab === 'all'
+                  ? '💡 Check boxes to sell multiple cards • Drag bench players to lineup • Swap same positions'
+                  : effectiveTab === 'players' 
+                    ? '💡 Check boxes to sell multiple cards • Drag bench players to lineup • Swap same positions'
+                    : '💡 Drag tokens directly onto player cards in your lineup to apply bonuses'
             }
           </p>
         </div>
@@ -713,12 +851,20 @@ BenchAndTokensPanel.propTypes = {
   availableTokens: PropTypes.array.isRequired,
   onPlayerDragStart: PropTypes.func.isRequired,
   onTokenDragStart: PropTypes.func.isRequired,
+  onTokenDragEnd: PropTypes.func,
   onPlayerDrop: PropTypes.func,
   liveGameData: PropTypes.instanceOf(Map),
   projections: PropTypes.instanceOf(Map),
   inventory: PropTypes.object,
   onRemoveToken: PropTypes.func,
   filterPosition: PropTypes.string,
+  tokenFilterPlayerId: PropTypes.string,
+  tokenFilterPlayer: PropTypes.object,
+  onApplyTokenToPlayer: PropTypes.func,
   onMoveToSlot: PropTypes.func,
-  onClearFilter: PropTypes.func
+  onClearFilter: PropTypes.func,
+  selectedForBulkAction: PropTypes.array,
+  onToggleBulkSelect: PropTypes.func,
+  onBulkSell: PropTypes.func,
+  selling: PropTypes.object
 };

@@ -18,6 +18,7 @@ export default function LineupGrid({
   onPlayerDragStart,
   onTokenDrop,
   onClickToAdd,
+  onClickToAddToken,
   onRemovePlayer,
   liveGameData,
   projections,
@@ -49,15 +50,16 @@ export default function LineupGrid({
       const isTokenDrop = dragData && dragData.startsWith('token:');
       const isTokenDrag = window.currentDraggedToken || false;
       
-      console.log('🎯 LineupGrid dragOver - slotKey:', slotKey, 'dragData:', dragData, 'isTokenDrop:', isTokenDrop, 'isTokenDrag:', !!isTokenDrag);
+      // Only log when slot changes to reduce console spam
+      if (dragOverSlot !== slotKey) {
+        console.log('🎯 LineupGrid dragOver - slotKey:', slotKey, 'isTokenDrop:', isTokenDrop, 'isTokenDrag:', !!isTokenDrag);
+      }
       
       // For token drops, don't prevent default and let it bubble to PlayerCard
       if (isTokenDrop || isTokenDrag) {
-        console.log('🎯 LineupGrid: Token detected - letting event bubble to PlayerCard');
         e.dataTransfer.dropEffect = 'copy';
         return; // Don't preventDefault() - let it bubble
       } else {
-        console.log('🎯 LineupGrid: Player detected - handling at slot level');
         e.preventDefault();
         e.dataTransfer.dropEffect = 'move';
       }
@@ -272,6 +274,7 @@ export default function LineupGrid({
                   isLocked={isLocked}
                   appliedToken={appliedToken}
                   onRemoveToken={onRemoveToken}
+                  onAddToken={onClickToAddToken}
                   gameData={liveGameData?.get(player.player_card.player_id)}
                   projection={projections?.get(player.player_card.player_id)}
                   size="small"
@@ -340,6 +343,7 @@ LineupGrid.propTypes = {
   onPlayerDragStart: PropTypes.func.isRequired,
   onTokenDrop: PropTypes.func,
   onClickToAdd: PropTypes.func,
+  onClickToAddToken: PropTypes.func,
   onRemovePlayer: PropTypes.func,
   liveGameData: PropTypes.instanceOf(Map),
   projections: PropTypes.instanceOf(Map),

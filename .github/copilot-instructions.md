@@ -204,7 +204,19 @@ As a senior engineer, **CONSTANTLY** scan for and flag these common issues:
 - Avoid state duplication between contexts
 - Implement optimistic updates for better UX
 
-### 10. Project Completion Mindset
+### 10. Scoring System - MEDIAN-BASED (Critical)
+
+**The game uses MEDIAN scoring, NOT average:**
+- Win/Loss determination: Teams scoring **at or above the median** get a Win
+- Teams scoring **below the median** get a Loss
+- This applies to both real contests and simulated seasons
+- Database fields: Use `median_score` from `weekly_global_stats` table
+- Frontend: Always display "Median" not "Average" to users
+- Edge functions: `finalize-week` and `calculate-global-average` use median
+- Simulated seasons: `simulate_week` function calculates median
+- Legacy compatibility: `beat_average` column kept in sync with `beat_median`
+
+### 11. Project Completion Mindset
 
 You are driving toward **production launch**. This means:
 - Every change should move closer to launch-ready

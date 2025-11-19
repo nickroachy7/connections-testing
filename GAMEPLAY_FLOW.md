@@ -95,15 +95,24 @@
 ### 4. Contest Results & Rewards
 **After Games Conclude**:
 1. Final scores calculated
-2. Leaderboard finalized
-3. **Rewards Distributed**:
+2. **Win/Loss Determination**:
+   - The **median score** of all participants is calculated
+   - Teams scoring **at or above the median** earn a **Win**
+   - Teams scoring **below the median** receive a **Loss**
+   - This ensures exactly half (or close to half) of teams win each week
+3. Leaderboard finalized
+4. **Rewards Distributed**:
    - **Top 10%**: Premium packs (3-5 players, mix of tiers)
    - **Top 25%**: Standard packs (2-3 players)
    - **Top 50%**: Token rewards (25-100 tokens)
    - **Participation**: Small token bonus (5-10 tokens)
 
-4. User receives notification of rewards
-5. Rewards auto-added to inventory/tokens
+5. User receives notification of rewards
+6. Rewards auto-added to inventory/tokens
+
+**Elimination Rules**:
+- Teams with **3 losses** are eliminated from the season
+- Eliminated teams cannot participate in future weeks
 
 ---
 

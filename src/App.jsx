@@ -16,7 +16,6 @@ import {
 // Lazy load pages for better performance
 const Home = lazy(() => import('./pages/Home'))
 const Dashboard = lazy(() => import('./pages/Dashboard'))
-const NFLDashboard = lazy(() => import('./pages/NFLDashboard'))
 const Players = lazy(() => import('./pages/Players'))
 const PlayerProfile = lazy(() => import('./pages/PlayerProfile'))
 const Games = lazy(() => import('./pages/Games'))
@@ -29,7 +28,6 @@ const Inventory = lazy(() => import('./pages/Inventory'))
 const PackShop = lazy(() => import('./pages/PackShop'))
 const TeamManager = lazy(() => import('./pages/TeamManager'))
 const Leaderboard = lazy(() => import('./pages/Leaderboard'))
-const HowToPlay = lazy(() => import('./pages/HowToPlay'))
 const NotFound = lazy(() => import('./pages/NotFound'))
 const FantasyLayout = lazy(() => import('./components/FantasyLayout'))
 const TeamsLayout = lazy(() => import('./components/TeamsLayout'))
@@ -52,7 +50,8 @@ function RootLayout() {
     <div className="min-h-screen bg-gradient-to-br from-primary-black-950 via-primary-black-900 to-primary-black-950 bg-pattern flex flex-col">
       <div className="relative z-10 flex-1 flex flex-col">
         <Header />
-        <main className="animate-fade-in flex-1">
+        {/* Add left padding on desktop to account for sidebar */}
+        <main className="animate-fade-in flex-1 md:pl-64">
           <Suspense fallback={<PageLoader />}>
             <Outlet />
           </Suspense>
@@ -158,10 +157,6 @@ const router = createBrowserRouter([
         }
       },
       {
-        path: '/nfl',
-        element: <NFLDashboard />
-      },
-      {
         path: '/players',
         element: <Players />,
         loader: playersLoader
@@ -185,10 +180,6 @@ const router = createBrowserRouter([
       {
         path: '/standings',
         element: <Standings />
-      },
-      {
-        path: '/how-to-play',
-        element: <HowToPlay />
       },
       {
         path: '*',

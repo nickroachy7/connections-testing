@@ -27,18 +27,13 @@ const Footer = () => {
                 </a>
               </li>
               <li>
-                                <a href="/fantasy" className="text-primary-black-400 hover:text-primary-green-400 text-xs transition-colors">
+                <a href="/fantasy" className="text-primary-black-400 hover:text-primary-green-400 text-xs transition-colors">
                   Fantasy
                 </a>
               </li>
               <li>
                 <a href="/standings" className="text-primary-black-400 hover:text-primary-green-400 text-xs transition-colors">
                   Standings
-                </a>
-              </li>
-              <li>
-                <a href="/how-to-play" className="text-primary-black-400 hover:text-primary-green-400 text-xs transition-colors">
-                  How to Play
                 </a>
               </li>
             </ul>

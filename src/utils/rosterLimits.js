@@ -95,7 +95,7 @@ export function getRosterStatus(inventory) {
  * @returns {string} Error message to display
  */
 export function getRosterLimitErrorMessage() {
-  return `Your roster is over the ${ROSTER_LIMIT} item limit. Please sell cards in the Team Manager to make room before making lineup changes or applying tokens.`;
+  return `Your roster is over the ${ROSTER_LIMIT} card limit. Please sell cards to get back to ${ROSTER_LIMIT} or fewer before making lineup changes or applying tokens.`;
 }
 
 /**

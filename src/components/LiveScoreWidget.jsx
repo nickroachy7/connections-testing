@@ -73,7 +73,7 @@ export default function LiveScoreWidget() {
       // Get user's lineup for this week
       const { data: lineup, error: lineupError } = await supabase
         .from('weekly_lineups')
-        .select('total_points, status, rank')
+        .select('total_points, status')
         .eq('team_id', teams.id)
         .eq('week_number', weekNumber)
         .eq('season_year', seasonYear)
@@ -104,14 +104,24 @@ export default function LiveScoreWidget() {
       const hasLiveGames = games && games.length > 0;
 
       if (hasLiveGames && lineup && globalStats) {
-        const pointsDiff = lineup.total_points - globalStats.average_points;
+        const pointsDiff = lineup.total_points - globalStats.median_score;
         const isWinning = pointsDiff > 0;
+
+        // Calculate rank by counting teams with higher points
+        const { data: allLineups } = await supabase
+          .from('weekly_lineups')
+          .select('total_points')
+          .eq('week_number', weekNumber)
+          .eq('season_year', seasonYear)
+          .gt('total_points', lineup.total_points);
+
+        const rank = (allLineups?.length || 0) + 1;
 
         setScoreData({
           yourPoints: lineup.total_points,
-          avgPoints: globalStats.average_points,
-          rank: lineup.rank || '---',
-          totalTeams: globalStats.active_teams || 0,
+          avgPoints: globalStats.median_score,
+          rank: rank,
+          totalTeams: globalStats.total_active_teams || 0,
           pointsDiff: Math.abs(pointsDiff),
           isWinning,
           status: lineup.status
@@ -172,7 +182,7 @@ export default function LiveScoreWidget() {
         </div>
 
         <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4">
-          <div className="text-white/80 text-sm mb-1">Average</div>
+          <div className="text-white/80 text-sm mb-1">Median</div>
           <div className="text-3xl font-bold text-white">{scoreData.avgPoints.toFixed(1)}</div>
           <div className="text-white/60 text-xs mt-1">pts</div>
         </div>

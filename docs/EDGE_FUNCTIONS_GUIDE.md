@@ -95,7 +95,7 @@ Cron: 1 0 * * 2
 **Key Logic:**
 ```typescript
 const globalAverage = totalPoints / weeklyLineups.length
-const beatAverage = lineup.total_points >= globalAverage
+const beatMedian = lineup.total_points >= globalMedian
 const isEliminated = newLosses >= 3  // configurable per contest type
 ```
 

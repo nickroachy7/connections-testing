@@ -31,6 +31,7 @@ export default function PlayerCard({
 }) {
   const [isHovered, setIsHovered] = useState(false);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
+  const [isTokenHovering, setIsTokenHovering] = useState(false);
   
   // Debug logging for gameData
   if (player.player_card.player_name === 'Tua Tagovailoa') {
@@ -244,16 +245,28 @@ export default function PlayerCard({
         console.log('🎯 PlayerCard: Allowing token drop on', player?.player_card?.player_name);
         e.preventDefault();
         e.dataTransfer.dropEffect = 'copy';
+        setIsTokenHovering(true);
       } else {
         console.log('🎯 PlayerCard: Drop NOT allowed - isLocked:', isLocked, 'onTokenDrop:', !!onTokenDrop, 'isTokenDrag:', !!isTokenDrag);
+        setIsTokenHovering(false);
       }
     } catch (err) {
       console.error('🎯 PlayerCard dragOver error:', err);
+      setIsTokenHovering(false);
       // Ignore errors during drag over
     }
   };
 
+  const handleDragLeave = (e) => {
+    // Only clear hover state if actually leaving the card
+    if (!e.currentTarget.contains(e.relatedTarget)) {
+      setIsTokenHovering(false);
+    }
+  };
+
   const handleDrop = (e) => {
+    setIsTokenHovering(false);
+    
     try {
       const dragData = e.dataTransfer.getData('text/plain');
       const isTokenDrop = dragData && dragData.startsWith('token:');
@@ -284,6 +297,7 @@ export default function PlayerCard({
       onDragStart={onDragStart}
       onDrop={handleDrop}
       onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
       onClick={onClick}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -292,6 +306,7 @@ export default function PlayerCard({
         ${size === 'small' ? `border-2 ${tierStyles.border} rounded-lg h-full overflow-visible` : `rounded-lg border-2 ${tierStyles.border} ${tierStyles.bg} overflow-visible`}
         ${isHovered && !isDisabled ? tierStyles.glow : ''}
         ${!draggable ? 'cursor-not-allowed' : 'cursor-pointer hover:scale-[1.02]'}
+        ${isTokenHovering ? 'ring-4 ring-primary-green-500 ring-opacity-60 scale-105 shadow-2xl shadow-primary-green-500/50' : ''}
         ${sizeClasses.container}
         ${className}
       `}

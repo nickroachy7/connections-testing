@@ -155,8 +155,8 @@ export default function Dashboard() {
         // Show results before deleting
         alert(`💀 ELIMINATED!\n\nWeek ${data.week} Results:\n` +
               `Your Score: ${parseFloat(userResult?.score || 0).toFixed(1)} pts\n` +
-              `Average: ${parseFloat(data.average_score).toFixed(1)} pts\n` +
-              `${userResult?.score >= data.average_score ? '✅ Beat Average' : '❌ Below Average'}\n\n` +
+              `Median: ${parseFloat(data.median_score).toFixed(1)} pts\n` +
+              `${userResult?.score >= data.median_score ? '✅ Beat Median' : '❌ Below Median'}\n\n` +
               `Final Rank: #${userRank} / ${teamsDataArray.length}\n` +
               `Active Teams Remaining: ${activeTeamsCount}\n\n` +
               `You've been eliminated with 3 losses. Season over!`);
@@ -197,12 +197,12 @@ export default function Dashboard() {
       // Show week results
       alert(`✅ Week ${data.week} Complete!\n\n` +
             `Your Score: ${parseFloat(userResult?.score || 0).toFixed(1)} pts\n` +
-            `Average: ${parseFloat(data.average_score).toFixed(1)} pts\n` +
+            `Median: ${parseFloat(data.median_score).toFixed(1)} pts\n` +
             `Highest: ${parseFloat(data.highest_score).toFixed(1)} pts\n` +
             `Lowest: ${parseFloat(data.lowest_score).toFixed(1)} pts\n\n` +
-            `${userResult?.beat_average ? '✅ Beat Average (+1 Win)' : '❌ Below Average (+1 Loss)'}\n\n` +
-            `Teams above average: ${data.teams_above_average}\n` +
-            `Teams below average: ${data.teams_below_average}\n` +
+            `${userResult?.beat_average ? '✅ Beat Median (+1 Win)' : '❌ Below Median (+1 Loss)'}\n\n` +
+            `Teams above median: ${data.teams_above_average}\n` +
+            `Teams below median: ${data.teams_below_average}\n` +
             `Active teams: ${activeTeamsCount}`);
       
       // Reload the page to show updated data
@@ -236,10 +236,10 @@ export default function Dashboard() {
   };
 
   const loadLineupData = useCallback(async (inventory) => {
-    console.log('🔍 loadLineupData called with inventory:', inventory);
-    console.log('🔍 inventory?.players length:', inventory?.players?.length);
-    console.log('🔍 activeTeam:', activeTeam?.id);
-    console.log('🔍 currentWeek from context:', contextCurrentWeek);
+    // console.log('🔍 loadLineupData called with inventory:', inventory);
+    // console.log('🔍 inventory?.players length:', inventory?.players?.length);
+    // console.log('🔍 activeTeam:', activeTeam?.id);
+    // console.log('🔍 currentWeek from context:', contextCurrentWeek);
     
     // Use context current week (always fresh from season config)
     const weekToDisplay = contextCurrentWeek;
@@ -514,7 +514,7 @@ export default function Dashboard() {
       // Check if activeTeam is in a simulated season
       const isSimulatedSeason = activeTeam?.simulated_season_id;
       
-      console.log('🔍 Querying lineups:', { queryWeek, seasonYear, isSimulatedSeason, activeTeamId: activeTeam?.id });
+      // console.log('🔍 Querying lineups:', { queryWeek, seasonYear, isSimulatedSeason, activeTeamId: activeTeam?.id });
       
       // Load weekly lineups for selected or current week
       let query = supabase

@@ -223,11 +223,11 @@ export default function Leaderboard() {
         }
       }
       
-      // Add rank and beat_average flag
+      // Add rank and beat_median flag
       const rankedLineups = (lineups || []).map((lineup, index) => ({
         ...lineup,
         rank: index + 1,
-        beat_average: stats ? lineup.total_points > stats.average_score : false
+        beat_average: stats ? lineup.total_points >= stats.median_score : false
       }));
       
       // Calculate projected points for each lineup
@@ -458,7 +458,7 @@ export default function Leaderboard() {
                 <>
                   {sortedLeaderboard.map((entry, index) => {
                     const isCurrentUser = entry.team && user && entry.team.user.id === user.id;
-                    const pointsDiff = globalStats && entry.total_points !== null ? entry.total_points - globalStats.average_score : 0;
+                    const pointsDiff = globalStats && entry.total_points !== null ? entry.total_points - globalStats.median_score : 0;
                     
                     return (
                       <div

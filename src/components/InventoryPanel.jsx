@@ -15,12 +15,15 @@ export default function InventoryPanel({
   loadingProjections,
   liveGameData,
   onQuickSell,
+  onBulkSellComplete,
+  onReloadProfile,
   selling,
   filters,
   onFilterChange,
   inventory
 }) {
   const [activeTab, setActiveTab] = useState('all'); // 'all', 'players', or 'tokens'
+  const [selectedForBulkAction, setSelectedForBulkAction] = useState([]); // Array of {id, type: 'player'|'token', value}
 
   // Sort players by position (QB, RB, WR, TE)
   const getPositionOrder = (position) => {
@@ -36,6 +39,57 @@ export default function InventoryPanel({
   const sortedPlayers = [...players].sort((a, b) => {
     return getPositionOrder(a.player_card.position) - getPositionOrder(b.player_card.position);
   });
+
+  // Bulk action handlers
+  const toggleBulkSelect = (item, cardType) => {
+    const itemId = item.id;
+    if (selectedForBulkAction.find(s => s.id === itemId)) {
+      setSelectedForBulkAction(selectedForBulkAction.filter(s => s.id !== itemId));
+    } else {
+      const value = cardType === 'player' ? item.player_card.base_value : item.token_card.base_value;
+      setSelectedForBulkAction([...selectedForBulkAction, { id: itemId, type: cardType, value, item }]);
+    }
+  };
+
+  const handleBulkQuickSell = async () => {
+    const totalValue = selectedForBulkAction.reduce((sum, s) => sum + s.value, 0);
+    const playerCount = selectedForBulkAction.filter(s => s.type === 'player').length;
+    const tokenCount = selectedForBulkAction.filter(s => s.type === 'token').length;
+    
+    const itemText = playerCount && tokenCount 
+      ? `${playerCount} player${playerCount > 1 ? 's' : ''} and ${tokenCount} token${tokenCount > 1 ? 's' : ''}`
+      : playerCount 
+        ? `${playerCount} player${playerCount > 1 ? 's' : ''}`
+        : `${tokenCount} token${tokenCount > 1 ? 's' : ''}`;
+    
+    if (!window.confirm(`Sell ${itemText} for ${totalValue} coins total?`)) {
+      return;
+    }
+
+    try {
+      // Sell all cards in parallel - skip individual confirmations
+      await Promise.all(
+        selectedForBulkAction.map(selection => 
+          onQuickSell(selection.id, selection.type, selection.value, true) // skipConfirm = true
+        )
+      );
+      
+      // Clear selection after all sales complete
+      setSelectedForBulkAction([]);
+      
+      // Reload profile to update coin balance in header (do this first for immediate visual feedback)
+      if (onReloadProfile) {
+        onReloadProfile(); // Call without await for immediate UI update
+      }
+      
+      // Then reload inventory to show updated list
+      if (onBulkSellComplete) {
+        await onBulkSellComplete();
+      }
+    } catch (err) {
+      console.error('Error bulk selling:', err);
+    }
+  };
 
   const getTierBadgeInfo = (tier) => {
     const tiers = {
@@ -175,8 +229,30 @@ export default function InventoryPanel({
                   </p>
                 </div>
 
-                {/* Compact Filter Bar */}
+                {/* Right Side - Tab Filters and Sell Button */}
                 <div className="flex gap-2">
+                  {selectedForBulkAction.length > 0 && (
+                    <>
+                      <div className="flex items-center gap-3 px-3 py-1.5 bg-primary-black-800 rounded-lg">
+                        <div className="text-xs">
+                          <span className="text-primary-black-400">Selected:</span>{' '}
+                          <span className="font-bold text-primary-green-400">{selectedForBulkAction.length}</span>{' '}
+                          <span className="text-primary-black-500">•</span>{' '}
+                          <span className="font-bold text-primary-green-400">
+                            💰 {selectedForBulkAction.reduce((sum, s) => sum + s.value, 0)}
+                          </span>
+                        </div>
+                      </div>
+                      <button
+                        onClick={handleBulkQuickSell}
+                        disabled={selling?.bulk}
+                        className="px-4 py-2 bg-red-600 hover:bg-red-500 disabled:bg-red-800 disabled:cursor-not-allowed text-white rounded-lg text-sm font-bold transition-all shadow-lg"
+                      >
+                        {selling?.bulk ? 'Selling...' : `Sell ${selectedForBulkAction.length}`}
+                      </button>
+                      <div className="w-px bg-primary-black-700"></div>
+                    </>
+                  )}
                   <button
                     onClick={() => setActiveTab('all')}
                     className={`
@@ -214,6 +290,7 @@ export default function InventoryPanel({
                     Tokens ({filteredTokens.length})
                   </button>
                 </div>
+                )}
               </div>
             </div>
           </div>
@@ -234,15 +311,35 @@ export default function InventoryPanel({
                 ) : (
                   <>
                     {/* Players Section */}
-                    {filteredPlayers.length > 0 && filteredPlayers.map((player, index) => (
+                    {filteredPlayers.length > 0 && filteredPlayers.map((player, index) => {
+                      const isSelected = selectedForBulkAction.some(s => s.id === player.id);
+                      const cannotSelect = player.is_locked;
+                      
+                      return (
                       <div
                         key={player.id}
                         className={`
                           flex items-center gap-4 px-4 py-4 transition-all
-                          hover:bg-primary-green-500/10 border-l-4 border-transparent hover:border-primary-green-500
-                          ${index % 2 === 0 ? 'bg-primary-black-900' : 'bg-primary-black-800/50'}
+                          ${!cannotSelect && 'border-l-4'}
+                          ${cannotSelect ? 'opacity-60 bg-red-900/20 border-red-500/50' : isSelected ? 'border-primary-green-500 bg-primary-green-500/20' : 'border-transparent hover:bg-primary-green-500/10 hover:border-primary-green-500'}
+                          ${index % 2 === 0 && !cannotSelect && !isSelected ? 'bg-primary-black-900' : !cannotSelect && !isSelected ? 'bg-primary-black-800/50' : ''}
                         `}
                       >
+                        {/* Checkbox - Always Visible */}
+                        <div className="flex-shrink-0 flex items-center justify-center w-6">
+                          {!cannotSelect ? (
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => toggleBulkSelect(player, 'player')}
+                              onClick={(e) => e.stopPropagation()}
+                              className="w-5 h-5 rounded border-2 border-primary-black-600 bg-primary-black-800 checked:bg-primary-green-500 checked:border-primary-green-500 cursor-pointer hover:border-primary-green-500 transition-colors"
+                            />
+                          ) : (
+                            <div className="w-5 h-5"></div>
+                          )}
+                        </div>
+                        
                         {/* Position Badge */}
                         <span className="px-2 py-0.5 bg-primary-black-700 text-primary-black-300 rounded text-xs font-semibold flex-shrink-0">
                           {player.player_card.position === 'Quarterback' ? 'QB' :
@@ -319,10 +416,13 @@ export default function InventoryPanel({
                           ) : null}
                         </div>
 
-                        {/* Sell Button */}
+                        {/* Individual Sell Button */}
                         <div className="flex-shrink-0">
                           <button
-                            onClick={() => onQuickSell(player.id, 'player', player.player_card.base_value)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onQuickSell(player.id, 'player', player.player_card.base_value);
+                            }}
                             disabled={selling[player.id] || player.is_locked}
                             className="px-3 py-1.5 bg-red-600 hover:bg-red-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg text-xs font-semibold transition-colors"
                           >
@@ -330,21 +430,34 @@ export default function InventoryPanel({
                           </button>
                         </div>
                       </div>
-                    ))}
+                      );
+                    })}
 
                     {/* Tokens Section */}
                     {filteredTokens.length > 0 && filteredTokens.map((token, index) => {
                       const rowIndex = filteredPlayers.length + index;
+                      const isSelected = selectedForBulkAction.some(s => s.id === token.id);
                       
                       return (
                         <div
                           key={token.id}
                           className={`
-                            flex items-center gap-4 px-4 py-4 transition-all
-                            hover:bg-primary-green-500/10 border-l-4 border-transparent hover:border-primary-green-500
-                            ${rowIndex % 2 === 0 ? 'bg-primary-black-900' : 'bg-primary-black-800/50'}
+                            flex items-center gap-4 px-4 py-4 transition-all border-l-4
+                            ${isSelected ? 'border-primary-green-500 bg-primary-green-500/20' : 'border-transparent hover:bg-primary-green-500/10 hover:border-primary-green-500'}
+                            ${rowIndex % 2 === 0 && !isSelected ? 'bg-primary-black-900' : !isSelected ? 'bg-primary-black-800/50' : ''}
                           `}
                         >
+                          {/* Checkbox */}
+                          <div className="flex-shrink-0 flex items-center justify-center w-6">
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => toggleBulkSelect(token, 'token')}
+                              onClick={(e) => e.stopPropagation()}
+                              className="w-5 h-5 rounded border-2 border-primary-black-600 bg-primary-black-800 checked:bg-primary-green-500 checked:border-primary-green-500 cursor-pointer hover:border-primary-green-500 transition-colors"
+                            />
+                          </div>
+                          
                           {/* Position Badge for Token */}
                           <span className="px-2 py-0.5 bg-primary-black-700 text-primary-black-300 rounded text-xs font-semibold flex-shrink-0">
                             TK
@@ -411,15 +524,35 @@ export default function InventoryPanel({
                     </div>
                   </div>
                 ) : (
-                  filteredPlayers.map((player, index) => (
+                  filteredPlayers.map((player, index) => {
+                    const isSelected = selectedForBulkAction.some(s => s.id === player.id);
+                    const cannotSelect = player.is_locked;
+                    
+                    return (
                     <div
                       key={player.id}
                       className={`
                         flex items-center gap-4 px-4 py-4 transition-all
-                        hover:bg-primary-green-500/10 border-l-4 border-transparent hover:border-primary-green-500
-                        ${index % 2 === 0 ? 'bg-primary-black-900' : 'bg-primary-black-800/50'}
+                        ${!cannotSelect && 'border-l-4'}
+                        ${cannotSelect ? 'opacity-60 bg-red-900/20 border-red-500/50' : isSelected ? 'border-primary-green-500 bg-primary-green-500/20' : 'border-transparent hover:bg-primary-green-500/10 hover:border-primary-green-500'}
+                        ${index % 2 === 0 && !cannotSelect && !isSelected ? 'bg-primary-black-900' : !cannotSelect && !isSelected ? 'bg-primary-black-800/50' : ''}
                       `}
                     >
+                      {/* Checkbox - Always Visible */}
+                      <div className="flex-shrink-0 flex items-center justify-center w-6">
+                        {!cannotSelect ? (
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => toggleBulkSelect(player, 'player')}
+                            onClick={(e) => e.stopPropagation()}
+                            className="w-5 h-5 rounded border-2 border-primary-black-600 bg-primary-black-800 checked:bg-primary-green-500 checked:border-primary-green-500 cursor-pointer hover:border-primary-green-500 transition-colors"
+                          />
+                        ) : (
+                          <div className="w-5 h-5"></div>
+                        )}
+                      </div>
+                      
                       {/* Position Badge */}
                       <span className="px-2 py-0.5 bg-primary-black-700 text-primary-black-300 rounded text-xs font-semibold flex-shrink-0">
                         {player.player_card.position === 'Quarterback' ? 'QB' :
@@ -491,10 +624,13 @@ export default function InventoryPanel({
                         ) : null}
                       </div>
 
-                      {/* Sell Button */}
+                      {/* Individual Sell Button */}
                       <div className="flex-shrink-0">
                         <button
-                          onClick={() => onQuickSell(player.id, 'player', player.player_card.base_value)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onQuickSell(player.id, 'player', player.player_card.base_value);
+                          }}
                           disabled={selling[player.id] || player.is_locked}
                           className="px-3 py-1.5 bg-red-600 hover:bg-red-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg text-xs font-semibold transition-colors"
                         >
@@ -502,7 +638,8 @@ export default function InventoryPanel({
                         </button>
                       </div>
                     </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             )}
@@ -519,15 +656,29 @@ export default function InventoryPanel({
                     </div>
                   </div>
                 ) : (
-                  filteredTokens.map((token, index) => (
+                  filteredTokens.map((token, index) => {
+                    const isSelected = selectedForBulkAction.some(s => s.id === token.id);
+                    
+                    return (
                     <div
                       key={token.id}
                       className={`
-                        flex items-center gap-4 px-4 py-4 transition-all
-                        hover:bg-primary-green-500/10 border-l-4 border-transparent hover:border-primary-green-500
-                        ${index % 2 === 0 ? 'bg-primary-black-900' : 'bg-primary-black-800/50'}
+                        flex items-center gap-4 px-4 py-4 transition-all border-l-4
+                        ${isSelected ? 'border-primary-green-500 bg-primary-green-500/20' : 'border-transparent hover:bg-primary-green-500/10 hover:border-primary-green-500'}
+                        ${index % 2 === 0 && !isSelected ? 'bg-primary-black-900' : !isSelected ? 'bg-primary-black-800/50' : ''}
                       `}
                     >
+                      {/* Checkbox */}
+                      <div className="flex-shrink-0 flex items-center justify-center w-6">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => toggleBulkSelect(token, 'token')}
+                          onClick={(e) => e.stopPropagation()}
+                          className="w-5 h-5 rounded border-2 border-primary-black-600 bg-primary-black-800 checked:bg-primary-green-500 checked:border-primary-green-500 cursor-pointer hover:border-primary-green-500 transition-colors"
+                        />
+                      </div>
+                      
                       {/* Position Badge for Token */}
                       <span className="px-2 py-0.5 bg-primary-black-700 text-primary-black-300 rounded text-xs font-semibold flex-shrink-0">
                         TK
@@ -575,7 +726,8 @@ export default function InventoryPanel({
                         </button>
                       </div>
                     </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             )}
@@ -601,6 +753,8 @@ InventoryPanel.propTypes = {
   loadingProjections: PropTypes.bool,
   liveGameData: PropTypes.instanceOf(Map),
   onQuickSell: PropTypes.func.isRequired,
+  onBulkSellComplete: PropTypes.func,
+  onReloadProfile: PropTypes.func,
   selling: PropTypes.object.isRequired,
   filters: PropTypes.object.isRequired,
   onFilterChange: PropTypes.func.isRequired,
