@@ -328,6 +328,7 @@ export default function Inventory() {
             loadingProjections={loadingProjections}
             liveGameData={liveGameData}
             onQuickSell={handleQuickSell}
+            onBulkSellComplete={loadInventory}
             selling={selling}
             filters={filters}
             onFilterChange={setFilters}
