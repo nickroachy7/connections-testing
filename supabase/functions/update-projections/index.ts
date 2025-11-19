@@ -130,9 +130,11 @@ function generateProjectionNotes(
   
   // Games played context
   if (gamesPlayed === 0) {
-    notes.push('No stats this season - using position baseline');
+    notes.push('No stats - backup/practice squad');
   } else if (gamesPlayed < 3) {
-    notes.push(`Limited sample (${gamesPlayed} games)`);
+    notes.push(`Backup role (${gamesPlayed} games)`);
+  } else if (gamesPlayed < 6) {
+    notes.push(`Limited role (${gamesPlayed} games)`);
   } else {
     notes.push(`Based on ${gamesPlayed} games`);
   }
@@ -306,7 +308,8 @@ Deno.serve(async (req) => {
         console.log(`Batch API error:`, e);
       }
       
-      const updates = batch.map((player) => {
+      // Process each player individually with UPDATE queries
+      for (const player of batch) {
         let projected = 0, seasonAvg = 0, gamesPlayed = 0;
         const injuryStatus = injuryMap.get(player.player_id) || 'healthy';
         const injuryMultiplier = getInjuryMultiplier(injuryStatus);
@@ -325,6 +328,20 @@ Deno.serve(async (req) => {
           };
           projected = seasonAvg * (multipliers[player.position] || 1.0);
           
+          // Detect backup/low-usage players and heavily reduce projections
+          // If they've played < 4 games OR have very low total production, they're likely backups
+          const totalSeasonPoints = calculateFantasyPoints(stats, player.position, defaultScoringType);
+          const isLowUsage = gamesPlayed < 4 || totalSeasonPoints < 20;
+          
+          if (isLowUsage) {
+            // Backups/rarely used players get minimal projections (they shouldn't be started)
+            const backupProjections: Record<string, number> = {
+              'Quarterback': 3, 'Running Back': 2, 'Wide Receiver': 2,
+              'Tight End': 1.5, 'Kicker': 5, 'Place kicker': 5, 'Defense': 4,
+            };
+            projected = backupProjections[player.position] || 2;
+          }
+          
           // Apply injury multiplier
           projected = projected * injuryMultiplier;
           
@@ -336,12 +353,12 @@ Deno.serve(async (req) => {
           const bound = bounds[player.position] || {min:0, max:25};
           projected = Math.max(bound.min, Math.min(bound.max, projected));
         } else {
-          // No stats - use baseline projection with injury multiplier
-          const baselines: Record<string, number> = {
-            'Quarterback': 18, 'Running Back': 12, 'Wide Receiver': 10,
-            'Tight End': 8, 'Kicker': 8, 'Place kicker': 8, 'Defense': 8,
+          // No stats - use minimal backup projection (players with zero games are deep backups)
+          const backupBaselines: Record<string, number> = {
+            'Quarterback': 2, 'Running Back': 1.5, 'Wide Receiver': 1.5,
+            'Tight End': 1, 'Kicker': 5, 'Place kicker': 5, 'Defense': 3,
           };
-          seasonAvg = baselines[player.position] || 8;
+          seasonAvg = backupBaselines[player.position] || 1.5;
           projected = seasonAvg * injuryMultiplier;
         }
         
@@ -355,35 +372,31 @@ Deno.serve(async (req) => {
           defaultScoringType
         );
 
-        return {
-          id: player.id,
-          weekly_projected_points: Math.round(projected * 10) / 10,
-          projected_points: Math.round(projected * 10) / 10,
-          season_ppg: Math.round(seasonAvg * 10) / 10,
-          season_avg_points: Math.round(seasonAvg * 10) / 10,
-          games_played_season: gamesPlayed,
-          games_played: gamesPlayed,
-          injury_status: injuryStatus,
-          injury_designation: injuryStatus,
-          projection_notes: projectionNotes,
-          last_projection_update: new Date().toISOString(),
-          last_updated: new Date().toISOString(),
-        };
-      });
-
-      // Batch update using upsert - much faster than individual updates
-      if (updates.length > 0) {
-        const { error, count } = await supabase
+        // Individual UPDATE query for each player
+        const { error } = await supabase
           .from('player_cards')
-          .upsert(updates, { onConflict: 'id' });
+          .update({
+            weekly_projected_points: Math.round(projected * 10) / 10,
+            projected_points: Math.round(projected * 10) / 10,
+            season_ppg: Math.round(seasonAvg * 10) / 10,
+            season_avg_points: Math.round(seasonAvg * 10) / 10,
+            games_played_season: gamesPlayed,
+            games_played: gamesPlayed,
+            injury_status: injuryStatus,
+            injury_designation: injuryStatus,
+            projection_notes: projectionNotes,
+            last_projection_update: new Date().toISOString(),
+            last_updated: new Date().toISOString(),
+          })
+          .eq('id', player.id);
         
-        if (error) {
-          console.error(`Batch ${Math.floor(i/batchSize)+1} update error:`, error);
+        if (!error) {
+          updated++;
         } else {
-          updated += updates.length;
+          console.error(`Error updating player ${player.id}:`, error);
         }
       }
-      console.log(`Batch ${Math.floor(i/batchSize)+1}/${Math.ceil(players.length/batchSize)} complete - ${updates.length} players updated`);
+      console.log(`Batch ${Math.floor(i/batchSize)+1}/${Math.ceil(players.length/batchSize)} complete - ${batch.length} players processed`);
     }
 
     console.log(`✅ Projection update complete: ${updated}/${players.length} players updated`);
