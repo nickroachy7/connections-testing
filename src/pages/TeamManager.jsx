@@ -23,13 +23,13 @@ function getBaselineProjection(position) {
 }
 
 export default function TeamManager() {
-  const { user, profile, teams, activeTeam: initialActiveTeam, inventory: initialInventory } = useOutletContext();
+  const { user, profile, teams, activeTeam: initialActiveTeam, inventory: contextInventory } = useOutletContext();
   const navigate = useNavigate();
   const revalidator = useRevalidator();
   
-  // Team & Inventory state - ensure inventory is never null
+  // Team & Inventory state - use context inventory as primary source (always fresh)
   const [activeTeam, setActiveTeam] = useState(initialActiveTeam);
-  const [inventory, setInventory] = useState(initialInventory || { players: [], tokens: [] });
+  const [inventory, setInventory] = useState(contextInventory || { players: [], tokens: [] });
 
   // Handle case where user is null (loader error or not logged in)
   useEffect(() => {
@@ -37,6 +37,61 @@ export default function TeamManager() {
       navigate('/login');
     }
   }, [user, navigate]);
+  
+  // Update inventory when context inventory changes (e.g., after pack opening)
+  useEffect(() => {
+    if (contextInventory && contextInventory.players) {
+      console.log('📦 [TeamManager] Context inventory updated, reloading lineup');
+      setInventory(contextInventory);
+      
+      // Reload lineup from new inventory
+      const startingPlayers = contextInventory.players.filter(p => p.is_in_lineup);
+      const bench = contextInventory.players.filter(p => !p.is_in_lineup);
+      
+      const newLineup = {
+        QB: null,
+        RB1: null,
+        RB2: null,
+        WR1: null,
+        WR2: null,
+        WR3: null,
+        TE: null,
+        FLEX: null,
+        BENCH: bench
+      };
+      
+      startingPlayers.forEach(player => {
+        if (player.lineup_position) {
+          newLineup[player.lineup_position] = player;
+        }
+      });
+      
+      setLineup(newLineup);
+      
+      // Load projections from context inventory
+      const dbProjections = new Map();
+      contextInventory.players.forEach(p => {
+        if (p.player_card) {
+          const weeklyProjValue = p.player_card.weekly_projected_points != null ? parseFloat(p.player_card.weekly_projected_points) : null;
+          const projValue = p.player_card.projected_points != null ? parseFloat(p.player_card.projected_points) : null;
+          const weeklyProj = weeklyProjValue ?? projValue ?? getBaselineProjection(p.player_card.position);
+          const seasonAvg = parseFloat(p.player_card.season_ppg) || 0;
+          const gamesPlayed = parseInt(p.player_card.games_played_season) || 0;
+          
+          dbProjections.set(p.player_card.player_id, {
+            projected: weeklyProj,
+            seasonAvg: seasonAvg,
+            gamesPlayed: gamesPlayed,
+            injuryStatus: p.player_card.injury_status || 'healthy',
+            isFromDatabase: true
+          });
+        }
+      });
+      
+      setProjections(dbProjections);
+      console.log('⚡ [TeamManager] Projections updated from context:', dbProjections.size, 'players');
+    }
+  }, [contextInventory]);
   
   // Lineup state
   const [lineup, setLineup] = useState({
@@ -332,8 +387,8 @@ export default function TeamManager() {
       
       setLineup(newLineup);
       
-      // Reset initial load flag when loading inventory manually
-      initialLoadRef.current = true;
+      // DON'T reset initial load flag - let auto-save work normally
+      // initialLoadRef.current = true; // REMOVED - this was blocking auto-save
       
       // Calculate projections for all players - USE DATABASE PROJECTIONS
       if (data.players && data.players.length > 0) {
@@ -378,10 +433,10 @@ export default function TeamManager() {
 
   // Initial data load from loader - only load live game data
   useEffect(() => {
-    if (initialInventory && initialInventory.players.length > 0) {
+    if (contextInventory && contextInventory.players.length > 0) {
       // Load lineup from initial inventory
-      const startingPlayers = initialInventory.players.filter(p => p.is_in_lineup);
-      const bench = initialInventory.players.filter(p => !p.is_in_lineup);
+      const startingPlayers = contextInventory.players.filter(p => p.is_in_lineup);
+      const bench = contextInventory.players.filter(p => !p.is_in_lineup);
       
       const newLineup = {
         QB: null,
@@ -405,7 +460,7 @@ export default function TeamManager() {
       
       // Load projections from database (instant!)
       const dbProjections = new Map();
-      initialInventory.players.forEach(p => {
+      contextInventory.players.forEach(p => {
         if (p.player_card) {
           // Parse numeric values from database (they come as strings)
           // Use explicit null checks to preserve 0 values
@@ -431,7 +486,7 @@ export default function TeamManager() {
       console.log('⚡ INSTANT initial projections loaded from database for', dbProjections.size, 'players');
       
       // Load live game data only once on mount
-      loadLiveGameData(initialInventory);
+      loadLiveGameData(contextInventory);
     }
   }, []); // Only run once on mount
 

@@ -16,7 +16,7 @@ export default function Dashboard() {
     projections: contextProjections,
     liveGameData: contextLiveGameData,
     currentWeek: contextCurrentWeek
-  } = useOutletContext();
+  } = useOutletContext() || {};
   const navigate = useNavigate();
   const revalidator = useRevalidator();
   
@@ -67,10 +67,10 @@ export default function Dashboard() {
 
   // Load lineup data when inventory changes (from loader)
   useEffect(() => {
-    if (initialInventory?.players && activeTeam && currentWeek) {
+    if (initialInventory?.players && activeTeam && contextCurrentWeek) {
       loadLineupData(initialInventory);
     }
-  }, [initialInventory, activeTeam, currentWeek]); // Don't include loadLineupData itself
+  }, [initialInventory, activeTeam, contextCurrentWeek]); // Don't include loadLineupData to avoid circular dependency
   
   // Load leaderboard data
   useEffect(() => {
@@ -229,26 +229,31 @@ export default function Dashboard() {
     console.log('🔍 loadLineupData called with inventory:', inventory);
     console.log('🔍 inventory?.players length:', inventory?.players?.length);
     console.log('🔍 activeTeam:', activeTeam?.id);
-    console.log('🔍 currentWeek:', currentWeek);
+    console.log('🔍 currentWeek from context:', contextCurrentWeek);
     
-    if (!inventory?.players || !activeTeam || !currentWeek) {
+    // Use context current week (always fresh from season config)
+    const weekToDisplay = contextCurrentWeek;
+    
+    if (!inventory?.players || !activeTeam || !weekToDisplay) {
       console.log('❌ Missing required data, returning early');
       return;
     }
     
     try {
-      // Check if current week is finalized - if so, load from weekly_lineups snapshot
+      // Check if CURRENT week is finalized - if so, load from weekly_lineups snapshot
       const { data: weeklyLineup } = await supabase
         .from('weekly_lineups')
         .select('lineup_snapshot, status')
         .eq('team_id', activeTeam.id)
-        .eq('week_number', currentWeek.week)
-        .eq('season_year', currentWeek.year)
+        .eq('week_number', weekToDisplay.week)
+        .eq('season_year', weekToDisplay.year)
         .maybeSingle();
 
-      // If week is finalized, load from snapshot
+      console.log(`📊 Dashboard: Week ${weekToDisplay.week} status:`, weeklyLineup?.status || 'no lineup');
+
+      // If CURRENT week is finalized, load from snapshot (show final scores)
       if (weeklyLineup?.status === 'completed' && weeklyLineup.lineup_snapshot) {
-        console.log('📸 Dashboard: Loading finalized Week', currentWeek.week, 'lineup from snapshot');
+        console.log('📸 Dashboard: Loading finalized Week', weekToDisplay.week, 'lineup from snapshot');
           
           const snapshot = weeklyLineup.lineup_snapshot;
           const newLineup = {
@@ -292,7 +297,7 @@ export default function Dashboard() {
           setLineup(newLineup);
           console.log('📸 Loaded finalized lineup with', positionsInSnapshot.size, 'starters');
           
-          // Continue with projections and live data loading
+          // Load projections for NEXT week (not the finalized week)
           if (inventory.players && inventory.players.length > 0) {
             const dbProjections = new Map();
             inventory.players.forEach(p => {
@@ -308,14 +313,15 @@ export default function Dashboard() {
               }
             });
             setProjections(dbProjections);
+            console.log('📊 Loaded projections for finalized week');
           }
           
           await loadLiveGameData(inventory.players);
           return; // Exit early - we loaded from snapshot
       }
 
-      // Fallback: Load active lineup from inventory (for non-finalized weeks)
-      console.log('📋 Dashboard: Loading active lineup from inventory');
+      // Current week is NOT finalized - show PROJECTED stats for current week
+      console.log('📋 Dashboard: Week', weekToDisplay.week, 'is active - showing PROJECTED stats');
       const startingPlayers = inventory.players.filter(p => p.is_in_lineup);
       const bench = inventory.players.filter(p => !p.is_in_lineup);
       
@@ -495,10 +501,10 @@ export default function Dashboard() {
       // Use selectedWeek for the query if it's set, otherwise use current week
       const queryWeek = selectedWeek !== null ? selectedWeek : weekNumber;
       
-      console.log('🔍 Querying lineups:', { queryWeek, seasonYear, isSimulatedSeason, activeTeamId: activeTeam?.id });
-      
       // Check if activeTeam is in a simulated season
       const isSimulatedSeason = activeTeam?.simulated_season_id;
+      
+      console.log('🔍 Querying lineups:', { queryWeek, seasonYear, isSimulatedSeason, activeTeamId: activeTeam?.id });
       
       // Load weekly lineups for selected or current week
       let query = supabase

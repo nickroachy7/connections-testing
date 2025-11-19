@@ -62,7 +62,7 @@ export default function LiveScoreWidget() {
 
       // Get user's active team
       const { data: teams, error: teamsError } = await supabase
-        .from('user_teams')
+        .from('teams')
         .select('id')
         .eq('user_id', user.id)
         .eq('is_active', true)
@@ -73,7 +73,7 @@ export default function LiveScoreWidget() {
       // Get user's lineup for this week
       const { data: lineup, error: lineupError } = await supabase
         .from('weekly_lineups')
-        .select('total_points, lineup_status, rank')
+        .select('total_points, status, rank')
         .eq('team_id', teams.id)
         .eq('week_number', weekNumber)
         .eq('season_year', seasonYear)
@@ -114,7 +114,7 @@ export default function LiveScoreWidget() {
           totalTeams: globalStats.active_teams || 0,
           pointsDiff: Math.abs(pointsDiff),
           isWinning,
-          status: lineup.lineup_status
+          status: lineup.status
         });
       } else {
         setScoreData(null);

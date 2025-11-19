@@ -251,7 +251,7 @@ export function FantasyProvider({ children, user, activeTeam }) {
     } catch (err) {
       console.error('Error loading live game data:', err);
     }
-  }, []); // Removed inventory dependency - we pass it as a parameter instead
+  }, [currentWeek]); // Include currentWeek as dependency
 
   // Load inventory and lineup
   const loadInventory = useCallback(async () => {
@@ -350,16 +350,18 @@ export function FantasyProvider({ children, user, activeTeam }) {
       console.error('Error loading inventory:', err);
       setLoading(false);
     }
-  }, [user?.id, activeTeam?.id]); // Removed loadLiveGameData dependency to prevent infinite loop
+  }, [user?.id, activeTeam?.id, currentWeek?.week, currentWeek?.year]); // Use primitive values
 
   // Initial load
   useEffect(() => {
+    if (!user?.id || !activeTeam?.id) return;
+    console.log('📦 [FantasyContext] Initial load triggered for team:', activeTeam.id);
     loadInventory();
-  }, [loadInventory]);
+  }, [user?.id, activeTeam?.id, loadInventory]); // Include loadInventory to refresh when team changes
 
   // Subscribe to live updates
   useEffect(() => {
-    if (!user || !currentWeek || !inventory?.players) return;
+    if (!user || !currentWeek || !inventory?.players || inventory.players.length === 0) return;
     
     // Clean up old subscriptions
     channelsRef.current.forEach(channel => {
@@ -438,7 +440,7 @@ export function FantasyProvider({ children, user, activeTeam }) {
       });
       channelsRef.current = [];
     };
-  }, [user, currentWeek, inventory?.players]); // Removed loadLiveGameData to prevent infinite loop
+  }, [user?.id, currentWeek?.week, currentWeek?.year, inventory?.players?.length]); // Use primitive values to prevent stale closures
 
   const value = {
     lineup,

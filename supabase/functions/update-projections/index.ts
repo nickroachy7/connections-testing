@@ -241,6 +241,30 @@ Deno.serve(async (req) => {
     
     console.log(`Total injury statuses retrieved: ${injuryMap.size}`);
 
+    // Helper function for API calls with retry logic
+    async function fetchWithRetry(url: string, headers: any, retries = 3): Promise<Response> {
+      for (let attempt = 0; attempt < retries; attempt++) {
+        try {
+          const response = await fetch(url, { headers });
+          
+          if (response.status === 429) {
+            // Rate limited - exponential backoff
+            const backoffMs = 1000 * Math.pow(2, attempt);
+            console.log(`Rate limited, waiting ${backoffMs}ms before retry ${attempt + 1}/${retries}`);
+            await new Promise(r => setTimeout(r, backoffMs));
+            continue;
+          }
+          
+          return response;
+        } catch (e) {
+          if (attempt === retries - 1) throw e;
+          console.log(`Request failed, retrying ${attempt + 1}/${retries}`);
+          await new Promise(r => setTimeout(r, 500));
+        }
+      }
+      throw new Error('Max retries exceeded');
+    }
+
     // Now process stats and projections
     for (let i = 0; i < players.length; i += batchSize) {
       const batch = players.slice(i, i + batchSize);
@@ -257,9 +281,7 @@ Deno.serve(async (req) => {
         const playerIdsParams = batchPlayerIds.map(id => `player_ids[]=${id}`).join('&');
         const url = `https://api.balldontlie.io/nfl/v1/season_stats?season=${currentSeason}&${playerIdsParams}`;
         
-        const response = await fetch(url, {
-          headers: { 'Authorization': nflApiKey }
-        });
+        const response = await fetchWithRetry(url, { 'Authorization': nflApiKey });
         
         if (response.ok) {
           const data = await response.json();

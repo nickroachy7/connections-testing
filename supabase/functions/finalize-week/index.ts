@@ -146,9 +146,17 @@ Deno.serve(async (req) => {
         .from('transactions')
         .insert({
           user_id: team.user_id,
+          team_id: lineup.team_id,
           transaction_type: beatAverage ? 'week_win' : 'week_loss',
-          description: `Week ${weekNumber}: ${beatAverage ? 'Beat' : 'Below'} average (${lineup.total_points.toFixed(1)} vs ${globalAverage.toFixed(1)})`,
-          coins_change: 0
+          coins_change: 0,
+          coins_after: team.coins,
+          metadata: {
+            week_number: weekNumber,
+            season_year: seasonYear,
+            total_points: lineup.total_points,
+            global_average: globalAverage,
+            result: beatAverage ? 'win' : 'loss'
+          }
         })
 
       if (txError) {

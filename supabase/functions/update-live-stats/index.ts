@@ -5,6 +5,31 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// Retry helper for API calls with exponential backoff
+async function fetchWithRetry(url: string, options: RequestInit, retries = 3): Promise<Response> {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const response = await fetch(url, options)
+      
+      // If rate limited, wait and retry
+      if (response.status === 429 && i < retries - 1) {
+        const waitTime = Math.pow(2, i) * 1000 // Exponential backoff: 1s, 2s, 4s
+        console.log(`Rate limited, waiting ${waitTime}ms before retry ${i + 1}/${retries}`)
+        await new Promise(resolve => setTimeout(resolve, waitTime))
+        continue
+      }
+      
+      return response
+    } catch (error) {
+      if (i === retries - 1) throw error
+      const waitTime = Math.pow(2, i) * 1000
+      console.log(`Request failed, waiting ${waitTime}ms before retry ${i + 1}/${retries}`)
+      await new Promise(resolve => setTimeout(resolve, waitTime))
+    }
+  }
+  throw new Error('Max retries exceeded')
+}
+
 // Base fantasy scoring rules (PPR is applied separately based on contest type)
 const BASE_SCORING_RULES = {
   passing_yards: 0.04,  // 1 point per 25 yards
@@ -143,8 +168,8 @@ Deno.serve(async (req) => {
       throw new Error('BALLDONTLIE_API_KEY not found')
     }
 
-    // Fetch games from API
-    const gamesResponse = await fetch(
+    // Fetch games from API with retry logic
+    const gamesResponse = await fetchWithRetry(
       `https://api.balldontlie.io/nfl/v1/games?seasons[]=${seasonYear}&weeks[]=${weekNumber}`,
       { headers: { 'Authorization': apiKey } }
     )
@@ -222,7 +247,7 @@ Deno.serve(async (req) => {
 
       // Step 2: Fetch player stats for live/final games only
       if (gameStatus === 'live' || gameStatus === 'halftime' || gameStatus === 'final') {
-        const statsResponse = await fetch(
+        const statsResponse = await fetchWithRetry(
           `https://api.balldontlie.io/nfl/v1/stats?game_ids[]=${game.id}`,
           { headers: { 'Authorization': apiKey } }
         )

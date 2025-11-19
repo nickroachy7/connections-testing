@@ -449,17 +449,6 @@ export default function FantasyNavBanner({
           setIsLive(false);
           console.log('🤖 Simulated season detected - forcing PROJECTED status');
         }
-
-        // In preview mode, we're looking at next week which has no data yet
-        // So we force PROJECTED status and skip database queries
-        if (previewMode && weekIsFinalized && displayWeek.week > currentWeek.week) {
-          console.log('🔮 PREVIEW MODE ACTIVE: Showing next week', displayWeek.week, 'with PROJECTED status');
-          setIsLive(false);
-          setIsFinal(false);
-          setGlobalStats(null);
-          setHasWeeklyLineup(false);
-          return; // Skip all database queries for next week
-        }
         
         // Get global stats for display week
         const { data: globalData, error: globalError } = await supabase
@@ -488,11 +477,22 @@ export default function FantasyNavBanner({
         console.log('👤 User Lineup:', lineupData);
 
         // Check if week is finalized (lineup status is 'completed')
-        const weekIsFinalized = lineupData?.status === 'completed';
-        setIsFinal(weekIsFinalized);
-        setWeekIsFinalized(weekIsFinalized);
+        const weekFinalizedStatus = lineupData?.status === 'completed';
+        setIsFinal(weekFinalizedStatus);
+        setWeekIsFinalized(weekFinalizedStatus);
         setHasWeeklyLineup(!!lineupData); // Track if lineup exists
-        console.log('🏁 Week finalized:', weekIsFinalized);
+        console.log('🏁 Week finalized:', weekFinalizedStatus);
+
+        // In preview mode, we're looking at next week which has no data yet
+        // So we force PROJECTED status and skip database queries
+        if (previewMode && weekFinalizedStatus && displayWeek.week > currentWeek.week) {
+          console.log('🔮 PREVIEW MODE ACTIVE: Showing next week', displayWeek.week, 'with PROJECTED status');
+          setIsLive(false);
+          setIsFinal(false);
+          setGlobalStats(null);
+          setHasWeeklyLineup(false);
+          return; // Skip remaining queries for next week
+        }
 
         // Check if week is live
         // ONLY show LIVE if the team has a weekly_lineup entry for this week
@@ -503,7 +503,7 @@ export default function FantasyNavBanner({
           // For regular seasons, check if the week is "live"
           // A week is live if ANY game has started (even if finished)
           // BUT NOT if the week is finalized
-          if (!weekIsFinalized && liveGameData && liveGameData.size > 0) {
+          if (!weekFinalizedStatus && liveGameData && liveGameData.size > 0) {
             // Check if ANY player has a game that's started (live, halftime, or final)
             for (const [playerId, gameData] of liveGameData.entries()) {
               const statusLower = gameData?.gameStatus?.toLowerCase();
@@ -516,7 +516,7 @@ export default function FantasyNavBanner({
           }
           
           // Fallback: Query database for games that have started
-          if (!weekIsLive && (!liveGameData || liveGameData.size === 0) && !weekIsFinalized) {
+          if (!weekIsLive && (!liveGameData || liveGameData.size === 0) && !weekFinalizedStatus) {
             const { data: startedGames } = await supabase
               .from('game_scores')
               .select('id, game_status')
@@ -537,7 +537,7 @@ export default function FantasyNavBanner({
 
         if (lineupData) {
           // Calculate live or projected points based on week status
-          if (weekIsFinalized) {
+          if (weekFinalizedStatus) {
             // Week is finalized - show final score from database
             const finalScore = lineupData.total_points || 0;
             setLivePoints(finalScore);

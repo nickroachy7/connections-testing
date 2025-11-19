@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useRevalidator } from 'react-router-dom'
 import { supabase } from '../services/supabase'
 import { useToast } from '../contexts/ToastContext'
 import LoadingSpinner from '../components/LoadingSpinner'
@@ -7,6 +7,7 @@ import TierAssignment from '../components/TierAssignment'
 
 export default function PackOpening() {
   const navigate = useNavigate()
+  const revalidator = useRevalidator()
   const { teamId, packId } = useParams()
   const { success, error: showError } = useToast()
   
@@ -35,11 +36,12 @@ export default function PackOpening() {
         return
       }
 
-      // Get the pack details
+      // Get the pack details from user_packs table
       const { data: userPack, error: packError } = await supabase
         .from('user_packs')
         .select(`
-          *,
+          id,
+          pack_id,
           pack:pack_id (
             pack_name,
             pack_type,
@@ -61,6 +63,14 @@ export default function PackOpening() {
         return
       }
 
+      console.log('Loaded pack data:', {
+        user_pack_id: userPack.id,
+        pack_id: userPack.pack_id,
+        pack_details: userPack.pack,
+        has_pack_id: !!userPack.pack_id,
+        pack_type: userPack.pack?.pack_type
+      })
+
       setPack(userPack)
     } catch (error) {
       console.error('Error loading pack:', error)
@@ -74,20 +84,40 @@ export default function PackOpening() {
   const openPack = async () => {
     setOpening(true)
     
+    // Validate pack data before calling Edge Function
+    if (!pack || !pack.pack_id) {
+      console.error('Invalid pack data:', pack)
+      showError('Invalid pack data. Please try again.')
+      setOpening(false)
+      return
+    }
+    
+    console.log('Opening pack with data:', {
+      user_pack_id: pack.id,
+      pack_id: pack.pack_id,
+      team_id: teamId,
+      pack_type: pack.pack?.pack_type
+    })
+    
     // Animate pack opening
     setTimeout(async () => {
       try {
         // Call the Edge Function to open the pack (initial call without tier assignments)
+        // Use pack.pack_id (reference to packs table), NOT pack.id (user_packs table id)
         const { data, error } = await supabase.functions.invoke('open-pack', {
           body: {
-            pack_id: pack.pack_id,
+            pack_id: pack.pack_id,  // This is the ID from the packs table
             team_id: teamId,
             is_starter_pack: pack.pack.pack_type === 'starter'
           }
         })
 
         if (error) throw error
-        if (!data || !data.success) throw new Error(data?.error || 'Failed to open pack')
+        if (!data || !data.success) {
+          const errorMsg = data?.error || 'Failed to open pack'
+          console.error('Edge Function returned error:', errorMsg, 'Full response:', data)
+          throw new Error(errorMsg)
+        }
 
         // Check if this is a starter pack that needs tier assignment
         if (data.needs_tier_assignment) {
@@ -225,8 +255,14 @@ export default function PackOpening() {
       setNeedsTierAssignment(false)
       success('Tiers assigned successfully! Set your starting lineup.')
       
-      // Navigate immediately to starting lineup page
-      navigate(`/teams/${teamId}/starting-lineup`)
+      // Revalidate to refresh context inventory before navigation
+      console.log('🔄 Revalidating router data to refresh inventory...');
+      revalidator.revalidate();
+      
+      // Small delay to allow revalidation to complete
+      setTimeout(() => {
+        navigate(`/teams/${teamId}/starting-lineup`);
+      }, 100);
     } catch (error) {
       console.error('Error assigning tiers:', error)
       showError(error.message || 'Failed to assign tiers')

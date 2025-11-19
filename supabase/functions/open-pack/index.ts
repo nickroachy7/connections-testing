@@ -41,24 +41,12 @@ serve(async (req) => {
       .single()
 
     if (packError || !pack) {
-      throw new Error('Pack not found')
+      console.error('Pack error:', packError)
+      throw new Error(`Pack not found: ${packError?.message || 'Unknown error'}`)
     }
 
-    // Get user profile
-    const { data: profile, error: profileError } = await supabaseClient
-      .from('users')
-      .select('total_coins')
-      .eq('id', user.id)
-      .single()
-
-    if (profileError || !profile) {
-      throw new Error('User profile not found')
-    }
-
-    // Check if user has enough coins (skip for starter pack)
-    if (!is_starter_pack && profile.total_coins < pack.coin_cost) {
-      throw new Error('Insufficient coins')
-    }
+    // No need to check coins here - coins are deducted during purchase_pack RPC
+    // This function only handles opening packs that have already been purchased
 
     // Use the provided team_id, or fall back to active team
     let teamToUse = null
@@ -229,20 +217,8 @@ serve(async (req) => {
       )
     }
 
-    // Deduct coins (skip for starter pack)
-    if (!is_starter_pack) {
-      const { error: updateError } = await supabaseClient
-        .from('users')
-        .update({
-          total_coins: profile.total_coins - pack.coin_cost,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', user.id)
-
-      if (updateError) {
-        throw new Error('Failed to deduct coins')
-      }
-    }
+    // Coins are deducted during purchase_pack RPC, not here
+    // This function only handles opening purchased packs
 
     return new Response(
       JSON.stringify({
