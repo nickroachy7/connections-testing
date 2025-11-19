@@ -371,11 +371,19 @@ Deno.serve(async (req) => {
         };
       });
 
-      for (const update of updates) {
-        const { error } = await supabase.from('player_cards').update(update).eq('id', update.id);
-        if (!error) updated++;
+      // Batch update using upsert - much faster than individual updates
+      if (updates.length > 0) {
+        const { error, count } = await supabase
+          .from('player_cards')
+          .upsert(updates, { onConflict: 'id' });
+        
+        if (error) {
+          console.error(`Batch ${Math.floor(i/batchSize)+1} update error:`, error);
+        } else {
+          updated += updates.length;
+        }
       }
-      console.log(`Batch ${Math.floor(i/batchSize)+1}/${Math.ceil(players.length/batchSize)} complete`);
+      console.log(`Batch ${Math.floor(i/batchSize)+1}/${Math.ceil(players.length/batchSize)} complete - ${updates.length} players updated`);
     }
 
     console.log(`✅ Projection update complete: ${updated}/${players.length} players updated`);
