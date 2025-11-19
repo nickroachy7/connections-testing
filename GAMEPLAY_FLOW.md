@@ -55,24 +55,23 @@
 - Cannot use same player in multiple positions
 - Position eligibility enforced (e.g., QB can't play RB)
 
-### 2. Entering a Contest
-**Location**: Dashboard or `/contests`
+### 2. Global Season Competition
+**Location**: Dashboard
 
-**Flow**:
-1. User views available contests:
-   - **Weekly Contests**: Free entry, everyone competes
-   - **Premium Contests**: Token entry fee (e.g., 10-50 tokens)
-   - **Tier-Based Contests**: Restricted by player tier levels
-2. User clicks "Enter Contest"
-3. System validates:
-   - User has a valid lineup set
-   - User has sufficient tokens (if premium)
-   - Lineup meets contest requirements
-4. Entry confirmed → User added to contest participants
-5. Tokens deducted (if applicable)
+**Global Season Structure**:
+- **All teams compete together** in a single global season
+- **18-week season** with weekly matchups
+- **3-loss elimination**: Teams are eliminated after accumulating 3 losses
+- **No contest selection**: Everyone plays in the same unified competition
+
+**Weekly Flow**:
+1. User sets their lineup before Sunday kickoff
+2. All teams automatically participate in the week's competition
+3. System validates lineup is complete before locking
+4. Games begin → lineups lock → live scoring starts
 
 **Contest States**:
-- **Upcoming**: User can enter/modify lineup
+- **Upcoming**: User can modify lineup
 - **Live**: Games started, lineup locked, live scoring active
 - **Completed**: Final scores calculated, rewards distributed
 
@@ -273,11 +272,11 @@
 - Cannot delete players in active lineups
 - Position-specific maximums (e.g., max 5 QBs)
 
-### Contest Rules
-- Cannot enter same contest twice
-- Cannot modify lineup after contest locks
+### Global Season Rules
+- All teams compete in a single unified season
+- Cannot modify lineup after games start (Sunday 1:00 PM ET)
 - Tie-breakers: Total yards > TDs > Alphabetical
-- Minimum participants: 10 (or contest cancelled, refunds issued)
+- 3 losses = elimination from the season
 
 ### Token Safeguards
 - Cannot go below 0 tokens
@@ -298,6 +297,6 @@
 
 ---
 
-**Last Updated**: November 18, 2025  
+**Last Updated**: November 19, 2025  
 **Owner**: Product Team  
 **Review Frequency**: After every major gameplay change
