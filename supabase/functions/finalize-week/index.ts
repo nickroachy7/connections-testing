@@ -50,37 +50,48 @@ Deno.serve(async (req) => {
       )
     }
 
-    // Check if global average already exists
-    const { data: existingAverage } = await supabase
+    // Check if global stats already exist
+    const { data: existingStats } = await supabase
       .from('weekly_global_stats')
       .select('*')
       .eq('week_number', weekNumber)
       .eq('season_year', seasonYear)
       .single()
 
-    let globalAverage = existingAverage?.average_score || 0
+    let globalMedian = existingStats?.median_score || 0
 
-    if (!existingAverage) {
-      // Calculate global average if it doesn't exist
-      const totalPoints = weeklyLineups.reduce((sum, lineup) => sum + (lineup.total_points || 0), 0)
-      globalAverage = weeklyLineups.length > 0 ? totalPoints / weeklyLineups.length : 0
+    if (!existingStats) {
+      // Calculate global median if it doesn't exist
+      const scores = weeklyLineups
+        .map(lineup => lineup.total_points || 0)
+        .filter(score => score > 0)
+        .sort((a, b) => a - b)
+      
+      if (scores.length > 0) {
+        const mid = Math.floor(scores.length / 2)
+        if (scores.length % 2 === 0) {
+          globalMedian = (scores[mid - 1] + scores[mid]) / 2
+        } else {
+          globalMedian = scores[mid]
+        }
+      }
 
-      // Save global average
-      const { error: avgError } = await supabase
+      // Save global stats
+      const { error: statsError } = await supabase
         .from('weekly_global_stats')
         .insert({
           week_number: weekNumber,
           season_year: seasonYear,
-          average_score: globalAverage,
+          median_score: globalMedian,
           total_teams: weeklyLineups.length
         })
 
-      if (avgError) {
-        console.error('Error saving global average:', avgError)
+      if (statsError) {
+        console.error('Error saving global stats:', statsError)
       }
     }
 
-    console.log(`Global average for Week ${weekNumber}: ${globalAverage}`)
+    console.log(`Global median for Week ${weekNumber}: ${globalMedian}`)
 
     let wins = 0
     let losses = 0
@@ -88,15 +99,15 @@ Deno.serve(async (req) => {
 
     // Process each team
     for (const lineup of weeklyLineups) {
-      const beatAverage = lineup.total_points >= globalAverage
-      const resultStatus = beatAverage ? 'win' : 'loss'
+      const beatMedian = lineup.total_points >= globalMedian
+      const resultStatus = beatMedian ? 'win' : 'loss'
 
       // Update weekly lineup status
       const { error: updateLineupError } = await supabase
         .from('weekly_lineups')
         .update({
           status: 'completed',
-          beat_average: beatAverage
+          beat_average: beatMedian
         })
         .eq('id', lineup.id)
 
@@ -117,8 +128,8 @@ Deno.serve(async (req) => {
         continue
       }
 
-      const newWins = team.wins + (beatAverage ? 1 : 0)
-      const newLosses = team.losses + (beatAverage ? 0 : 1)
+      const newWins = team.wins + (beatMedian ? 1 : 0)
+      const newLosses = team.losses + (beatMedian ? 0 : 1)
       const isEliminated = newLosses >= 3
 
       // Update team record
@@ -136,7 +147,7 @@ Deno.serve(async (req) => {
         continue
       }
 
-      if (beatAverage) wins++
+      if (beatMedian) wins++
       else losses++
       
       if (isEliminated) eliminated++
@@ -147,15 +158,15 @@ Deno.serve(async (req) => {
         .insert({
           user_id: team.user_id,
           team_id: lineup.team_id,
-          transaction_type: beatAverage ? 'week_win' : 'week_loss',
+          transaction_type: beatMedian ? 'week_win' : 'week_loss',
           coins_change: 0,
           coins_after: team.coins,
           metadata: {
             week_number: weekNumber,
             season_year: seasonYear,
             total_points: lineup.total_points,
-            global_average: globalAverage,
-            result: beatAverage ? 'win' : 'loss'
+            global_median: globalMedian,
+            result: beatMedian ? 'win' : 'loss'
           }
         })
 
@@ -172,7 +183,7 @@ Deno.serve(async (req) => {
         wins,
         losses,
         eliminated,
-        global_average: globalAverage.toFixed(2)
+        global_median: globalMedian.toFixed(2)
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     )
