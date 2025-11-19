@@ -1,6 +1,7 @@
-import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
-import { supabase, getUserInventory } from '../services/supabase';
+import { supabase } from '../services/supabase';
+import { getUserInventory } from '../services/supabase';
 
 const FantasyContext = createContext(null);
 
@@ -51,16 +52,18 @@ export function FantasyProvider({ children, user, activeTeam }) {
   useEffect(() => {
     const loadCurrentWeek = async () => {
       try {
-        const { data: seasonConfig } = await supabase
+        const { data, error } = await supabase
           .from('nfl_season_config')
-          .select('current_week, season_year')
+          .select('*')
           .eq('is_active', true)
           .single();
         
-        if (seasonConfig) {
-          setCurrentWeek({ week: seasonConfig.current_week, year: seasonConfig.season_year });
-          console.log('📅 [FantasyContext] Current week loaded immediately:', seasonConfig.current_week);
-        }
+        if (error) throw error;
+        
+        setCurrentWeek({
+          week: data.current_week,
+          year: data.season_year
+        });
       } catch (err) {
         console.error('Error loading current week:', err);
       }
@@ -83,7 +86,7 @@ export function FantasyProvider({ children, user, activeTeam }) {
         .single();
       
       if (seasonError) {
-        console.error('[FantasyContext] Error loading season config:', seasonError);
+        console.error('Error loading season config:', seasonError);
         return;
       }
       
@@ -101,11 +104,13 @@ export function FantasyProvider({ children, user, activeTeam }) {
         .eq('week_number', weekNumber)
         .eq('season_year', seasonYear);
       
-      if (gamesError) throw gamesError;
+      if (gamesError) {
+        console.error('Error loading games:', gamesError);
+        return;
+      }
       
       if (!gamesData || gamesData.length === 0) {
-        console.warn(`⚠️ No games found for Week ${weekNumber}, ${seasonYear}`);
-        setLiveGameData(new Map());
+        console.log('🎮 [FantasyContext] No games found for current week');
         return;
       }
       
@@ -117,21 +122,18 @@ export function FantasyProvider({ children, user, activeTeam }) {
       let displayGames = gamesData;
       
       if (!hasGamesStarted && weekNumber > 1) {
-        console.log('🎮 [FantasyContext] No games started yet - loading previous week stats');
-        const { data: prevGamesData, error: prevGamesError } = await supabase
+        console.log('🎮 [FantasyContext] No games started yet, loading previous week stats');
+        displayWeek = weekNumber - 1;
+        
+        const { data: previousWeekGames, error: prevError } = await supabase
           .from('game_scores')
           .select('*')
-          .eq('week_number', weekNumber - 1)
-          .eq('season_year', seasonYear);
+          .eq('week_number', displayWeek)
+          .eq('season_year', seasonYear)
+          .eq('game_status', 'final');
         
-        if (!prevGamesError && prevGamesData && prevGamesData.length > 0) {
-          // Only use previous week if it has final games
-          const hasFinalGames = prevGamesData.some(g => g.game_status === 'final');
-          if (hasFinalGames) {
-            displayWeek = weekNumber - 1;
-            displayGames = prevGamesData;
-            console.log(`🎮 [FantasyContext] Showing Week ${displayWeek} final stats until Week ${weekNumber} games start`);
-          }
+        if (!prevError && previousWeekGames) {
+          displayGames = previousWeekGames;
         }
       }
       
@@ -150,101 +152,27 @@ export function FantasyProvider({ children, user, activeTeam }) {
       
       if (statsError) {
         console.error('Error loading player stats:', statsError);
+        return;
       }
       
-      console.log('🎮 [FantasyContext] Loaded stats for', statsData?.length || 0, 'players');
-      
-      // Debug: Check if Darnold's stats are in the result
-      const darnoldStat = statsData?.find(s => s.player_cards?.player_id === '70');
-      if (darnoldStat) {
-        console.log('🎮 [FantasyContext] Found Darnold in statsData:', darnoldStat);
-      } else {
-        console.log('🎮 [FantasyContext] Darnold NOT in statsData!');
-      }
-      
-      // Create a map of player_id -> game data
+      // Build live game data map
       const gameDataMap = new Map();
       
       statsData?.forEach(stat => {
+        const playerId = stat.player_cards.player_id;
         const game = displayGames.find(g => g.game_id === stat.game_id);
-        if (game && stat.player_cards) {
-          const playerId = stat.player_cards.player_id;
-          
-          // Debug for Sam Darnold
-          if (playerId === '70') {
-            console.log('🎮 [FantasyContext] Found stats for Darnold (70):', {
-              gameId: stat.game_id,
-              fantasyPoints: stat.fantasy_points,
-              gameStatus: game.game_status
-            });
-          }
-          
+        
+        if (game) {
           gameDataMap.set(playerId, {
             gameStatus: game.game_status,
-            currentPoints: stat.fantasy_points || 0,
+            gameTime: game.time_remaining,
             quarter: game.quarter,
-            timeRemaining: game.time_remaining,
-            gameStartTime: game.game_start_time,
-            homeTeam: game.home_team,
-            awayTeam: game.away_team,
-            homeScore: game.home_score,
-            awayScore: game.away_score
+            currentPoints: stat.fantasy_points || 0,
+            stats: stat.stats,
+            lastUpdated: stat.last_updated
           });
         }
       });
-      
-      // Add scheduled games (only for current week, not previous week)
-      // Also add players whose games finished but have no stats (0 points)
-      if (playersData && playersData.length > 0) {
-        for (const playerCard of playersData) {
-          if (gameDataMap.has(playerCard.player_card.player_id)) continue;
-          
-          const playerTeamAbbr = playerCard.player_card.team_abbreviation;
-          const teamGame = displayGames.find(g => 
-            g.home_team === playerTeamAbbr || g.away_team === playerTeamAbbr
-          );
-          
-          // Debug for Sam Darnold
-          if (playerCard.player_card.player_id === '70') {
-            console.log('🎮 [FantasyContext] Processing Darnold in scheduled games loop:', {
-              alreadyHasGameData: gameDataMap.has('70'),
-              teamAbbr: playerTeamAbbr,
-              foundGame: !!teamGame,
-              gameName: teamGame ? `${teamGame.home_team} vs ${teamGame.away_team}` : 'none'
-            });
-          }
-          
-          if (teamGame) {
-            const isHome = teamGame.home_team === playerTeamAbbr;
-            const opponent = isHome ? teamGame.away_team : teamGame.home_team;
-            
-            // For games that are final/live, set currentPoints to 0 (player has no stats)
-            // For scheduled games, don't set currentPoints
-            const isFinalOrLive = teamGame.game_status === 'final' || teamGame.game_status === 'live' || teamGame.game_status === 'halftime';
-            
-            gameDataMap.set(playerCard.player_card.player_id, {
-              gameStatus: teamGame.game_status,
-              currentPoints: isFinalOrLive ? 0 : undefined,
-              quarter: teamGame.quarter,
-              timeRemaining: teamGame.time_remaining,
-              gameStartTime: teamGame.game_start_time,
-              homeTeam: teamGame.home_team,
-              awayTeam: teamGame.away_team,
-              homeScore: teamGame.home_score,
-              awayScore: teamGame.away_score,
-              opponent: opponent,
-              isHome: isHome
-            });
-          }
-        }
-      }
-      
-      // Final debug for Sam Darnold
-      if (gameDataMap.has('70')) {
-        console.log('🎮 [FantasyContext] Final gameData for Darnold:', gameDataMap.get('70'));
-      } else {
-        console.log('🎮 [FantasyContext] NO gameData for Darnold in final map!');
-      }
       
       setLiveGameData(gameDataMap);
       console.log('🎮 [FantasyContext] Live game data loaded:', gameDataMap.size, 'players');
@@ -266,10 +194,7 @@ export function FantasyProvider({ children, user, activeTeam }) {
       const data = await getUserInventory(user.id, activeTeam.id);
       setInventory(data);
       
-      // Load lineup from inventory
-      const startingPlayers = data.players.filter(p => p.is_in_lineup);
-      const bench = data.players.filter(p => !p.is_in_lineup);
-      
+      // Build lineup from inventory
       const newLineup = {
         QB: null,
         RB1: null,
@@ -279,61 +204,65 @@ export function FantasyProvider({ children, user, activeTeam }) {
         WR3: null,
         TE: null,
         FLEX: null,
-        BENCH: bench
+        BENCH: []
       };
       
-      startingPlayers.forEach(player => {
-        if (player.lineup_position) {
+      data.players.forEach(player => {
+        if (player.is_in_lineup && player.lineup_position) {
           newLineup[player.lineup_position] = player;
+        } else if (!player.is_in_lineup) {
+          newLineup.BENCH.push(player);
         }
       });
       
       setLineup(newLineup);
+      console.log('✅ [FantasyContext] Lineup loaded');
       
       // Load projections from database
-      if (data.players && data.players.length > 0) {
+      if (currentWeek) {
+        const isSimulated = false; // We're in real NFL mode
+        
+        console.log('📊 [FantasyContext] Loading projections for week:', currentWeek.week);
+        
+        const { data: projectionsData, error: projError } = await supabase
+          .from('weekly_projections')
+          .select('*')
+          .eq('week_number', currentWeek.week)
+          .eq('season_year', currentWeek.year)
+          .eq('is_simulated', isSimulated);
+        
+        if (projError) {
+          console.error('Error loading projections:', projError);
+        }
+        
         const dbProjections = new Map();
-        const isSimulated = data.team?.simulated_season_id != null;
         
         data.players.forEach(p => {
-          if (p.player_card) {
-            let weeklyProj;
-            
-            // For simulated seasons, calculate weekly variance projections
-            if (isSimulated && currentWeek) {
-              const positionMap = {
-                'Quarterback': { min: 12, max: 30 },
-                'Running Back': { min: 6, max: 22 },
-                'Wide Receiver': { min: 4, max: 19 },
-                'Tight End': { min: 3, max: 14 }
-              };
-              
-              const range = positionMap[p.player_card.position] || { min: 5, max: 15 };
-              const baseAvg = (range.min + range.max) / 2;
-              
-              // Add weekly variance: ±30% based on player_id + week
-              const seed = parseInt(p.player_card.player_id.replace(/-/g, '').substring(0, 8), 16);
-              const weekSeed = (seed * 37 + currentWeek.week * 997) % 1000;
-              const weekVariance = ((weekSeed % 200) - 100) / 333;
-              
-              weeklyProj = baseAvg * (1 + weekVariance);
-              weeklyProj = Math.max(range.min * 0.7, Math.min(range.max * 1.3, weeklyProj));
-            } else {
-              // For real seasons, use database values
-              const weeklyProjValue = p.player_card.weekly_projected_points != null ? parseFloat(p.player_card.weekly_projected_points) : null;
-              const projValue = p.player_card.projected_points != null ? parseFloat(p.player_card.projected_points) : null;
-              weeklyProj = weeklyProjValue ?? projValue ?? getBaselineProjection(p.player_card.position);
-            }
-            
-            const seasonAvg = parseFloat(p.player_card.season_ppg) || 0;
-            const gamesPlayed = parseInt(p.player_card.games_played_season) || 0;
+          const weeklyProj = projectionsData?.find(
+            proj => proj.player_card_id === p.player_card_id
+          );
+          
+          if (weeklyProj) {
+            const seasonAvg = weeklyProj.season_average || 0;
+            const gamesPlayed = weeklyProj.games_played || 0;
             
             dbProjections.set(p.player_card.player_id, {
-              projected: weeklyProj,
+              projected: weeklyProj.projected_points || 0,
               seasonAvg: seasonAvg,
               gamesPlayed: gamesPlayed,
               injuryStatus: p.player_card.injury_status || 'healthy',
               isFromDatabase: true
+            });
+          } else {
+            // Fallback to baseline if no projection exists
+            const baseline = getBaselineProjection(p.player_card.position);
+            
+            dbProjections.set(p.player_card.player_id, {
+              projected: baseline,
+              seasonAvg: baseline,
+              gamesPlayed: 0,
+              injuryStatus: p.player_card.injury_status || 'healthy',
+              isFromDatabase: false
             });
           }
         });
@@ -353,11 +282,11 @@ export function FantasyProvider({ children, user, activeTeam }) {
   }, [user?.id, activeTeam?.id, currentWeek?.week, currentWeek?.year]); // Use primitive values
 
   // Initial load
+  // Initial load
   useEffect(() => {
     if (!user?.id || !activeTeam?.id) return;
-    console.log('📦 [FantasyContext] Initial load triggered for team:', activeTeam.id);
     loadInventory();
-  }, [user?.id, activeTeam?.id, loadInventory]); // Include loadInventory to refresh when team changes
+  }, [user?.id, activeTeam?.id]); // Direct dependencies only
 
   // Subscribe to live updates
   useEffect(() => {
