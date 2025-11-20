@@ -5,6 +5,49 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+/**
+ * Calculate dynamic sell value based on card tier, pull percentage, and performance
+ * Formula: base_value × tier_multiplier × scarcity_multiplier × performance_multiplier
+ */
+function calculateDynamicSellValue(
+  baseValue: number,
+  cardTier: string,
+  pullPercentage: number,
+  seasonPPG: number
+): number {
+  // Tier multiplier - rewards leveling up cards
+  const tierMultipliers: Record<string, number> = {
+    base: 1.0,
+    role_player: 1.25,
+    starter: 1.5,
+    all_star: 2.0,
+    elite: 3.0
+  }
+  
+  // Scarcity multiplier based on pull percentage (lower % = rarer = more valuable)
+  let scarcityMultiplier = 1.0
+  if (pullPercentage <= 5) scarcityMultiplier = 3.0        // LEGENDARY
+  else if (pullPercentage <= 15) scarcityMultiplier = 2.0   // EPIC
+  else if (pullPercentage <= 30) scarcityMultiplier = 1.5   // RARE
+  else if (pullPercentage <= 50) scarcityMultiplier = 1.2   // UNCOMMON
+  // else COMMON = 1.0
+  
+  // Performance multiplier based on season PPG (real-world performance)
+  let performanceMultiplier = 1.0
+  if (seasonPPG >= 20) performanceMultiplier = 1.5      // Elite performers
+  else if (seasonPPG >= 15) performanceMultiplier = 1.3  // High performers
+  else if (seasonPPG >= 10) performanceMultiplier = 1.1  // Solid performers
+  else if (seasonPPG >= 5) performanceMultiplier = 1.0   // Average performers
+  else if (seasonPPG < 5) performanceMultiplier = 0.8    // Low performers
+  
+  const tierMult = tierMultipliers[cardTier] || 1.0
+  const rawValue = baseValue * tierMult * scarcityMultiplier * performanceMultiplier
+  
+  // Round to nearest 5 coins for clean numbers, minimum 50 coins
+  const roundedValue = Math.round(rawValue / 5) * 5
+  return Math.max(50, roundedValue)
+}
+
 Deno.serve(async (req) => {
   // Handle CORS
   if (req.method === 'OPTIONS') {
@@ -64,7 +107,10 @@ Deno.serve(async (req) => {
           *,
           player_card:player_cards!inner(
             base_value,
-            is_active
+            is_active,
+            pull_percentage,
+            season_ppg,
+            player_name
           )
         `)
         .eq('id', inventory_id)
@@ -81,7 +127,16 @@ Deno.serve(async (req) => {
       }
 
       cardData = playerInventory
-      baseValue = playerInventory.player_card.base_value
+      
+      // Calculate dynamic sell value based on tier, scarcity, and performance
+      baseValue = calculateDynamicSellValue(
+        playerInventory.player_card.base_value,
+        playerInventory.card_tier,
+        playerInventory.player_card.pull_percentage || 50,
+        playerInventory.player_card.season_ppg || 0
+      )
+      
+      console.log(`Dynamic sell value for ${playerInventory.player_card.player_name}: ${baseValue} coins (tier: ${playerInventory.card_tier}, pull%: ${playerInventory.player_card.pull_percentage}, PPG: ${playerInventory.player_card.season_ppg})`)
 
     } else {
       // Get token inventory data with card details
