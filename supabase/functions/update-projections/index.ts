@@ -163,10 +163,6 @@ function generateProjectionNotes(
 
 /**
  * Calculate pull percentage for pack openings
- * Bell curve: solid starters (55%) most common, elite (2%) and trash/injured (2-5%) rare
- */
-/**
- * Calculate pull percentage for pack openings
  * INVERTED SYSTEM: Lower % = better quality AND more common in packs
  * Elite players show 2% (rare number) but are common in packs
  * Trash players show 95% (common number) but are rare in packs
@@ -257,12 +253,37 @@ Deno.serve(async (req) => {
 
     const { data: players, error: playersError } = await supabase
       .from('player_cards')
-      .select('id, player_id, position')
+      .select('id, player_id, position, team_abbreviation')
       .eq('is_active', true);
 
     if (playersError) throw playersError;
 
-    let updated = 0, apiCalls = 0, successfulCalls = 0, injuryChecks = 0;
+    // CRITICAL: Load games for the current week to determine bye weeks
+    console.log(`Loading games for Week ${currentWeek}, ${currentSeason} to check for bye weeks...`);
+    const { data: gamesData, error: gamesError } = await supabase
+      .from('game_scores')
+      .select('home_team, away_team, game_status')
+      .eq('week_number', currentWeek)
+      .eq('season_year', currentSeason);
+    
+    if (gamesError) {
+      console.error('Error loading games:', gamesError);
+      // Don't throw - continue with projections, just won't have bye week data
+    }
+    
+    // Create a Set of team abbreviations that have games this week
+    const teamsWithGames = new Set<string>();
+    if (gamesData) {
+      gamesData.forEach(game => {
+        if (game.home_team) teamsWithGames.add(game.home_team);
+        if (game.away_team) teamsWithGames.add(game.away_team);
+      });
+      console.log(`Found ${gamesData.length} games for Week ${currentWeek}. Teams playing:`, Array.from(teamsWithGames).join(', '));
+    } else {
+      console.warn(`⚠️ No games found for Week ${currentWeek}. All players will be treated as having games.`);
+    }
+
+    let updated = 0, apiCalls = 0, successfulCalls = 0, injuryChecks = 0, byeWeekCount = 0;
     const batchSize = 25; // BallDontLie API supports multiple player_ids per call
 
     // First, fetch injury data for all players in batches
@@ -439,6 +460,14 @@ Deno.serve(async (req) => {
           injuryStatus
         );
 
+        // CRITICAL: Check for bye week - if team has no game this week, project 0 points
+        const isOnBye = player.team_abbreviation && !teamsWithGames.has(player.team_abbreviation);
+        if (isOnBye) {
+          projected = 0;
+          byeWeekCount++;
+          console.log(`🚫 ${player.team_abbreviation} on BYE - setting projection to 0`);
+        }
+
         // Individual UPDATE query for each player
         const { error } = await supabase
           .from('player_cards')
@@ -470,15 +499,17 @@ Deno.serve(async (req) => {
     console.log(`✅ Projection update complete: ${updated}/${players.length} players updated`);
     console.log(`📊 Stats API calls: ${apiCalls} (${successfulCalls} successful)`);
     console.log(`🏥 Injury checks: ${injuryChecks} batches, ${injuryMap.size} total injury statuses found`);
+    console.log(`🚫 Bye weeks: ${byeWeekCount} players on bye (projection set to 0)`);
 
     return new Response(JSON.stringify({
       success: true, 
-      message: `Updated ${updated} players`, 
+      message: `Updated ${updated} players (${byeWeekCount} on bye)`, 
       total_players: players.length, 
       api_calls: apiCalls,
       successful_calls: successfulCalls,
       injury_checks: injuryChecks,
       injuries_found: injuryMap.size,
+      bye_week_count: byeWeekCount,
       season: currentSeason,
       week: currentWeek,
       scoring_type: defaultScoringType
