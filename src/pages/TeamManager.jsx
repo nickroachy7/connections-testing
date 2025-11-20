@@ -40,6 +40,13 @@ export default function TeamManager() {
     }
   }, [user, navigate]);
   
+  // Update activeTeam when context activeTeam changes (team switching)
+  useEffect(() => {
+    if (initialActiveTeam) {
+      setActiveTeam(initialActiveTeam);
+    }
+  }, [initialActiveTeam?.id]); // Only depend on the ID to detect actual team changes
+  
   // Update inventory when context inventory changes (e.g., after pack opening)
   useEffect(() => {
     if (contextInventory && contextInventory.players) {
@@ -1597,7 +1604,7 @@ export default function TeamManager() {
           {/* Contest Info Banner */}
           {activeTeam && (
             <div className="mb-6">
-              <ContestInfoBanner team={activeTeam} />
+              <ContestInfoBanner key={activeTeam.id} team={activeTeam} />
             </div>
           )}
           
