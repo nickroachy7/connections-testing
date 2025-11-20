@@ -221,26 +221,25 @@ export default function InventoryPanel({
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div className="bg-primary-black-900 border-2 border-primary-black-700 rounded-xl">
-        {/* Sticky Header with Filter Bar */}
-        <div className="sticky top-0 z-20 bg-primary-black-900 border-b-2 border-primary-black-700 rounded-t-xl">
-            <div className="px-4 py-4">
-              <div className="flex items-center justify-between gap-6">
-                {/* Title */}
-                <div className="flex-shrink-0">
-                  <h3 className="text-xl font-bold text-primary-black-50">
-                    Inventory
-                  </h3>
-                  <p className="text-xs text-primary-black-400 mt-0.5">
-                    <span className="font-medium text-primary-black-500">Roster:</span>{' '}
-                    <span className="font-bold text-primary-black-400">
-                      {inventory ? getRosterCount(inventory) : (players.length + tokens.length)}/{ROSTER_LIMIT}
-                    </span>
-                  </p>
-                </div>
+      {/* Sticky Header with Filter Bar */}
+      <div className={`sticky top-0 z-20 bg-primary-black-900 border-2 border-primary-black-700 rounded-xl mb-4`}>
+          <div className="px-4 py-4">
+            <div className="flex items-center justify-between gap-6">
+              {/* Title */}
+              <div className="flex-shrink-0">
+                <h3 className="text-xl font-bold text-primary-black-50">
+                  Inventory
+                </h3>
+                <p className="text-xs text-primary-black-400 mt-0.5">
+                  <span className="font-medium text-primary-black-500">Roster:</span>{' '}
+                  <span className="font-bold text-primary-black-400">
+                    {inventory ? getRosterCount(inventory) : (players.length + tokens.length)}/{ROSTER_LIMIT}
+                  </span>
+                </p>
+              </div>
 
-                {/* Right Side - Tab Filters and Sell Button */}
-                <div className="flex gap-2">
+              {/* Right Side - Tab Filters and Sell Button */}
+              <div className="flex gap-2">
                   {selectedForBulkAction.length > 0 && (
                     <>
                       <div className="flex items-center gap-3 px-3 py-1.5 bg-primary-black-800 rounded-lg">
@@ -300,13 +299,12 @@ export default function InventoryPanel({
                     Tokens ({filteredTokens.length})
                   </button>
                 </div>
-                )}
               </div>
             </div>
           </div>
 
-          {/* Content Area */}
-          <div className="py-4">
+        {/* Content Area */}
+        <div>
             {/* All View */}
             {activeTab === 'all' && (
               <div>
@@ -321,135 +319,321 @@ export default function InventoryPanel({
                 ) : (
                   <>
                     {/* Players Section */}
-                    {filteredPlayers.length > 0 && filteredPlayers.map((player, index) => {
+                    {filteredPlayers.length > 0 && (
+                      <div className="border-2 border-primary-black-700 rounded-xl bg-primary-black-900 overflow-hidden">
+                        <div className="relative">
+                          {/* Vertical dividers spanning entire section */}
+                          <>
+                            <div className="absolute top-0 bottom-0 w-[2px] bg-primary-black-600" style={{ left: 'calc(8px + 24px + 8px + 40px + 8px + 40px + 8px + 160px + 16px + 24px)' }}></div>
+                            <div className="absolute top-0 bottom-0 w-[2px] bg-primary-black-600" style={{ left: 'calc(8px + 24px + 8px + 40px + 8px + 40px + 8px + 160px + 16px + 24px + 16px + 70px + 16px + 90px + 16px + 60px + 16px + 50px + 16px + 24px)' }}></div>
+                          </>
+                          
+                        {/* Players Table Header */}
+                        <div className="flex items-center gap-4 px-2 py-3 pr-6 bg-primary-black-800 border-b border-primary-black-700">
+                          {/* Section 1: SLOT & PLAYER */}
+                          <div className="flex items-center gap-2" style={{ minWidth: '272px' }}>
+                            <span className="text-[10px] font-bold text-primary-black-500 uppercase tracking-wider" style={{ width: '24px', textAlign: 'center' }}></span>
+                            <span className="text-[10px] font-bold text-primary-black-500 uppercase tracking-wider" style={{ width: '40px', textAlign: 'center' }}>SLOT</span>
+                            <span className="text-[10px] font-bold text-primary-black-500 uppercase tracking-wider" style={{ width: '40px', textAlign: 'center' }}></span>
+                            <span className="text-[10px] font-bold text-primary-black-500 uppercase tracking-wider" style={{ width: '160px' }}>PLAYER</span>
+                          </div>
+                          
+                          {/* Spacer for divider */}
+                          <div style={{ width: '24px' }}></div>
+                          
+                          {/* Section 2: MATCHUP INFO */}
+                          <div className="flex items-center gap-4">
+                            <span className="text-[10px] font-bold text-primary-black-500 uppercase tracking-wider text-center" style={{ width: '70px' }}>OPP</span>
+                            <span className="text-[10px] font-bold text-primary-black-500 uppercase tracking-wider text-center" style={{ width: '90px' }}>STATUS</span>
+                            <span className="text-[10px] font-bold text-primary-black-500 uppercase tracking-wider text-center" style={{ width: '60px' }}>PROJ</span>
+                            <span className="text-[10px] font-bold text-primary-black-500 uppercase tracking-wider text-center" style={{ width: '50px' }}>SCORE</span>
+                          </div>
+                          
+                          {/* Spacer for divider */}
+                          <div style={{ width: '24px' }}></div>
+                          
+                          {/* Section 3: FANTASY METRICS */}
+                          <div className="flex items-center gap-4">
+                            <span className="text-[10px] font-bold text-primary-black-500 uppercase tracking-wider text-center" style={{ width: '60px' }}>PRK</span>
+                            <span className="text-[10px] font-bold text-primary-black-500 uppercase tracking-wider text-center" style={{ width: '60px' }}>AVG</span>
+                            <span className="text-[10px] font-bold text-primary-black-500 uppercase tracking-wider text-center" style={{ width: '70px' }}>PULL %</span>
+                            <span className="text-[10px] font-bold text-primary-black-500 uppercase tracking-wider text-center" style={{ width: '70px' }}>SELL</span>
+                            <span className="text-[10px] font-bold text-primary-black-500 uppercase tracking-wider text-center" style={{ width: '50px' }}>TIER</span>
+                            <span className="text-[10px] font-bold text-primary-black-500 uppercase tracking-wider text-center" style={{ width: '60px' }}>LEVEL</span>
+                          </div>
+                        </div>
+
+                        {/* Players Rows */}
+                        {filteredPlayers.map((player, index) => {
                       const isSelected = selectedForBulkAction.some(s => s.id === player.id);
                       const cannotSelect = player.is_locked;
+                      
+                      // Get game data for this player
+                      const gameData = liveGameData?.get(player.player_card.player_id);
+                      const playerProjection = projections?.get(player.player_card.player_id);
+                      
+                      // Determine if on BYE (no game data at all)
+                      const isBye = !gameData;
+                      const opponent = gameData?.opponent;
+                      const isHome = gameData?.isHome;
+                      const gameStatus = gameData?.gameStatus?.toLowerCase();
+                      const isLiveOrFinal = gameStatus === 'live' || gameStatus === 'halftime' || gameStatus === 'final';
                       
                       return (
                       <div
                         key={player.id}
                         className={`
-                          flex items-center gap-4 px-4 py-4 transition-all
+                          flex items-center gap-4 px-2 py-3 pr-6 transition-all
                           ${!cannotSelect && 'border-l-4'}
                           ${cannotSelect ? 'opacity-60 bg-red-900/20 border-red-500/50' : isSelected ? 'border-primary-green-500 bg-primary-green-500/20' : 'border-transparent hover:bg-primary-green-500/10 hover:border-primary-green-500'}
                           ${index % 2 === 0 && !cannotSelect && !isSelected ? 'bg-primary-black-900' : !cannotSelect && !isSelected ? 'bg-primary-black-800/50' : ''}
                         `}
                       >
-                        {/* Checkbox - Always Visible */}
-                        <div className="flex-shrink-0 flex items-center justify-center w-6">
-                          {!cannotSelect ? (
-                            <input
-                              type="checkbox"
-                              checked={isSelected}
-                              onChange={() => toggleBulkSelect(player, 'player')}
-                              onClick={(e) => e.stopPropagation()}
-                              className="w-5 h-5 rounded border-2 border-primary-black-600 bg-primary-black-800 checked:bg-primary-green-500 checked:border-primary-green-500 cursor-pointer hover:border-primary-green-500 transition-colors"
-                            />
-                          ) : (
-                            <div className="w-5 h-5"></div>
-                          )}
-                        </div>
-                        
-                        {/* Position Badge */}
-                        <span className="px-2 py-0.5 bg-primary-black-700 text-primary-black-300 rounded text-xs font-semibold flex-shrink-0">
-                          {player.player_card.position === 'Quarterback' ? 'QB' :
-                           player.player_card.position === 'Running Back' ? 'RB' :
-                           player.player_card.position === 'Wide Receiver' ? 'WR' :
-                           player.player_card.position === 'Tight End' ? 'TE' :
-                           player.player_card.position}
-                        </span>
-
-                        {/* Person Icon */}
-                        <div className="w-10 h-10 rounded-md bg-primary-black-700 flex items-center justify-center flex-shrink-0">
-                          <svg className="w-6 h-6 text-primary-black-300" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
-                          </svg>
-                        </div>
-
-{/* Player Info */}
-                         <div className="flex-1 min-w-0">
-                           <div className="flex items-center gap-2 mb-1">
-                             <h4 className="font-bold text-primary-black-50 truncate text-base">
-                               {player.player_card.player_name}
-                             </h4>
-                             <span className="text-xs text-primary-black-500 font-medium">
-                               {player.player_card.team_abbreviation}
-                             </span>
-                             {getInjuryStatusBadge(player.player_card.injury_status)}
-                           </div>
+                        {/* SECTION 1: SLOT & PLAYER */}
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          {/* Checkbox */}
+                          <div className="flex-shrink-0 flex items-center justify-center" style={{ width: '24px' }}>
+                            {!cannotSelect ? (
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={() => toggleBulkSelect(player, 'player')}
+                                onClick={(e) => e.stopPropagation()}
+                                className="w-5 h-5 rounded border-2 border-primary-black-600 bg-primary-black-800 checked:bg-primary-green-500 checked:border-primary-green-500 cursor-pointer hover:border-primary-green-500 transition-colors"
+                              />
+                            ) : (
+                              <div className="w-5 h-5"></div>
+                            )}
+                          </div>
                           
-                          <div className="flex items-center gap-2 text-xs text-primary-black-400">
-                            <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase ${getTierBadgeInfo(player.card_tier).color}`}>
-                              {getTierBadgeInfo(player.card_tier).initial}
+                          {/* Position Badge */}
+                          <div className="flex-shrink-0 flex items-center justify-center" style={{ width: '40px' }}>
+                            <span className="px-2 py-1 bg-primary-black-700 text-primary-black-300 rounded text-xs font-semibold text-center">
+                              {player.player_card.position === 'Quarterback' ? 'QB' :
+                               player.player_card.position === 'Running Back' ? 'RB' :
+                               player.player_card.position === 'Wide Receiver' ? 'WR' :
+                               player.player_card.position === 'Tight End' ? 'TE' :
+                               player.player_card.position}
                             </span>
-                            <span className="font-medium">Level {player.card_level}</span>
-                            {player.experience_points !== undefined && (
-                              <span className="text-primary-black-500 font-medium text-[10px]">
-                                {player.experience_points} XP
-                              </span>
-                            )}
-                            {player.player_card.pull_percentage && (
-                              <span className={`font-semibold ${getPullPercentageColor(player.player_card.pull_percentage)}`}>
-                                {player.player_card.pull_percentage.toFixed(1)}% pull
-                              </span>
-                            )}
-                            {player.total_fantasy_points > 0 && (
-                              <span className="text-primary-black-500 font-medium">
-                                Total: {player.total_fantasy_points.toFixed(1)} pts
-                              </span>
-                            )}
-                            {player.is_in_lineup && (
-                              <span className="px-2 py-0.5 bg-green-600/20 border border-green-600 text-green-400 rounded font-semibold">
-                                In Lineup
-                              </span>
-                            )}
-                            {player.is_locked && (
-                              <span className="px-2 py-0.5 bg-red-600/20 border border-red-600 text-red-400 rounded font-semibold">
-                                🔒 Locked
-                              </span>
-                            )}
+                          </div>
+
+                          {/* Person Icon */}
+                          <div className="flex-shrink-0 rounded-md bg-primary-black-700 flex items-center justify-center" style={{ width: '40px', height: '40px' }}>
+                            <svg className="w-6 h-6 text-primary-black-300" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                            </svg>
+                          </div>
+
+                          {/* Player Name & Team */}
+                          <div className="flex-shrink-0 min-w-0" style={{ width: '160px' }}>
+                            <div className="flex items-center gap-2">
+                              <h4 className="font-bold text-primary-black-50 truncate text-sm">
+                                {player.player_card.player_name}
+                              </h4>
+                              {getInjuryStatusBadge(player.player_card.injury_status)}
+                            </div>
+                            <div className="text-xs text-primary-black-500 font-medium">
+                              {player.player_card.team_abbreviation}
+                            </div>
                           </div>
                         </div>
 
-                        {/* Sell Value, Game Status and Projected Points */}
-                        <div className="flex items-center gap-3 flex-shrink-0">
-                          <div className="text-center">
-                            <div className="text-xs text-primary-black-500 mb-0.5">Sell Value</div>
-                            <div className="text-sm text-primary-black-300 font-semibold">
-                              💰 {calculatePlayerSellValue(player)}
+                        {/* SECTION 2: MATCHUP INFO */}
+                        <>
+                          {/* Spacer for divider */}
+                          <div className="flex-shrink-0" style={{ width: '24px' }}></div>
+                          
+                          <div className="flex items-center gap-4 flex-shrink-0">
+                            {/* Opponent */}
+                            <div className="flex-shrink-0 text-center" style={{ width: '70px' }}>
+                              {isBye ? (
+                                <span className="text-xs text-primary-black-500 font-semibold">BYE</span>
+                              ) : (
+                                <span className="text-xs text-primary-black-300 font-semibold">
+                                  {isHome ? '' : '@'}{opponent}
+                                </span>
+                              )}
                             </div>
-                          </div>
-                          <div>
-                            {getGameStatusBadge(player.player_card.player_id)}
-                          </div>
-                          {loadingProjections ? (
-                            <span className="text-xs text-primary-black-400">...</span>
-                          ) : projections?.has(player.player_card.player_id) ? (
-                            <div className="text-primary-green-400 font-semibold text-sm">
-                              Proj: {projections.get(player.player_card.player_id).projected.toFixed(1)} pts
-                            </div>
-                          ) : null}
-                        </div>
 
-                        {/* Individual Sell Button */}
-                        <div className="flex-shrink-0">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onQuickSell(player.id, 'player', calculatePlayerSellValue(player));
-                            }}
-                            disabled={selling[player.id] || player.is_locked}
-                            className="px-3 py-1.5 bg-red-600 hover:bg-red-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg text-xs font-semibold transition-colors"
-                          >
-                            {selling[player.id] ? 'Selling...' : 'Sell'}
-                          </button>
-                        </div>
+                            {/* Game Status/Time */}
+                            <div className="flex-shrink-0 text-center" style={{ width: '90px' }}>
+                              {isBye ? (
+                                <span className="text-[10px] text-primary-black-600">--</span>
+                              ) : gameStatus === 'live' || gameStatus === 'halftime' ? (
+                                <span className="text-xs text-red-400 font-bold">Live</span>
+                              ) : gameStatus === 'final' ? (
+                                <span className="text-xs text-green-400 font-bold">Final</span>
+                              ) : gameData.gameStartTime ? (
+                                <span className="text-[10px] text-primary-black-400">
+                                  {new Date(gameData.gameStartTime).toLocaleDateString('en-US', { 
+                                    weekday: 'short' 
+                                  })} {new Date(gameData.gameStartTime).toLocaleTimeString('en-US', { 
+                                    hour: 'numeric', 
+                                    minute: '2-digit',
+                                    hour12: true 
+                                  })}
+                                </span>
+                              ) : (
+                                <span className="text-[10px] text-primary-black-600">--</span>
+                              )}
+                            </div>
+
+                            {/* Projected Points */}
+                            <div className="flex-shrink-0 text-center" style={{ width: '60px' }}>
+                              {isLiveOrFinal && gameData.currentPoints !== undefined ? (
+                                <div>
+                                  <div className="text-sm text-white font-bold">
+                                    {gameData.currentPoints.toFixed(1)}
+                                  </div>
+                                </div>
+                              ) : playerProjection && playerProjection.projected > 0 ? (
+                                <div className="text-primary-green-400 font-semibold text-sm">
+                                  {playerProjection.projected.toFixed(1)}
+                                </div>
+                              ) : (
+                                <span className="text-xs text-primary-black-600">--</span>
+                              )}
+                            </div>
+
+                            {/* Score (only show if live/final) */}
+                            <div className="flex-shrink-0 text-center" style={{ width: '50px' }}>
+                              {isLiveOrFinal && gameData.currentPoints !== undefined ? (
+                                <span className="text-xs text-primary-black-400">{gameData.currentPoints.toFixed(1)}</span>
+                              ) : (
+                                <span className="text-[10px] text-primary-black-600">--</span>
+                              )}
+                            </div>
+                          </div>
+                        </>
+
+                        {/* SECTION 3: FANTASY METRICS */}
+                        <>
+                          {/* Spacer for divider */}
+                          <div className="flex-shrink-0" style={{ width: '24px' }}></div>
+                          
+                          <div className="flex items-center gap-4 flex-shrink-0">
+                            {/* Position Rank */}
+                            <div className="flex-shrink-0 text-center" style={{ width: '60px' }}>
+                              {player.player_card.position_rank ? (
+                                <span className="text-xs text-primary-black-400 font-medium">
+                                  {player.player_card.position_rank}
+                                </span>
+                              ) : (
+                                <span className="text-xs text-primary-black-600">--</span>
+                              )}                             </div>
+
+                            {/* Season Average */}
+                            <div className="flex-shrink-0 text-center" style={{ width: '60px' }}>
+                              {playerProjection && playerProjection.seasonAvg > 0 ? (
+                                <span className="text-xs text-primary-black-400 font-medium">
+                                  {playerProjection.seasonAvg.toFixed(1)}
+                                </span>
+                              ) : (
+                                <span className="text-xs text-primary-black-600">--</span>
+                              )}                             </div>
+
+                            {/* Pull % */}
+                            <div className="flex-shrink-0 text-center" style={{ width: '70px' }}>
+                              {player.player_card.pull_percentage ? (
+                                <span className={`text-xs font-semibold ${getPullPercentageColor(player.player_card.pull_percentage)}`}>
+                                  {player.player_card.pull_percentage.toFixed(1)}%
+                                </span>
+                              ) : (
+                                <span className="text-xs text-primary-black-600">--</span>
+                              )}                             </div>
+
+                            {/* Sell Value */}
+                            <div className="flex-shrink-0 text-center" style={{ width: '70px' }}>
+                              <span className="text-xs text-primary-black-300 font-semibold">
+                                💰 {calculatePlayerSellValue(player)}
+                              </span>
+                            </div>
+
+                            {/* Tier */}
+                            <div className="flex-shrink-0 text-center" style={{ width: '50px' }}>
+                              <span className={`px-2 py-0.5 rounded text-xs font-bold uppercase ${getTierBadgeInfo(player.card_tier).color}`}>
+                                {getTierBadgeInfo(player.card_tier).initial}
+                              </span>
+                            </div>
+
+                            {/* Level */}
+                            <div className="flex-shrink-0 text-center" style={{ width: '60px' }}>
+                              <span className="text-xs text-primary-black-300 font-medium">
+                                {player.card_level}
+                              </span>
+                            </div>
+                          </div>
+                        </>
                       </div>
                       );
                     })}
+                        </div>
+                      </div>
+                    )}
 
                     {/* Tokens Section */}
-                    {filteredTokens.length > 0 && filteredTokens.map((token, index) => {
+                    {filteredTokens.length > 0 && (
+                      <div className="border-2 border-primary-black-700 rounded-xl bg-primary-black-900 overflow-hidden mt-6">
+                        <div className="relative">
+                          {/* Vertical dividers spanning entire token section */}
+                          <>
+                            <div className="absolute top-0 bottom-0 w-[2px] bg-primary-black-600" style={{ left: 'calc(8px + 24px + 8px + 40px + 8px + 40px + 8px + 160px + 16px)' }}></div>
+                            <div className="absolute top-0 bottom-0 w-[2px] bg-primary-black-600" style={{ right: 'calc(60px + 16px + 80px + 16px + 80px)' }}></div>
+                          </>
+                          
+                        {/* Tokens Table Header */}
+                        <div className="flex items-center gap-4 px-2 py-3 pr-6 bg-primary-black-800 border-b border-primary-black-700">
+                          {/* SECTION 1: TYPE & TOKEN */}
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            {/* Checkbox column header */}
+                            <div className="flex-shrink-0 flex items-center justify-center" style={{ width: '24px' }}></div>
+                            
+                            {/* Type column header */}
+                            <div className="flex-shrink-0 text-center" style={{ width: '40px' }}>
+                              <span className="text-[10px] text-primary-black-500 font-bold uppercase tracking-wider">Type</span>
+                            </div>
+                            
+                            {/* Icon column header */}
+                            <div className="flex-shrink-0" style={{ width: '40px' }}></div>
+                            
+                            {/* Token name column header */}
+                            <div className="flex-shrink-0" style={{ width: '160px' }}>
+                              <span className="text-[10px] text-primary-black-500 font-bold uppercase tracking-wider">Token</span>
+                            </div>
+                          </div>
+                          
+                          {/* Spacer for divider */}
+                          <div className="flex-shrink-0" style={{ width: '24px' }}></div>
+                          
+                          {/* SECTION 2: DESCRIPTION */}
+                          <div className="flex items-center flex-1">
+                            <span className="text-[10px] text-primary-black-500 font-bold uppercase tracking-wider">Description</span>
+                          </div>
+                          
+                          {/* Spacer for divider */}
+                          <div className="flex-shrink-0" style={{ width: '24px' }}></div>
+                          
+                          {/* SECTION 3: RARITY, BONUS, SELL */}
+                          <div className="flex items-center gap-4 flex-shrink-0">
+                            <div className="flex-shrink-0 text-center" style={{ width: '80px' }}>
+                              <span className="text-[10px] text-primary-black-500 font-bold uppercase tracking-wider">Rarity</span>
+                            </div>
+                            
+                            <div className="flex-shrink-0 text-center" style={{ width: '70px' }}>
+                              <span className="text-[10px] text-primary-black-500 font-bold uppercase tracking-wider">Bonus</span>
+                            </div>
+                            
+                            <div className="flex-shrink-0 text-center" style={{ width: '70px' }}>
+                              <span className="text-[10px] text-primary-black-500 font-bold uppercase tracking-wider">Sell</span>
+                            </div>
+                          </div>
+                          
+                          {/* Action column header */}
+                          <div className="flex-shrink-0" style={{ width: '60px' }}></div>
+                        </div>
+
+                        {/* Token Rows */}
+                        {filteredTokens.map((token, index) => {
                       const rowIndex = filteredPlayers.length + index;
                       const isSelected = selectedForBulkAction.some(s => s.id === token.id);
                       
@@ -457,71 +641,99 @@ export default function InventoryPanel({
                         <div
                           key={token.id}
                           className={`
-                            flex items-center gap-4 px-4 py-4 transition-all border-l-4
+                            flex items-center gap-4 px-2 py-3 pr-6 transition-all border-l-4
                             ${isSelected ? 'border-primary-green-500 bg-primary-green-500/20' : 'border-transparent hover:bg-primary-green-500/10 hover:border-primary-green-500'}
-                            ${rowIndex % 2 === 0 && !isSelected ? 'bg-primary-black-900' : !isSelected ? 'bg-primary-black-800/50' : ''}
+                            ${index % 2 === 0 && !isSelected ? 'bg-primary-black-900' : !isSelected ? 'bg-primary-black-800/50' : ''}
                           `}
                         >
-                          {/* Checkbox */}
-                          <div className="flex-shrink-0 flex items-center justify-center w-6">
-                            <input
-                              type="checkbox"
-                              checked={isSelected}
-                              onChange={() => toggleBulkSelect(token, 'token')}
-                              onClick={(e) => e.stopPropagation()}
-                              className="w-5 h-5 rounded border-2 border-primary-black-600 bg-primary-black-800 checked:bg-primary-green-500 checked:border-primary-green-500 cursor-pointer hover:border-primary-green-500 transition-colors"
-                            />
-                          </div>
-                          
-                          {/* Position Badge for Token */}
-                          <span className="px-2 py-0.5 bg-primary-black-700 text-primary-black-300 rounded text-xs font-semibold flex-shrink-0">
-                            TK
-                          </span>
-
-                          {/* Token Icon */}
-                          <div className={`w-10 h-10 rounded-md flex items-center justify-center text-2xl bg-gradient-to-br ${getTokenRarityColor(token.token_card.rarity)}`}>
-                            💎
-                          </div>
-
-                          {/* Token Info */}
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <h4 className="font-bold text-primary-black-50 text-base truncate">
-                                {token.token_card.token_name}
-                              </h4>
-                              <span className="text-xs text-primary-black-400 uppercase tracking-wide font-semibold px-2 py-0.5 bg-primary-black-700 rounded">
-                                {token.token_card.token_type}
+                          {/* SECTION 1: TYPE & TOKEN */}
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            {/* Checkbox */}
+                            <div className="flex-shrink-0 flex items-center justify-center" style={{ width: '24px' }}>
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={() => toggleBulkSelect(token, 'token')}
+                                onClick={(e) => e.stopPropagation()}
+                                className="w-5 h-5 rounded border-2 border-primary-black-600 bg-primary-black-800 checked:bg-primary-green-500 checked:border-primary-green-500 cursor-pointer hover:border-primary-green-500 transition-colors"
+                              />
+                            </div>
+                            
+                            {/* Type Badge */}
+                            <div className="flex-shrink-0 flex items-center justify-center" style={{ width: '40px' }}>
+                              <span className="px-2 py-1 bg-primary-black-700 text-primary-black-300 rounded text-xs font-semibold text-center">
+                                TK
                               </span>
                             </div>
-                            <p className="text-xs text-primary-black-400 line-clamp-1">
-                              {token.token_card.description}
-                            </p>
-                          </div>
 
-                          {/* Bonus Points */}
-                          <div className="flex-shrink-0 text-center px-4">
-                            <div className="text-xl font-bold text-primary-green-400">
-                              +{token.token_card.bonus_points}
+                            {/* Token Icon */}
+                            <div className={`flex-shrink-0 rounded-md flex items-center justify-center text-2xl bg-gradient-to-br ${getTokenRarityColor(token.token_card.rarity)}`} style={{ width: '40px', height: '40px' }}>
+                              💎
                             </div>
-                            <div className="text-xs text-primary-black-500">points</div>
+
+                            {/* Token Name & Type */}
+                            <div className="flex-shrink-0 min-w-0" style={{ width: '160px' }}>
+                              <h4 className="font-bold text-primary-black-50 truncate text-sm">
+                                {token.token_card.token_name}
+                              </h4>
+                              <div className="text-xs text-primary-black-500 font-medium uppercase">
+                                {token.token_card.token_type}
+                              </div>
+                            </div>
                           </div>
 
-                          {/* Value & Sell Button */}
-                          <div className="flex-shrink-0 flex items-center gap-3">
-                            <span className="text-sm text-primary-green-400 font-bold">
-                              💰 {calculateTokenSellValue(token)}
-                            </span>
-                            <button
-                              onClick={() => onQuickSell(token.id, 'token', calculateTokenSellValue(token))}
-                              disabled={selling[token.id]}
-                              className="px-3 py-1.5 bg-red-600 hover:bg-red-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg text-xs font-semibold transition-colors"
-                            >
-                              {selling[token.id] ? 'Selling...' : 'Sell'}
-                            </button>
-                          </div>
+                          {/* SECTION 2: DESCRIPTION */}
+                          <>
+                            {/* Spacer for divider */}
+                            <div className="flex-shrink-0" style={{ width: '24px' }}></div>
+                            
+                            <div className="flex items-center flex-1">
+                              {/* Description */}
+                              <p className="text-xs text-primary-black-400">
+                                {token.token_card.description}
+                              </p>
+                            </div>
+                          </>
+
+                          {/* SECTION 3: RARITY, BONUS, SELL */}
+                          <>
+                            {/* Spacer for divider */}
+                            <div className="flex-shrink-0" style={{ width: '24px' }}></div>
+                            
+                            <div className="flex items-center gap-4 flex-shrink-0">
+                              {/* Rarity */}
+                              <div className="flex-shrink-0 text-center" style={{ width: '80px' }}>
+                                <span className={`text-xs font-semibold ${
+                                  token.token_card.rarity === 'Legendary' ? 'text-yellow-400' :
+                                  token.token_card.rarity === 'Epic' ? 'text-purple-400' :
+                                  token.token_card.rarity === 'Rare' ? 'text-blue-400' :
+                                  'text-primary-black-400'
+                                }`}>
+                                  {token.token_card.rarity}
+                                </span>
+                              </div>
+
+                              {/* Bonus Points */}
+                              <div className="flex-shrink-0 text-center" style={{ width: '70px' }}>
+                                <span className="text-sm text-primary-green-400 font-bold">
+                                  +{token.token_card.bonus_points}
+                                </span>
+                              </div>
+
+                              {/* Sell Value */}
+                              <div className="flex-shrink-0 text-center" style={{ width: '70px' }}>
+                                <span className="text-xs text-primary-black-300 font-semibold">
+                                  💰 {calculateTokenSellValue(token)}
+                                </span>
+                              </div>
+                            </div>
+                          </>
                         </div>
                       );
                     })}
+                        </div>
+                      </div>
+                    )}
                   </>
                 )}
               </div>
@@ -539,122 +751,257 @@ export default function InventoryPanel({
                     </div>
                   </div>
                 ) : (
-                  filteredPlayers.map((player, index) => {
-                    const isSelected = selectedForBulkAction.some(s => s.id === player.id);
-                    const cannotSelect = player.is_locked;
-                    
-                    return (
-                    <div
-                      key={player.id}
-                      className={`
-                        flex items-center gap-4 px-4 py-4 transition-all
-                        ${!cannotSelect && 'border-l-4'}
-                        ${cannotSelect ? 'opacity-60 bg-red-900/20 border-red-500/50' : isSelected ? 'border-primary-green-500 bg-primary-green-500/20' : 'border-transparent hover:bg-primary-green-500/10 hover:border-primary-green-500'}
-                        ${index % 2 === 0 && !cannotSelect && !isSelected ? 'bg-primary-black-900' : !cannotSelect && !isSelected ? 'bg-primary-black-800/50' : ''}
-                      `}
-                    >
-                      {/* Checkbox - Always Visible */}
-                      <div className="flex-shrink-0 flex items-center justify-center w-6">
-                        {!cannotSelect ? (
-                          <input
-                            type="checkbox"
-                            checked={isSelected}
-                            onChange={() => toggleBulkSelect(player, 'player')}
-                            onClick={(e) => e.stopPropagation()}
-                            className="w-5 h-5 rounded border-2 border-primary-black-600 bg-primary-black-800 checked:bg-primary-green-500 checked:border-primary-green-500 cursor-pointer hover:border-primary-green-500 transition-colors"
-                          />
-                        ) : (
-                          <div className="w-5 h-5"></div>
-                        )}
+                  <div className="border-2 border-primary-black-700 rounded-xl bg-primary-black-900 overflow-hidden">
+                    <div className="relative">
+                      {/* Vertical dividers spanning entire section */}
+                      <>
+                        <div className="absolute top-0 bottom-0 w-[2px] bg-primary-black-600" style={{ left: 'calc(8px + 24px + 8px + 40px + 8px + 40px + 8px + 160px + 16px + 24px)' }}></div>
+                        <div className="absolute top-0 bottom-0 w-[2px] bg-primary-black-600" style={{ left: 'calc(8px + 24px + 8px + 40px + 8px + 40px + 8px + 160px + 16px + 24px + 16px + 70px + 16px + 90px + 16px + 60px + 16px + 50px + 16px + 24px)' }}></div>
+                      </>
+                      
+                    {/* Players Table Header */}
+                    <div className="flex items-center gap-4 px-2 py-3 pr-6 bg-primary-black-800 border-b border-primary-black-700">
+                      {/* Section 1: SLOT & PLAYER */}
+                      <div className="flex items-center gap-2" style={{ minWidth: '272px' }}>
+                        <span className="text-[10px] font-bold text-primary-black-500 uppercase tracking-wider" style={{ width: '24px', textAlign: 'center' }}></span>
+                        <span className="text-[10px] font-bold text-primary-black-500 uppercase tracking-wider" style={{ width: '40px', textAlign: 'center' }}>SLOT</span>
+                        <span className="text-[10px] font-bold text-primary-black-500 uppercase tracking-wider" style={{ width: '40px', textAlign: 'center' }}></span>
+                        <span className="text-[10px] font-bold text-primary-black-500 uppercase tracking-wider" style={{ width: '160px' }}>PLAYER</span>
                       </div>
                       
-                      {/* Position Badge */}
-                      <span className="px-2 py-0.5 bg-primary-black-700 text-primary-black-300 rounded text-xs font-semibold flex-shrink-0">
-                        {player.player_card.position === 'Quarterback' ? 'QB' :
-                         player.player_card.position === 'Running Back' ? 'RB' :
-                         player.player_card.position === 'Wide Receiver' ? 'WR' :
-                         player.player_card.position === 'Tight End' ? 'TE' :
-                         player.player_card.position}
-                      </span>
-
-                      {/* Person Icon */}
-                      <div className="w-10 h-10 rounded-md bg-primary-black-700 flex items-center justify-center flex-shrink-0">
-                        <svg className="w-6 h-6 text-primary-black-300" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
-                        </svg>
+                      {/* Spacer for divider */}
+                      <div style={{ width: '24px' }}></div>
+                      
+                      {/* Section 2: MATCHUP INFO */}
+                      <div className="flex items-center gap-4">
+                        <span className="text-[10px] font-bold text-primary-black-500 uppercase tracking-wider text-center" style={{ width: '70px' }}>OPP</span>
+                        <span className="text-[10px] font-bold text-primary-black-500 uppercase tracking-wider text-center" style={{ width: '90px' }}>STATUS</span>
+                        <span className="text-[10px] font-bold text-primary-black-500 uppercase tracking-wider text-center" style={{ width: '60px' }}>PROJ</span>
+                        <span className="text-[10px] font-bold text-primary-black-500 uppercase tracking-wider text-center" style={{ width: '50px' }}>SCORE</span>
                       </div>
-
-{/* Player Info */}
-                       <div className="flex-1 min-w-0">
-                         <div className="flex items-center gap-2 mb-1">
-                           <h4 className="font-bold text-primary-black-50 truncate text-base">
-                             {player.player_card.player_name}
-                           </h4>
-                           <span className="text-xs text-primary-black-500 font-medium">
-                             {player.player_card.team_abbreviation}
-                           </span>
-                           {getInjuryStatusBadge(player.player_card.injury_status)}
-                         </div>
-                        
-                        <div className="flex items-center gap-2 text-xs text-primary-black-400">
-                          <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase ${getTierBadgeInfo(player.card_tier).color}`}>
-                            {getTierBadgeInfo(player.card_tier).initial}
-                          </span>
-                          <span className="font-medium">Level {player.card_level}</span>
-                          {player.total_fantasy_points > 0 && (
-                            <span className="text-primary-black-500 font-medium">
-                              Total: {player.total_fantasy_points.toFixed(1)} pts
-                            </span>
-                          )}
-                          {player.is_in_lineup && (
-                            <span className="px-2 py-0.5 bg-green-600/20 border border-green-600 text-green-400 rounded font-semibold">
-                              In Lineup
-                            </span>
-                          )}
-                          {player.is_locked && (
-                            <span className="px-2 py-0.5 bg-red-600/20 border border-red-600 text-red-400 rounded font-semibold">
-                              🔒 Locked
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Sell Value, Game Status and Projected Points */}
-                      <div className="flex items-center gap-3 flex-shrink-0">
-                        <div className="text-center">
-                          <div className="text-xs text-primary-black-500 mb-0.5">Sell Value</div>
-                          <div className="text-sm text-primary-black-300 font-semibold">
-                            💰 {calculatePlayerSellValue(player)}
-                          </div>
-                        </div>
-                        <div>
-                          {getGameStatusBadge(player.player_card.player_id)}
-                        </div>
-                        {loadingProjections ? (
-                          <span className="text-xs text-primary-black-400">...</span>
-                        ) : projections?.has(player.player_card.player_id) ? (
-                          <div className="text-primary-green-400 font-semibold text-sm">
-                            Proj: {projections.get(player.player_card.player_id).projected.toFixed(1)} pts
-                          </div>
-                        ) : null}
-                      </div>
-
-                      {/* Individual Sell Button */}
-                      <div className="flex-shrink-0">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onQuickSell(player.id, 'player', calculatePlayerSellValue(player));
-                          }}
-                          disabled={selling[player.id] || player.is_locked}
-                          className="px-3 py-1.5 bg-red-600 hover:bg-red-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg text-xs font-semibold transition-colors"
-                        >
-                          {selling[player.id] ? 'Selling...' : 'Sell'}
-                        </button>
+                      
+                      {/* Spacer for divider */}
+                      <div style={{ width: '24px' }}></div>
+                      
+                      {/* Section 3: FANTASY METRICS */}
+                      <div className="flex items-center gap-4">
+                        <span className="text-[10px] font-bold text-primary-black-500 uppercase tracking-wider text-center" style={{ width: '60px' }}>PRK</span>
+                        <span className="text-[10px] font-bold text-primary-black-500 uppercase tracking-wider text-center" style={{ width: '60px' }}>AVG</span>
+                        <span className="text-[10px] font-bold text-primary-black-500 uppercase tracking-wider text-center" style={{ width: '70px' }}>PULL %</span>
+                        <span className="text-[10px] font-bold text-primary-black-500 uppercase tracking-wider text-center" style={{ width: '70px' }}>SELL</span>
+                        <span className="text-[10px] font-bold text-primary-black-500 uppercase tracking-wider text-center" style={{ width: '50px' }}>TIER</span>
+                        <span className="text-[10px] font-bold text-primary-black-500 uppercase tracking-wider text-center" style={{ width: '60px' }}>LEVEL</span>
                       </div>
                     </div>
-                    );
-                  })
+                    
+                    {/* Players Rows */}
+                    {filteredPlayers.map((player, index) => {
+                      const isSelected = selectedForBulkAction.some(s => s.id === player.id);
+                      const cannotSelect = player.is_locked;
+                      
+                      // Get game data for this player
+                      const gameData = liveGameData?.get(player.player_card.player_id) || {};
+                      const { gameStatus, currentPoints, opponent, isHome, gameStartTime } = gameData;
+                      const isBye = !gameData || Object.keys(gameData).length === 0;
+                      const isLiveOrFinal = gameStatus === 'live' || gameStatus === 'halftime' || gameStatus === 'final';
+                      
+                      // Get projection data
+                      const playerProjection = projections?.get(player.player_card.player_id);
+                      
+                      return (
+                      <div
+                        key={player.id}
+                        className={`
+                          flex items-center gap-4 px-2 py-3 pr-6 transition-all 
+                          ${cannotSelect ? 'cursor-not-allowed opacity-60 bg-red-900/20' : 'hover:bg-primary-green-500/10 hover:border-primary-green-500'}
+                          ${!cannotSelect && 'border-l-4'}
+                          ${cannotSelect ? 'border-red-500/50' : isSelected ? 'border-primary-green-500 bg-primary-green-500/20' : 'border-transparent'}
+                          ${index % 2 === 0 && !cannotSelect && !isSelected ? 'bg-primary-black-900' : !cannotSelect && !isSelected ? 'bg-primary-black-800/50' : ''}
+                        `}
+                      >
+                        {/* SECTION 1: SLOT & PLAYER */}
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          {/* Checkbox */}
+                          <div className="flex-shrink-0 flex items-center justify-center" style={{ width: '24px' }}>
+                            {!cannotSelect ? (
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={() => toggleBulkSelect(player, 'player')}
+                                onClick={(e) => e.stopPropagation()}
+                                className="w-5 h-5 rounded border-2 border-primary-black-600 bg-primary-black-800 checked:bg-primary-green-500 checked:border-primary-green-500 cursor-pointer hover:border-primary-green-500 transition-colors"
+                              />
+                            ) : (
+                              <div className="w-5 h-5"></div>
+                            )}
+                          </div>
+                          
+                          {/* Position Badge */}
+                          <div className="flex-shrink-0 flex items-center justify-center" style={{ width: '40px' }}>
+                            <span className="px-2 py-1 bg-primary-black-700 text-primary-black-300 rounded text-xs font-semibold text-center">
+                              {player.player_card.position === 'Quarterback' ? 'QB' :
+                               player.player_card.position === 'Running Back' ? 'RB' :
+                               player.player_card.position === 'Wide Receiver' ? 'WR' :
+                               player.player_card.position === 'Tight End' ? 'TE' :
+                               player.player_card.position}
+                            </span>
+                          </div>
+
+                          {/* Person Icon */}
+                          <div className="flex-shrink-0 rounded-md bg-primary-black-700 flex items-center justify-center" style={{ width: '40px', height: '40px' }}>
+                            <svg className="w-6 h-6 text-primary-black-300" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                            </svg>
+                          </div>
+
+                          {/* Player Name & Team */}
+                          <div className="flex-shrink-0 min-w-0" style={{ width: '160px' }}>
+                            <div className="flex items-center gap-2">
+                              <h4 className="font-bold text-primary-black-50 truncate text-sm">
+                                {player.player_card.player_name}
+                              </h4>
+                              {getInjuryStatusBadge(player.player_card.injury_status)}
+                            </div>
+                            <div className="text-xs text-primary-black-500 font-medium">
+                              {player.player_card.team_abbreviation}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* SECTION 2: MATCHUP INFO */}
+                        <>
+                          {/* Spacer for divider */}
+                          <div className="flex-shrink-0" style={{ width: '24px' }}></div>
+                          
+                          <div className="flex items-center gap-4 flex-shrink-0">
+                            {/* Opponent */}
+                            <div className="flex-shrink-0 text-center" style={{ width: '70px' }}>
+                              {isBye ? (
+                                <span className="text-xs text-primary-black-500 font-semibold">BYE</span>
+                              ) : (
+                                <span className="text-xs text-primary-black-300 font-semibold">
+                                  {isHome ? '' : '@'}{opponent}
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Game Status/Time */}
+                            <div className="flex-shrink-0 text-center" style={{ width: '90px' }}>
+                              {isBye ? (
+                                <span className="text-[10px] text-primary-black-600">--</span>
+                              ) : gameStatus === 'live' || gameStatus === 'halftime' ? (
+                                <span className="text-xs text-red-400 font-bold">Live</span>
+                              ) : gameStatus === 'final' ? (
+                                <span className="text-xs text-green-400 font-bold">Final</span>
+                              ) : gameStartTime ? (
+                                <span className="text-[10px] text-primary-black-400">
+                                  {new Date(gameStartTime).toLocaleDateString('en-US', { 
+                                    weekday: 'short' 
+                                  })} {new Date(gameStartTime).toLocaleTimeString('en-US', { 
+                                    hour: 'numeric', 
+                                    minute: '2-digit',
+                                    hour12: true 
+                                  })}
+                                </span>
+                              ) : (
+                                <span className="text-[10px] text-primary-black-600">--</span>
+                              )}
+                            </div>
+
+                            {/* Projected Points */}
+                            <div className="flex-shrink-0 text-center" style={{ width: '60px' }}>
+                              {isLiveOrFinal && currentPoints !== undefined ? (
+                                <div>
+                                  <div className="text-sm text-white font-bold">
+                                    {currentPoints.toFixed(1)}
+                                  </div>
+                                </div>
+                              ) : playerProjection && playerProjection.projected > 0 ? (
+                                <div className="text-primary-green-400 font-semibold text-sm">
+                                  {playerProjection.projected.toFixed(1)}
+                                </div>
+                              ) : (
+                                <span className="text-xs text-primary-black-600">--</span>
+                              )}
+                            </div>
+
+                            {/* Score (only show if live/final) */}
+                            <div className="flex-shrink-0 text-center" style={{ width: '50px' }}>
+                              {isLiveOrFinal && currentPoints !== undefined ? (
+                                <span className="text-xs text-primary-black-400">{currentPoints.toFixed(1)}</span>
+                              ) : (
+                                <span className="text-[10px] text-primary-black-600">--</span>
+                              )}
+                            </div>
+                          </div>
+                        </>
+
+                        {/* SECTION 3: FANTASY METRICS */}
+                        <>
+                          {/* Spacer for divider */}
+                          <div className="flex-shrink-0" style={{ width: '24px' }}></div>
+                          
+                          <div className="flex items-center gap-4 flex-shrink-0">
+                            {/* Position Rank */}
+                            <div className="flex-shrink-0 text-center" style={{ width: '60px' }}>
+                              {player.player_card.position_rank ? (
+                                <span className="text-xs text-primary-black-400 font-medium">
+                                  {player.player_card.position_rank}
+                                </span>
+                              ) : (
+                                <span className="text-xs text-primary-black-600">--</span>
+                              )}
+                            </div>
+
+                            {/* Season Average */}
+                            <div className="flex-shrink-0 text-center" style={{ width: '60px' }}>
+                              {playerProjection && playerProjection.seasonAvg > 0 ? (
+                                <span className="text-xs text-primary-black-400 font-medium">
+                                  {playerProjection.seasonAvg.toFixed(1)}
+                                </span>
+                              ) : (
+                                <span className="text-xs text-primary-black-600">--</span>
+                              )}
+                            </div>
+
+                            {/* Pull % */}
+                            <div className="flex-shrink-0 text-center" style={{ width: '70px' }}>
+                              {player.player_card.pull_percentage ? (
+                                <span className={`text-xs font-semibold ${getPullPercentageColor(player.player_card.pull_percentage)}`}>
+                                  {player.player_card.pull_percentage.toFixed(1)}%
+                                </span>
+                              ) : (
+                                <span className="text-xs text-primary-black-600">--</span>
+                              )}
+                            </div>
+
+                            {/* Sell Value */}
+                            <div className="flex-shrink-0 text-center" style={{ width: '70px' }}>
+                              <span className="text-xs text-primary-black-300 font-semibold">
+                                💰 {calculatePlayerSellValue(player)}
+                              </span>
+                            </div>
+
+                            {/* Tier */}
+                            <div className="flex-shrink-0 text-center" style={{ width: '50px' }}>
+                              <span className={`px-2 py-0.5 rounded text-xs font-bold uppercase ${getTierBadgeInfo(player.card_tier).color}`}>
+                                {getTierBadgeInfo(player.card_tier).initial}
+                              </span>
+                            </div>
+
+                            {/* Level */}
+                            <div className="flex-shrink-0 text-center" style={{ width: '60px' }}>
+                              <span className="text-xs text-primary-black-300 font-medium">
+                                {player.card_level}
+                              </span>
+                            </div>
+                          </div>
+                        </>
+                      </div>
+                      );
+                  })}
+                    </div>
+                  </div>
                 )}
               </div>
             )}
@@ -671,90 +1018,190 @@ export default function InventoryPanel({
                     </div>
                   </div>
                 ) : (
-                  filteredTokens.map((token, index) => {
+                  <div className="border-2 border-primary-black-700 rounded-xl bg-primary-black-900 overflow-hidden">
+                    <div className="relative">
+                      {/* Vertical dividers spanning entire token section */}
+                      <>
+                        <div className="absolute top-0 bottom-0 w-[2px] bg-primary-black-600" style={{ left: 'calc(8px + 24px + 8px + 40px + 8px + 40px + 8px + 160px + 16px)' }}></div>
+                        <div className="absolute top-0 bottom-0 w-[2px] bg-primary-black-600" style={{ right: 'calc(60px + 16px + 80px + 16px + 80px)' }}></div>
+                      </>
+                      
+                    {/* Tokens Table Header */}
+                    <div className="flex items-center gap-4 px-2 py-3 pr-6 bg-primary-black-800 border-b border-primary-black-700">
+                      {/* SECTION 1: TYPE & TOKEN */}
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        {/* Checkbox column header */}
+                        <div className="flex-shrink-0 flex items-center justify-center" style={{ width: '24px' }}></div>
+                        
+                        {/* Type column header */}
+                        <div className="flex-shrink-0 text-center" style={{ width: '40px' }}>
+                          <span className="text-[10px] text-primary-black-500 font-bold uppercase tracking-wider">Type</span>
+                        </div>
+                        
+                        {/* Icon column header */}
+                        <div className="flex-shrink-0" style={{ width: '40px' }}></div>
+                        
+                        {/* Token name column header */}
+                        <div className="flex-shrink-0" style={{ width: '160px' }}>
+                          <span className="text-[10px] text-primary-black-500 font-bold uppercase tracking-wider">Token</span>
+                        </div>
+                      </div>
+                      
+                      {/* Spacer for divider */}
+                      <div className="flex-shrink-0" style={{ width: '24px' }}></div>
+                      
+                      {/* SECTION 2: DESCRIPTION */}
+                      <div className="flex items-center flex-1">
+                        <span className="text-[10px] text-primary-black-500 font-bold uppercase tracking-wider">Description</span>
+                      </div>
+                      
+                      {/* Spacer for divider */}
+                      <div className="flex-shrink-0" style={{ width: '24px' }}></div>
+                      
+                      {/* SECTION 3: RARITY, BONUS, SELL */}
+                      <div className="flex items-center gap-4 flex-shrink-0">
+                        <div className="flex-shrink-0 text-center" style={{ width: '80px' }}>
+                          <span className="text-[10px] text-primary-black-500 font-bold uppercase tracking-wider">Rarity</span>
+                        </div>
+                        
+                        <div className="flex-shrink-0 text-center" style={{ width: '70px' }}>
+                          <span className="text-[10px] text-primary-black-500 font-bold uppercase tracking-wider">Bonus</span>
+                        </div>
+                        
+                        <div className="flex-shrink-0 text-center" style={{ width: '70px' }}>
+                          <span className="text-[10px] text-primary-black-500 font-bold uppercase tracking-wider">Sell</span>
+                        </div>
+                      </div>
+                      
+                      {/* Action column header */}
+                      <div className="flex-shrink-0" style={{ width: '60px' }}></div>
+                    </div>
+                    
+                    {/* Token Rows */}
+                    {filteredTokens.map((token, index) => {
                     const isSelected = selectedForBulkAction.some(s => s.id === token.id);
                     
                     return (
                     <div
                       key={token.id}
                       className={`
-                        flex items-center gap-4 px-4 py-4 transition-all border-l-4
+                        flex items-center gap-4 px-2 py-3 pr-6 transition-all border-l-4
                         ${isSelected ? 'border-primary-green-500 bg-primary-green-500/20' : 'border-transparent hover:bg-primary-green-500/10 hover:border-primary-green-500'}
                         ${index % 2 === 0 && !isSelected ? 'bg-primary-black-900' : !isSelected ? 'bg-primary-black-800/50' : ''}
                       `}
                     >
-                      {/* Checkbox */}
-                      <div className="flex-shrink-0 flex items-center justify-center w-6">
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={() => toggleBulkSelect(token, 'token')}
-                          onClick={(e) => e.stopPropagation()}
-                          className="w-5 h-5 rounded border-2 border-primary-black-600 bg-primary-black-800 checked:bg-primary-green-500 checked:border-primary-green-500 cursor-pointer hover:border-primary-green-500 transition-colors"
-                        />
-                      </div>
-                      
-                      {/* Position Badge for Token */}
-                      <span className="px-2 py-0.5 bg-primary-black-700 text-primary-black-300 rounded text-xs font-semibold flex-shrink-0">
-                        TK
-                      </span>
-
-                      {/* Token Icon */}
-                      <div className={`w-10 h-10 rounded-md flex items-center justify-center text-2xl bg-gradient-to-br ${getTokenRarityColor(token.token_card.rarity)}`}>
-                        💎
-                      </div>
-
-                      {/* Token Info */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h4 className="font-bold text-primary-black-50 text-base truncate">
-                            {token.token_card.token_name}
-                          </h4>
-                          <span className="text-xs text-primary-black-400 uppercase tracking-wide font-semibold px-2 py-0.5 bg-primary-black-700 rounded">
-                            {token.token_card.token_type}
+                      {/* SECTION 1: TYPE & TOKEN */}
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        {/* Checkbox */}
+                        <div className="flex-shrink-0 flex items-center justify-center" style={{ width: '24px' }}>
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => toggleBulkSelect(token, 'token')}
+                            onClick={(e) => e.stopPropagation()}
+                            className="w-5 h-5 rounded border-2 border-primary-black-600 bg-primary-black-800 checked:bg-primary-green-500 checked:border-primary-green-500 cursor-pointer hover:border-primary-green-500 transition-colors"
+                          />
+                        </div>
+                        
+                        {/* Type Badge */}
+                        <div className="flex-shrink-0 flex items-center justify-center" style={{ width: '40px' }}>
+                          <span className="px-2 py-1 bg-primary-black-700 text-primary-black-300 rounded text-xs font-semibold text-center">
+                            TK
                           </span>
                         </div>
-                        <p className="text-xs text-primary-black-400 line-clamp-1">
-                          {token.token_card.description}
-                        </p>
-                      </div>
 
-                      {/* Bonus Points */}
-                      <div className="flex-shrink-0 text-center px-4">
-                        <div className="text-xl font-bold text-primary-green-400">
-                          +{token.token_card.bonus_points}
+                        {/* Token Icon */}
+                        <div className={`flex-shrink-0 rounded-md flex items-center justify-center text-2xl bg-gradient-to-br ${getTokenRarityColor(token.token_card.rarity)}`} style={{ width: '40px', height: '40px' }}>
+                          💎
                         </div>
-                        <div className="text-xs text-primary-black-500">points</div>
+
+                        {/* Token Name & Type */}
+                        <div className="flex-shrink-0 min-w-0" style={{ width: '160px' }}>
+                          <h4 className="font-bold text-primary-black-50 truncate text-sm">
+                            {token.token_card.token_name}
+                          </h4>
+                          <div className="text-xs text-primary-black-500 font-medium uppercase">
+                            {token.token_card.token_type}
+                          </div>
+                        </div>
                       </div>
 
-                      {/* Value & Sell Button */}
-                      <div className="flex-shrink-0 flex items-center gap-3">
-                        <span className="text-sm text-primary-green-400 font-bold">
-                          💰 {calculateTokenSellValue(token)}
-                        </span>
+                      {/* SECTION 2: DESCRIPTION */}
+                      <>
+                        {/* Spacer for divider */}
+                        <div className="flex-shrink-0" style={{ width: '24px' }}></div>
+                        
+                        <div className="flex items-center flex-1">
+                          {/* Description */}
+                          <p className="text-xs text-primary-black-400">
+                            {token.token_card.description}
+                          </p>
+                        </div>
+                      </>
+
+                      {/* SECTION 3: RARITY, BONUS, SELL */}
+                      <>
+                        {/* Spacer for divider */}
+                        <div className="flex-shrink-0" style={{ width: '24px' }}></div>
+                        
+                        <div className="flex items-center gap-4 flex-shrink-0">
+                          {/* Rarity */}
+                          <div className="flex-shrink-0 text-center" style={{ width: '80px' }}>
+                            <span className={`text-xs font-semibold ${
+                              token.token_card.rarity === 'Legendary' ? 'text-yellow-400' :
+                              token.token_card.rarity === 'Epic' ? 'text-purple-400' :
+                              token.token_card.rarity === 'Rare' ? 'text-blue-400' :
+                              'text-primary-black-400'
+                            }`}>
+                              {token.token_card.rarity}
+                            </span>
+                          </div>
+
+                          {/* Bonus Points */}
+                          <div className="flex-shrink-0 text-center" style={{ width: '70px' }}>
+                            <span className="text-sm text-primary-green-400 font-bold">
+                              +{token.token_card.bonus_points}
+                            </span>
+                          </div>
+
+                          {/* Sell Value */}
+                          <div className="flex-shrink-0 text-center" style={{ width: '70px' }}>
+                            <span className="text-xs text-primary-black-300 font-semibold">
+                              💰 {calculateTokenSellValue(token)}
+                            </span>
+                          </div>
+                        </div>
+                      </>
+                      
+                      {/* Quick Sell Button */}
+                      <div className="flex-shrink-0" style={{ width: '60px' }}>
                         <button
-                          onClick={() => onQuickSell(token.id, 'token', calculateTokenSellValue(token))}
-                          disabled={selling[token.id]}
-                          className="px-3 py-1.5 bg-red-600 hover:bg-red-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg text-xs font-semibold transition-colors"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleQuickSell(token, 'token');
+                          }}
+                          className="w-full px-2 py-1 bg-primary-black-700 hover:bg-primary-green-500 text-primary-black-300 hover:text-primary-black-50 rounded text-xs font-semibold transition-colors"
                         >
-                          {selling[token.id] ? 'Selling...' : 'Sell'}
+                          Sell
                         </button>
                       </div>
                     </div>
                     );
-                  })
+                  })}
+                    </div>
+                  </div>
                 )}
               </div>
             )}
           </div>
 
           {/* Footer Instructions */}
-          <div className="border-t-2 border-primary-black-700 bg-primary-black-800/50 rounded-b-xl">
-            <div className="px-4 py-3">
-              <p className="text-xs text-primary-black-400 text-center">
-                💡 Quick sell cards for coins • Locked cards cannot be sold until their game is complete
-              </p>
-            </div>
+        {/* Footer */}
+        <div className="border-2 border-primary-black-700 bg-primary-black-800/50 rounded-xl mt-4">
+          <div className="px-4 py-3">
+            <p className="text-xs text-primary-black-400 text-center">
+              💡 Quick sell cards for coins • Locked cards cannot be sold until their game is complete
+            </p>
           </div>
         </div>
       </div>
