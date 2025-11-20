@@ -37,6 +37,19 @@ export default function BenchAndTokensPanel({
   const [activeTab, setActiveTab] = useState('all'); // 'all', 'players', or 'tokens'
   const [isDragOver, setIsDragOver] = useState(false);
 
+  // Debug: Log liveGameData to see what we're receiving
+  console.log('🎮 BenchAndTokensPanel - liveGameData size:', liveGameData?.size || 0);
+  if (liveGameData && benchPlayers.length > 0) {
+    const firstPlayer = benchPlayers[0];
+    const gameData = liveGameData.get(firstPlayer.player_card.player_id);
+    console.log('🎮 First bench player game data:', {
+      playerId: firstPlayer.player_card.player_id,
+      playerName: firstPlayer.player_card.player_name,
+      team: firstPlayer.player_card.team_abbreviation,
+      gameData: gameData
+    });
+  }
+
   // When filterPosition is set, automatically switch to players tab and filter
   // When tokenFilterPlayerId is set, automatically switch to tokens tab
   const effectiveTab = filterPosition ? 'players' : tokenFilterPlayerId ? 'tokens' : activeTab;
@@ -271,8 +284,17 @@ export default function BenchAndTokensPanel({
   // Render a player row
   const renderPlayerRow = (player, index) => {
     const appliedToken = inventory?.tokens?.find(t => t.applied_to_player_id === player.id && t.is_active);
-    const isLocked = player?.is_locked || isPlayerGameLiveOrFinal(player); // Lock if DB says so OR game is live/final
+    const isLocked = player?.is_locked || isPlayerGameLiveOrFinal(player);
     const isSelected = selectedForBulkAction.some(s => s.id === player.id);
+    const gameData = liveGameData?.get(player.player_card.player_id);
+    const playerProjection = projections?.get(player.player_card.player_id);
+    
+    // Determine if on BYE (no game data at all)
+    const isBye = !gameData;
+    const opponent = gameData?.opponent;
+    const isHome = gameData?.isHome;
+    const gameStatus = gameData?.gameStatus?.toLowerCase();
+    const isLiveOrFinal = gameStatus === 'live' || gameStatus === 'halftime' || gameStatus === 'final';
     
     return (
       <div
@@ -286,144 +308,218 @@ export default function BenchAndTokensPanel({
           onPlayerDragStart(e, player, 'BENCH');
         }}
         className={`
-          flex items-center gap-4 px-4 py-4 transition-all 
+          flex items-center gap-4 px-2 py-3 pr-6 transition-all 
           ${isLocked ? 'cursor-not-allowed opacity-60 bg-red-900/20' : 'cursor-move hover:bg-primary-green-500/10 hover:border-primary-green-500'}
           ${!isLocked && 'border-l-4'}
           ${isLocked ? 'border-red-500/50' : isSelected ? 'border-primary-green-500 bg-primary-green-500/20' : 'border-transparent'}
           ${index % 2 === 0 && !isLocked && !isSelected ? 'bg-primary-black-900' : !isLocked && !isSelected ? 'bg-primary-black-800/50' : ''}
         `}
       >
-        {/* Checkbox - Always Visible */}
-        <div className="flex-shrink-0 flex items-center justify-center w-6">
-          {!isLocked ? (
-            <input
-              type="checkbox"
-              checked={isSelected}
-              onChange={() => onToggleBulkSelect && onToggleBulkSelect(player, 'player')}
-              onClick={(e) => e.stopPropagation()}
-              className="w-5 h-5 rounded border-2 border-primary-black-600 bg-primary-black-800 checked:bg-primary-green-500 checked:border-primary-green-500 cursor-pointer hover:border-primary-green-500 transition-colors"
-            />
-          ) : (
-            <div className="w-5 h-5"></div>
-          )}
-        </div>
-        
-        {/* Position Badge */}
-        <span className="px-2 py-0.5 bg-primary-black-700 text-primary-black-300 rounded text-xs font-semibold flex-shrink-0">
-          {player.player_card.position === 'Quarterback' ? 'QB' :
-           player.player_card.position === 'Running Back' ? 'RB' :
-           player.player_card.position === 'Wide Receiver' ? 'WR' :
-           player.player_card.position === 'Tight End' ? 'TE' :
-           player.player_card.position}
-        </span>
+        {/* SECTION 1: SLOT & PLAYER */}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {/* Checkbox */}
+          <div className="flex-shrink-0 flex items-center justify-center" style={{ width: '24px' }}>
+            {!isLocked ? (
+              <input
+                type="checkbox"
+                checked={isSelected}
+                onChange={() => onToggleBulkSelect && onToggleBulkSelect(player, 'player')}
+                onClick={(e) => e.stopPropagation()}
+                className="w-5 h-5 rounded border-2 border-primary-black-600 bg-primary-black-800 checked:bg-primary-green-500 checked:border-primary-green-500 cursor-pointer hover:border-primary-green-500 transition-colors"
+              />
+            ) : (
+              <div className="w-5 h-5"></div>
+            )}
+          </div>
+          
+          {/* Position Badge */}
+          <div className="flex-shrink-0 flex items-center justify-center" style={{ width: '40px' }}>
+            <span className="px-2 py-1 bg-primary-black-700 text-primary-black-300 rounded text-xs font-semibold text-center">
+              {player.player_card.position === 'Quarterback' ? 'QB' :
+               player.player_card.position === 'Running Back' ? 'RB' :
+               player.player_card.position === 'Wide Receiver' ? 'WR' :
+               player.player_card.position === 'Tight End' ? 'TE' :
+               player.player_card.position}
+            </span>
+          </div>
 
-        {/* Person Icon */}
-        <div className="w-10 h-10 rounded-md bg-primary-black-700 flex items-center justify-center flex-shrink-0">
-          <svg className="w-6 h-6 text-primary-black-300" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
-          </svg>
-        </div>
+          {/* Person Icon */}
+          <div className="flex-shrink-0 rounded-md bg-primary-black-700 flex items-center justify-center" style={{ width: '40px', height: '40px' }}>
+            <svg className="w-6 h-6 text-primary-black-300" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+            </svg>
+          </div>
 
-        {/* Player Info */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <h4 className="font-bold text-primary-black-50 truncate text-base">
-              {player.player_card.player_name}
-            </h4>
-            <span className="text-xs text-primary-black-500 font-medium">
+          {/* Player Name & Team */}
+          <div className="flex-shrink-0 min-w-0" style={{ width: '160px' }}>
+            <div className="flex items-center gap-2">
+              <h4 className="font-bold text-primary-black-50 truncate text-sm">
+                {player.player_card.player_name}
+              </h4>
+              {getInjuryStatusBadge(player.player_card.injury_status)}
+            </div>
+            <div className="text-xs text-primary-black-500 font-medium">
               {player.player_card.team_abbreviation}
-            </span>
-            {getInjuryStatusBadge(player.player_card.injury_status)}
-          </div>
-         
-          <div className="flex items-center gap-2 text-xs text-primary-black-400">
-            <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase ${getTierBadgeInfo(player.card_tier).color}`}>
-              {getTierBadgeInfo(player.card_tier).initial}
-            </span>
-            <span className="font-medium">Level {player.card_level}</span>
-            {player.total_fantasy_points > 0 && (
-              <span className="text-primary-black-500 font-medium">
-                Total: {player.total_fantasy_points.toFixed(1)} pts
-              </span>
-            )}
-            {player.player_card.pull_percentage && (
-              <span className={`font-semibold ${getPullPercentageColor(player.player_card.pull_percentage)}`}>
-                {player.player_card.pull_percentage.toFixed(1)}% pull
-              </span>
-            )}
+            </div>
           </div>
         </div>
 
-        {/* Move Button or Empty Space - Shows in middle when filtering */}
-        <div className="flex-1 flex items-center justify-center px-4">
-          {filterPosition && onMoveToSlot ? (
+        {/* Move Button - Shows when filtering */}
+        {filterPosition && onMoveToSlot ? (
+          <div className="flex-shrink-0 px-2">
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 onMoveToSlot(player, filterPosition);
               }}
-              className="px-6 py-2 bg-primary-green-500 hover:bg-primary-green-400 text-primary-black-950 rounded-lg text-sm font-bold transition-all hover:scale-105 shadow-lg"
+              className="px-4 py-1.5 bg-primary-green-500 hover:bg-primary-green-400 text-primary-black-950 rounded text-xs font-bold transition-all hover:scale-105"
             >
-              Move →
+              MOVE
             </button>
-          ) : null}
-        </div>
-
-        {/* Game Status and Projected Points */}
-        <div className="flex items-center gap-3 flex-shrink-0">
-          <div className="text-center">
-            <div className="text-xs text-primary-black-500 mb-0.5">Sell Value</div>
-            <div className="text-sm text-primary-black-300 font-semibold">
-              💰 {calculatePlayerSellValue(player)}
-            </div>
           </div>
-          {/* Points Display - Live/Final on top, Projection below */}
-          <div className="text-center min-w-[60px]">
-            {(() => {
-              const gameData = liveGameData?.get(player.player_card.player_id);
-              const playerProjection = projections?.get(player.player_card.player_id);
-              const isLiveOrFinal = gameData && (gameData.gameStatus?.toLowerCase() === 'live' || gameData.gameStatus?.toLowerCase() === 'halftime' || gameData.gameStatus?.toLowerCase() === 'final');
-              
-              if (isLiveOrFinal && gameData.currentPoints !== undefined) {
-                return (
-                  <>
-                    <div className="text-lg text-white font-bold">
-                      {gameData.currentPoints.toFixed(2)}
+        ) : null}
+
+        {/* SECTION 2: MATCHUP INFO - Only show when NOT filtering */}
+        {!filterPosition && (
+          <>
+            {/* Spacer for divider */}
+            <div className="flex-shrink-0" style={{ width: '24px' }}></div>
+            
+            <div className="flex items-center gap-4 flex-shrink-0">
+              {/* Opponent */}
+              <div className="flex-shrink-0 text-center" style={{ width: '70px' }}>
+                {isBye ? (
+                  <span className="text-xs text-primary-black-500 font-semibold">BYE</span>
+                ) : (
+                  <span className="text-xs text-primary-black-300 font-semibold">
+                    {isHome ? '' : '@'}{opponent}
+                  </span>
+                )}
+              </div>
+
+              {/* Game Status/Time */}
+              <div className="flex-shrink-0 text-center" style={{ width: '90px' }}>
+                {isBye ? (
+                  <span className="text-[10px] text-primary-black-600">--</span>
+                ) : gameStatus === 'live' || gameStatus === 'halftime' ? (
+                  <span className="text-xs text-red-400 font-bold">Live</span>
+                ) : gameStatus === 'final' ? (
+                  <span className="text-xs text-green-400 font-bold">Final</span>
+                ) : gameData.gameStartTime ? (
+                  <span className="text-[10px] text-primary-black-400">
+                    {new Date(gameData.gameStartTime).toLocaleDateString('en-US', { 
+                      weekday: 'short' 
+                    })} {new Date(gameData.gameStartTime).toLocaleTimeString('en-US', { 
+                      hour: 'numeric', 
+                      minute: '2-digit',
+                      hour12: true 
+                    })}
+                  </span>
+                ) : (
+                  <span className="text-[10px] text-primary-black-600">--</span>
+                )}
+              </div>
+
+              {/* Projected Points */}
+              <div className="flex-shrink-0 text-center" style={{ width: '60px' }}>
+                {isLiveOrFinal && gameData.currentPoints !== undefined ? (
+                  <div>
+                    <div className="text-sm text-white font-bold">
+                      {gameData.currentPoints.toFixed(1)}
                     </div>
-                    {playerProjection && playerProjection.projected > 0 && (
-                      <div className="text-xs text-primary-green-400 font-semibold">
-                        {playerProjection.projected.toFixed(1)}
-                      </div>
-                    )}
-                  </>
-                );
-              } else if (playerProjection && playerProjection.projected > 0) {
-                return (
-                  <div className="text-primary-green-400 font-semibold text-sm">
-                    Proj: {playerProjection.projected.toFixed(1)} pts
                   </div>
-                );
-              }
-              return null;
-            })()}
-          </div>
-        </div>
+                ) : playerProjection && playerProjection.projected > 0 ? (
+                  <div className="text-primary-green-400 font-semibold text-sm">
+                    {playerProjection.projected.toFixed(1)}
+                  </div>
+                ) : (
+                  <span className="text-xs text-primary-black-600">--</span>
+                )}
+              </div>
 
-        {/* Applied Token */}
-        {appliedToken && (
-          <div className="flex-shrink-0 px-3 py-1.5 bg-primary-green-500/20 border border-primary-green-500 rounded-lg text-xs text-primary-green-400 font-bold">
-            💎 +{appliedToken.token_card.bonus_points}
-          </div>
+              {/* Score (only show if live/final) */}
+              <div className="flex-shrink-0 text-center" style={{ width: '50px' }}>
+                {isLiveOrFinal && gameData.currentPoints !== undefined ? (
+                  <span className="text-xs text-primary-black-400">{gameData.currentPoints.toFixed(1)}</span>
+                ) : (
+                  <span className="text-[10px] text-primary-black-600">--</span>
+                )}
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* SECTION 3: FANTASY METRICS - Only show when NOT filtering */}
+        {!filterPosition && (
+          <>
+            {/* Spacer for divider */}
+            <div className="flex-shrink-0" style={{ width: '24px' }}></div>
+            
+            <div className="flex items-center gap-4 flex-shrink-0">
+              {/* Position Rank */}
+              <div className="flex-shrink-0 text-center" style={{ width: '60px' }}>
+                {player.player_card.position_rank ? (
+                  <span className="text-xs text-primary-black-400 font-medium">
+                    {player.player_card.position_rank}
+                  </span>
+                ) : (
+                  <span className="text-xs text-primary-black-600">--</span>
+                )}
+              </div>
+
+              {/* Season Average */}
+              <div className="flex-shrink-0 text-center" style={{ width: '60px' }}>
+                {playerProjection && playerProjection.seasonAvg > 0 ? (
+                  <span className="text-xs text-primary-black-400 font-medium">
+                    {playerProjection.seasonAvg.toFixed(1)}
+                  </span>
+                ) : (
+                  <span className="text-xs text-primary-black-600">--</span>
+                )}
+              </div>
+
+              {/* Pull % */}
+              <div className="flex-shrink-0 text-center" style={{ width: '70px' }}>
+                {player.player_card.pull_percentage ? (
+                  <span className={`text-xs font-semibold ${getPullPercentageColor(player.player_card.pull_percentage)}`}>
+                    {player.player_card.pull_percentage.toFixed(1)}%
+                  </span>
+                ) : (
+                  <span className="text-xs text-primary-black-600">--</span>
+                )}
+              </div>
+
+              {/* Sell Value */}
+              <div className="flex-shrink-0 text-center" style={{ width: '70px' }}>
+                <span className="text-xs text-primary-black-300 font-semibold">
+                  💰 {calculatePlayerSellValue(player)}
+                </span>
+              </div>
+
+              {/* Tier */}
+              <div className="flex-shrink-0 text-center" style={{ width: '50px' }}>
+                <span className={`px-2 py-0.5 rounded text-xs font-bold uppercase ${getTierBadgeInfo(player.card_tier).color}`}>
+                  {getTierBadgeInfo(player.card_tier).initial}
+                </span>
+              </div>
+
+              {/* Level */}
+              <div className="flex-shrink-0 text-center" style={{ width: '60px' }}>
+                <span className="text-xs text-primary-black-300 font-medium">
+                  {player.card_level}
+                </span>
+              </div>
+            </div>
+          </>
         )}
 
         {/* Lock Indicator or Drag Handle */}
         {isLocked ? (
-          <div className="flex-shrink-0 flex items-center gap-2 px-3 py-1.5 bg-red-900/40 border border-red-500/50 rounded-lg">
-            <span className="text-red-400 text-lg">🔒</span>
-            <span className="text-xs text-red-400 font-bold">LOCKED</span>
+          <div className="flex-shrink-0 text-red-400 text-lg">
+            🔒
           </div>
         ) : (
-          <div className="flex-shrink-0 text-primary-black-600 text-xl">
+          <div className="flex-shrink-0 text-primary-black-600 text-lg">
             ⋮⋮
           </div>
         )}
@@ -433,14 +529,13 @@ export default function BenchAndTokensPanel({
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div className="bg-primary-black-900 border-2 border-primary-black-700 rounded-xl">
-        {/* Sticky Header with Filter Bar */}
-        <div className={`sticky top-0 z-20 border-b-2 border-primary-black-700 rounded-t-xl transition-colors ${
-          filterPosition 
-            ? 'bg-primary-green-500/10 border-primary-green-500/30' 
-            : 'bg-primary-black-900'
-        }`}>
-            <div className="px-4 py-4">
+      {/* Sticky Header with Filter Bar */}
+      <div className={`sticky top-0 z-20 bg-primary-black-900 border-2 border-primary-black-700 rounded-xl mb-4 transition-colors ${
+        filterPosition 
+          ? 'bg-primary-green-500/10 border-primary-green-500/30' 
+          : 'bg-primary-black-900'
+      }`}>
+          <div className="px-4 py-4">
               <div className="flex items-center justify-between gap-6">
                 {/* Title - Switches between "Bench" and "Select Player/Token" */}
                 {filterPosition ? (
@@ -560,7 +655,7 @@ export default function BenchAndTokensPanel({
 
       {/* Content Area */}
       <div 
-        className={`py-4 transition-all ${isDragOver ? 'bg-primary-green-500/10 ring-2 ring-primary-green-500 ring-inset' : ''}`}
+        className={`transition-all ${isDragOver ? 'bg-primary-green-500/10 ring-2 ring-primary-green-500 ring-inset rounded-xl p-4' : ''}`}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
@@ -590,17 +685,170 @@ export default function BenchAndTokensPanel({
               <>
                  {/* Players Section */}
                  {filteredBenchPlayers.length > 0 && (
-                   <div>
+                   <div className="bg-primary-black-900 border-2 border-primary-black-700 rounded-xl overflow-hidden">
+                    <div className="relative">
+                    {/* Vertical dividers spanning entire section */}
+                    {!filterPosition && (
+                      <>
+                        <div className="absolute top-0 bottom-0 w-[2px] bg-primary-black-600" style={{ left: 'calc(8px + 24px + 8px + 40px + 8px + 40px + 8px + 160px + 16px + 24px)' }}></div>
+                        <div className="absolute top-0 bottom-0 w-[2px] bg-primary-black-600" style={{ left: 'calc(8px + 24px + 8px + 40px + 8px + 40px + 8px + 160px + 16px + 24px + 16px + 70px + 16px + 90px + 16px + 60px + 16px + 50px + 16px + 24px)' }}></div>
+                      </>
+                    )}
+                    
+                    {/* Header Row - Only show when NOT filtering */}
+                    {!filterPosition && (
+                      <div className="flex items-center gap-4 px-2 py-3 pr-6 bg-primary-black-800 border-b border-primary-black-700">
+                        {/* SECTION 1: SLOT & PLAYER */}
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          {/* Checkbox column header */}
+                          <div className="flex-shrink-0 flex items-center justify-center" style={{ width: '24px' }}></div>
+                          
+                          {/* Position column header */}
+                          <div className="flex-shrink-0 text-center" style={{ width: '40px' }}>
+                            <span className="text-[10px] text-primary-black-500 font-bold uppercase tracking-wider">Slot</span>
+                          </div>
+                          
+                          {/* Photo column header */}
+                          <div className="flex-shrink-0" style={{ width: '40px' }}></div>
+                          
+                          {/* Player name column header */}
+                          <div className="flex-shrink-0" style={{ width: '160px' }}>
+                            <span className="text-[10px] text-primary-black-500 font-bold uppercase tracking-wider">Player</span>
+                          </div>
+                        </div>
+                        
+                        {/* Spacer for divider */}
+                        <div className="flex-shrink-0" style={{ width: '24px' }}></div>
+                        
+                        {/* SECTION 2: MATCHUP INFO */}
+                        <div className="flex items-center gap-4 flex-shrink-0">
+                          <div className="flex-shrink-0 text-center" style={{ width: '70px' }}>
+                            <span className="text-[10px] text-primary-black-500 font-bold uppercase tracking-wider">Opp</span>
+                          </div>
+                          
+                          <div className="flex-shrink-0 text-center" style={{ width: '90px' }}>
+                            <span className="text-[10px] text-primary-black-500 font-bold uppercase tracking-wider">Status</span>
+                          </div>
+                          
+                          <div className="flex-shrink-0 text-center" style={{ width: '60px' }}>
+                            <span className="text-[10px] text-primary-black-500 font-bold uppercase tracking-wider">Proj</span>
+                          </div>
+                          
+                          <div className="flex-shrink-0 text-center" style={{ width: '50px' }}>
+                            <span className="text-[10px] text-primary-black-500 font-bold uppercase tracking-wider">Score</span>
+                          </div>
+                        </div>
+                        
+                        {/* Spacer for divider */}
+                        <div className="flex-shrink-0" style={{ width: '24px' }}></div>
+                        
+                        {/* SECTION 3: FANTASY METRICS */}
+                        <div className="flex items-center gap-4 flex-shrink-0">
+                          <div className="flex-shrink-0 text-center" style={{ width: '60px' }}>
+                            <span className="text-[10px] text-primary-black-500 font-bold uppercase tracking-wider">PRK</span>
+                          </div>
+                          
+                          <div className="flex-shrink-0 text-center" style={{ width: '60px' }}>
+                            <span className="text-[10px] text-primary-black-500 font-bold uppercase tracking-wider">AVG</span>
+                          </div>
+                          
+                          <div className="flex-shrink-0 text-center" style={{ width: '70px' }}>
+                            <span className="text-[10px] text-primary-black-500 font-bold uppercase tracking-wider">Pull %</span>
+                          </div>
+                          
+                          <div className="flex-shrink-0 text-center" style={{ width: '70px' }}>
+                            <span className="text-[10px] text-primary-black-500 font-bold uppercase tracking-wider">Sell</span>
+                          </div>
+                          
+                          <div className="flex-shrink-0 text-center" style={{ width: '50px' }}>
+                            <span className="text-[10px] text-primary-black-500 font-bold uppercase tracking-wider">Tier</span>
+                          </div>
+                          
+                          <div className="flex-shrink-0 text-center" style={{ width: '60px' }}>
+                            <span className="text-[10px] text-primary-black-500 font-bold uppercase tracking-wider">Level</span>
+                          </div>
+                        </div>
+                        
+                        {/* Drag handle column header */}
+                        <div className="flex-shrink-0 text-lg"></div>
+                      </div>
+                    )}
+                    
+                    {/* Player Rows */}
                     {filteredBenchPlayers.map((player, index) => renderPlayerRow(player, index))}
+                    </div>
                   </div>
                 )}
 
                 {/* Tokens Section */}
                 {availableTokens.length > 0 && (
-                  <div>
+                  <div className="bg-primary-black-900 border-2 border-primary-black-700 rounded-xl overflow-hidden mt-6">
+                    <div className="relative">
+                    {/* Vertical dividers spanning entire token section */}
+                    {!tokenFilterPlayerId && (
+                      <>
+                        <div className="absolute top-0 bottom-0 w-[2px] bg-primary-black-600" style={{ left: 'calc(8px + 24px + 8px + 40px + 8px + 40px + 8px + 160px + 16px + 24px)' }}></div>
+                        <div className="absolute top-0 bottom-0 w-[2px] bg-primary-black-600" style={{ left: 'calc(8px + 24px + 8px + 40px + 8px + 40px + 8px + 160px + 16px + 24px + 16px + 70px + 16px + 280px + 16px + 24px)' }}></div>
+                      </>
+                    )}
+                    
+                    {/* Token Header Row */}
+                    {!tokenFilterPlayerId && (
+                      <div className="flex items-center gap-4 px-2 py-3 pr-6 bg-primary-black-800 border-b border-primary-black-700">
+                        {/* SECTION 1: TYPE & TOKEN */}
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          {/* Checkbox column header */}
+                          <div className="flex-shrink-0 flex items-center justify-center" style={{ width: '24px' }}></div>
+                          
+                          {/* Type column header */}
+                          <div className="flex-shrink-0 text-center" style={{ width: '40px' }}>
+                            <span className="text-[10px] text-primary-black-500 font-bold uppercase tracking-wider">Type</span>
+                          </div>
+                          
+                          {/* Icon column header */}
+                          <div className="flex-shrink-0" style={{ width: '40px' }}></div>
+                          
+                          {/* Token name column header */}
+                          <div className="flex-shrink-0" style={{ width: '160px' }}>
+                            <span className="text-[10px] text-primary-black-500 font-bold uppercase tracking-wider">Token</span>
+                          </div>
+                        </div>
+                        
+                        {/* Spacer for divider */}
+                        <div className="flex-shrink-0" style={{ width: '24px' }}></div>
+                        
+                        {/* SECTION 2: TOKEN INFO */}
+                        <div className="flex items-center gap-4 flex-shrink-0">
+                          <div className="flex-shrink-0 text-center" style={{ width: '70px' }}>
+                            <span className="text-[10px] text-primary-black-500 font-bold uppercase tracking-wider">Rarity</span>
+                          </div>
+                          
+                          <div className="flex-shrink-0" style={{ width: '280px' }}>
+                            <span className="text-[10px] text-primary-black-500 font-bold uppercase tracking-wider">Description</span>
+                          </div>
+                        </div>
+                        
+                        {/* Spacer for divider */}
+                        <div className="flex-shrink-0" style={{ width: '24px' }}></div>
+                        
+                        {/* SECTION 3: TOKEN STATS */}
+                        <div className="flex items-center gap-4 flex-shrink-0">
+                          <div className="flex-shrink-0 text-center" style={{ width: '70px' }}>
+                            <span className="text-[10px] text-primary-black-500 font-bold uppercase tracking-wider">Bonus</span>
+                          </div>
+                          
+                          <div className="flex-shrink-0 text-center" style={{ width: '70px' }}>
+                            <span className="text-[10px] text-primary-black-500 font-bold uppercase tracking-wider">Sell</span>
+                          </div>
+                        </div>
+                        
+                        {/* Drag handle column header */}
+                        <div className="flex-shrink-0 text-lg"></div>
+                      </div>
+                    )}
+                    
+                    {/* Token Rows */}
                     {filteredTokens.map((token, index) => {
-                      // Continue alternating from where players left off
-                      const rowIndex = filteredBenchPlayers.length + index;
                       const isSelected = selectedForBulkAction.some(s => s.id === token.id);
                       
                       return (
@@ -610,88 +858,124 @@ export default function BenchAndTokensPanel({
                           onDragStart={(e) => !tokenFilterPlayerId && onTokenDragStart(e, token)}
                           onDragEnd={onTokenDragEnd}
                           className={`
-                            flex items-center gap-4 px-4 py-4 transition-all border-l-4
-                            ${tokenFilterPlayerId ? 'cursor-default' : 'cursor-move'}
-                            ${isSelected ? 'border-primary-green-500 bg-primary-green-500/20' : 'border-transparent hover:bg-primary-green-500/10 hover:border-primary-green-500'}
-                            ${rowIndex % 2 === 0 && !isSelected ? 'bg-primary-black-900' : !isSelected ? 'bg-primary-black-800/50' : ''}
+                            flex items-center gap-4 px-2 py-3 pr-6 transition-all border-l-4
+                            ${tokenFilterPlayerId ? 'cursor-default' : 'cursor-move hover:bg-primary-green-500/10 hover:border-primary-green-500'}
+                            ${isSelected ? 'border-primary-green-500 bg-primary-green-500/20' : 'border-transparent'}
+                            ${index % 2 === 0 && !isSelected ? 'bg-primary-black-900' : !isSelected ? 'bg-primary-black-800/50' : ''}
                           `}
                         >
-                          {/* Checkbox */}
-                          <div className="flex-shrink-0 flex items-center justify-center w-6">
-                            <input
-                              type="checkbox"
-                              checked={isSelected}
-                              onChange={() => onToggleBulkSelect && onToggleBulkSelect(token, 'token')}
-                              onClick={(e) => e.stopPropagation()}
-                              className="w-5 h-5 rounded border-2 border-primary-black-600 bg-primary-black-800 checked:bg-primary-green-500 checked:border-primary-green-500 cursor-pointer hover:border-primary-green-500 transition-colors"
-                            />
-                          </div>
-                          
-                          {/* Position Badge for Token */}
-                          <span className="px-2 py-0.5 bg-primary-black-700 text-primary-black-300 rounded text-xs font-semibold flex-shrink-0">
-                            TK
-                          </span>
-
-                          {/* Token Icon */}
-                          <div className={`w-10 h-10 rounded-md flex items-center justify-center text-2xl bg-gradient-to-br ${getTokenRarityColor(token.token_card.rarity)}`}>
-                            💎
-                          </div>
-
-                          {/* Token Info */}
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <h4 className="font-bold text-primary-black-50 text-base truncate">
-                                {token.token_card.token_name}
-                              </h4>
-                              <span className="text-xs text-primary-black-400 uppercase tracking-wide font-semibold px-2 py-0.5 bg-primary-black-700 rounded">
-                                {token.token_card.token_type}
+                          {/* SECTION 1: TYPE & TOKEN */}
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            {/* Checkbox */}
+                            <div className="flex-shrink-0 flex items-center justify-center" style={{ width: '24px' }}>
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={() => onToggleBulkSelect && onToggleBulkSelect(token, 'token')}
+                                onClick={(e) => e.stopPropagation()}
+                                className="w-5 h-5 rounded border-2 border-primary-black-600 bg-primary-black-800 checked:bg-primary-green-500 checked:border-primary-green-500 cursor-pointer hover:border-primary-green-500 transition-colors"
+                              />
+                            </div>
+                            
+                            {/* Type Badge */}
+                            <div className="flex-shrink-0 flex items-center justify-center" style={{ width: '40px' }}>
+                              <span className="px-2 py-1 bg-primary-black-700 text-primary-black-300 rounded text-xs font-semibold text-center">
+                                TK
                               </span>
                             </div>
-                            <p className="text-xs text-primary-black-400 line-clamp-1">
-                              {token.token_card.description}
-                            </p>
+
+                            {/* Token Icon */}
+                            <div className={`flex-shrink-0 rounded-md flex items-center justify-center text-2xl bg-gradient-to-br ${getTokenRarityColor(token.token_card.rarity)}`} style={{ width: '40px', height: '40px' }}>
+                              💎
+                            </div>
+
+                            {/* Token Name & Type */}
+                            <div className="flex-shrink-0 min-w-0" style={{ width: '160px' }}>
+                              <h4 className="font-bold text-primary-black-50 truncate text-sm">
+                                {token.token_card.token_name}
+                              </h4>
+                              <div className="text-xs text-primary-black-500 font-medium uppercase">
+                                {token.token_card.token_type}
+                              </div>
+                            </div>
                           </div>
 
-                          {/* Move Button or Empty Space - Shows in middle when filtering */}
-                          <div className="flex-1 flex items-center justify-center px-4">
-                            {tokenFilterPlayerId && onApplyTokenToPlayer ? (
+                          {/* Move Button - Shows when filtering */}
+                          {tokenFilterPlayerId && onApplyTokenToPlayer ? (
+                            <div className="flex-shrink-0 px-2">
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   onApplyTokenToPlayer(token, tokenFilterPlayerId);
                                 }}
-                                className="px-6 py-2 bg-primary-green-500 hover:bg-primary-green-400 text-primary-black-950 rounded-lg text-sm font-bold transition-all hover:scale-105 shadow-lg"
+                                className="px-4 py-1.5 bg-primary-green-500 hover:bg-primary-green-400 text-primary-black-950 rounded text-xs font-bold transition-all hover:scale-105"
                               >
-                                Move →
+                                MOVE
                               </button>
-                            ) : null}
-                          </div>
+                            </div>
+                          ) : null}
 
-                          {/* Bonus Points and Value - Only show when not filtering */}
+                          {/* SECTION 2: TOKEN INFO - Only show when NOT filtering */}
                           {!tokenFilterPlayerId && (
                             <>
-                              {/* Bonus Points */}
-                              <div className="flex-shrink-0 text-center px-4">
-                                <div className="text-xl font-bold text-primary-green-400">
-                                  +{token.token_card.bonus_points}
+                              {/* Spacer for divider */}
+                              <div className="flex-shrink-0" style={{ width: '24px' }}></div>
+                              
+                              <div className="flex items-center gap-4 flex-shrink-0">
+                                {/* Rarity */}
+                                <div className="flex-shrink-0 text-center" style={{ width: '70px' }}>
+                                  <span className={`text-xs font-semibold ${
+                                    token.token_card.rarity === 'Legendary' ? 'text-yellow-400' :
+                                    token.token_card.rarity === 'Epic' ? 'text-purple-400' :
+                                    token.token_card.rarity === 'Rare' ? 'text-blue-400' :
+                                    'text-primary-black-400'
+                                  }`}>
+                                    {token.token_card.rarity}
+                                  </span>
                                 </div>
-                                <div className="text-xs text-primary-black-500">points</div>
-                              </div>
 
-                              {/* Value */}
-                              <div className="flex-shrink-0 text-xs text-primary-black-400 font-medium">
-                                💰 {calculateTokenSellValue(token)}
-                              </div>
-
-                              {/* Drag Handle */}
-                              <div className="flex-shrink-0 text-primary-black-600 text-xl">
-                                ⋮⋮
+                                {/* Description */}
+                                <div className="flex-shrink-0" style={{ width: '280px' }}>
+                                  <p className="text-xs text-primary-black-400">
+                                    {token.token_card.description}
+                                  </p>
+                                </div>
                               </div>
                             </>
                           )}
+
+                          {/* SECTION 3: TOKEN STATS - Only show when NOT filtering */}
+                          {!tokenFilterPlayerId && (
+                            <>
+                              {/* Spacer for divider */}
+                              <div className="flex-shrink-0" style={{ width: '24px' }}></div>
+                              
+                              <div className="flex items-center gap-4 flex-shrink-0">
+                                {/* Bonus Points */}
+                                <div className="flex-shrink-0 text-center" style={{ width: '70px' }}>
+                                  <span className="text-sm text-primary-green-400 font-bold">
+                                    +{token.token_card.bonus_points}
+                                  </span>
+                                </div>
+
+                                {/* Sell Value */}
+                                <div className="flex-shrink-0 text-center" style={{ width: '70px' }}>
+                                  <span className="text-xs text-primary-black-300 font-semibold">
+                                    💰 {calculateTokenSellValue(token)}
+                                  </span>
+                                </div>
+                              </div>
+                            </>
+                          )}
+
+                          {/* Drag Handle */}
+                          <div className="flex-shrink-0 text-primary-black-600 text-lg">
+                            ⋮⋮
+                          </div>
                         </div>
                       );
                     })}
+                    </div>
                   </div>
                 )}
               </>
@@ -726,14 +1010,106 @@ export default function BenchAndTokensPanel({
                 </div>
               </div>
             ) : (
-              filteredBenchPlayers.map((player, index) => renderPlayerRow(player, index))
+              <>
+                <div className="relative">
+                  {/* Vertical dividers spanning entire section */}
+                  {!filterPosition && (
+                    <>
+                      <div className="absolute top-0 bottom-0 w-[2px] bg-primary-black-600" style={{ left: 'calc(8px + 24px + 8px + 40px + 8px + 40px + 8px + 160px + 16px + 24px)' }}></div>
+                      <div className="absolute top-0 bottom-0 w-[2px] bg-primary-black-600" style={{ left: 'calc(8px + 24px + 8px + 40px + 8px + 40px + 8px + 160px + 16px + 24px + 16px + 70px + 16px + 90px + 16px + 60px + 16px + 50px + 16px + 24px)' }}></div>
+                    </>
+                  )}
+                  
+                  {/* Header Row - Only show when NOT filtering */}
+                  {!filterPosition && (
+                    <div className="flex items-center gap-4 px-2 py-3 pr-6 bg-primary-black-800 border-b border-primary-black-700">
+                      {/* SECTION 1: SLOT & PLAYER */}
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        {/* Checkbox column header */}
+                        <div className="flex-shrink-0 flex items-center justify-center" style={{ width: '24px' }}></div>
+                        
+                        {/* Position column header */}
+                        <div className="flex-shrink-0 text-center" style={{ width: '40px' }}>
+                          <span className="text-[10px] text-primary-black-500 font-bold uppercase tracking-wider">Slot</span>
+                        </div>
+                        
+                        {/* Photo column header */}
+                        <div className="flex-shrink-0" style={{ width: '40px' }}></div>
+                        
+                        {/* Player name column header */}
+                        <div className="flex-shrink-0" style={{ width: '160px' }}>
+                          <span className="text-[10px] text-primary-black-500 font-bold uppercase tracking-wider">Player</span>
+                        </div>
+                      </div>
+                      
+                      {/* Spacer for divider */}
+                      <div className="flex-shrink-0" style={{ width: '24px' }}></div>
+                      
+                      {/* SECTION 2: MATCHUP INFO */}
+                      <div className="flex items-center gap-4 flex-shrink-0">
+                        <div className="flex-shrink-0 text-center" style={{ width: '70px' }}>
+                          <span className="text-[10px] text-primary-black-500 font-bold uppercase tracking-wider">Opp</span>
+                        </div>
+                        
+                        <div className="flex-shrink-0 text-center" style={{ width: '90px' }}>
+                          <span className="text-[10px] text-primary-black-500 font-bold uppercase tracking-wider">Status</span>
+                        </div>
+                        
+                        <div className="flex-shrink-0 text-center" style={{ width: '60px' }}>
+                          <span className="text-[10px] text-primary-black-500 font-bold uppercase tracking-wider">Proj</span>
+                        </div>
+                        
+                        <div className="flex-shrink-0 text-center" style={{ width: '50px' }}>
+                          <span className="text-[10px] text-primary-black-500 font-bold uppercase tracking-wider">Score</span>
+                        </div>
+                      </div>
+                      
+                      {/* Spacer for divider */}
+                      <div className="flex-shrink-0" style={{ width: '24px' }}></div>
+                      
+                      {/* SECTION 3: FANTASY METRICS */}
+                      <div className="flex items-center gap-4 flex-shrink-0">
+                        <div className="flex-shrink-0 text-center" style={{ width: '60px' }}>
+                          <span className="text-[10px] text-primary-black-500 font-bold uppercase tracking-wider">PRK</span>
+                        </div>
+                        
+                        <div className="flex-shrink-0 text-center" style={{ width: '60px' }}>
+                          <span className="text-[10px] text-primary-black-500 font-bold uppercase tracking-wider">AVG</span>
+                        </div>
+                        
+                        <div className="flex-shrink-0 text-center" style={{ width: '70px' }}>
+                          <span className="text-[10px] text-primary-black-500 font-bold uppercase tracking-wider">Pull %</span>
+                        </div>
+                        
+                        <div className="flex-shrink-0 text-center" style={{ width: '70px' }}>
+                          <span className="text-[10px] text-primary-black-500 font-bold uppercase tracking-wider">Sell</span>
+                        </div>
+                        
+                        <div className="flex-shrink-0 text-center" style={{ width: '50px' }}>
+                          <span className="text-[10px] text-primary-black-500 font-bold uppercase tracking-wider">Tier</span>
+                        </div>
+                        
+                        <div className="flex-shrink-0 text-center" style={{ width: '60px' }}>
+                          <span className="text-[10px] text-primary-black-500 font-bold uppercase tracking-wider">Level</span>
+                        </div>
+                      </div>
+                      
+                      {/* Drag handle column header */}
+                      <div className="flex-shrink-0 text-lg"></div>
+                    </div>
+                  )}
+                
+                {/* Player Rows */}
+                {filteredBenchPlayers.map((player, index) => renderPlayerRow(player, index))}
+                </div>
+              </>
             )}
           </div>
         )}
 
         {/* Tokens Only View */}
         {effectiveTab === 'tokens' && (
-          <div>
+          <div className="bg-primary-black-900 border-2 border-primary-black-700 rounded-xl overflow-hidden">
             {availableTokens.length === 0 ? (
               <div className="flex items-center justify-center py-12 text-center">
                 <div>
@@ -841,7 +1217,8 @@ export default function BenchAndTokensPanel({
       </div>
 
       {/* Footer Instructions */}
-      <div className="border-t-2 border-primary-black-700 bg-primary-black-800/50 rounded-b-xl">
+      {/* Footer with Helper Text */}
+      <div className="border-2 border-primary-black-700 bg-primary-black-800/50 rounded-xl mt-4">
         <div className="px-4 py-3">
           <p className="text-xs text-primary-black-400 text-center">
             {filterPosition
@@ -857,8 +1234,7 @@ export default function BenchAndTokensPanel({
           </p>
         </div>
       </div>
-        </div>
-      </div>
+    </div>
   );
 }
 
