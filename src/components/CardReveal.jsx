@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 
-function CardReveal({ items, onRevealComplete }) {
+function CardReveal({ items, onRevealComplete, isStarterPack = false, tierConfig = null }) {
   const [revealedIndices, setRevealedIndices] = useState(new Set());
   const [hoveredIndex, setHoveredIndex] = useState(null);
   const [isShuffling, setIsShuffling] = useState(true);
   const [allRevealed, setAllRevealed] = useState(false);
+  const [tierAssignments, setTierAssignments] = useState({});
+  const [showTierUI, setShowTierUI] = useState(false);
 
   useEffect(() => {
     // Trigger shuffle animation on mount
@@ -19,15 +21,16 @@ function CardReveal({ items, onRevealComplete }) {
     // Check if all cards are revealed
     if (revealedIndices.size === items.length && items.length > 0) {
       setAllRevealed(true);
+      // For starter packs, show tier assignment UI after all cards revealed
+      if (isStarterPack && tierConfig) {
+        setShowTierUI(true);
+      }
     }
-  }, [revealedIndices, items.length]);
+  }, [revealedIndices, items.length, isStarterPack, tierConfig]);
 
   const handleCardClick = (index) => {
     if (!revealedIndices.has(index)) {
       setRevealedIndices(prev => new Set([...prev, index]));
-      
-      // Play a subtle sound effect here if desired
-      // new Audio('/sounds/card-flip.mp3').play();
     }
   };
 
@@ -38,6 +41,56 @@ function CardReveal({ items, onRevealComplete }) {
         setRevealedIndices(prev => new Set([...prev, index]));
       }, index * 100);
     });
+  };
+
+  const handleTierSelect = (cardIndex, tier) => {
+    const item = items[cardIndex];
+    if (item.type !== 'player') return;
+
+    setTierAssignments(prev => {
+      const newAssignments = { ...prev };
+      
+      // Remove this card from any other tier
+      Object.keys(newAssignments).forEach(t => {
+        newAssignments[t] = newAssignments[t].filter(idx => idx !== cardIndex);
+      });
+      
+      // Add to new tier if not unassigning
+      if (tier) {
+        if (!newAssignments[tier]) newAssignments[tier] = [];
+        newAssignments[tier].push(cardIndex);
+      }
+      
+      return newAssignments;
+    });
+  };
+
+  const canConfirmTiers = () => {
+    if (!isStarterPack || !tierConfig) return true;
+    
+    // Check all slots are filled
+    return Object.keys(tierConfig).every(tier => {
+      const assigned = tierAssignments[tier] || [];
+      return assigned.length === tierConfig[tier].slots;
+    });
+  };
+
+  const handleContinue = () => {
+    if (isStarterPack && tierConfig) {
+      // Convert tier assignments to the format expected by parent
+      const formattedAssignments = {};
+      Object.keys(tierAssignments).forEach(tier => {
+        tierAssignments[tier].forEach(cardIndex => {
+          const card = items[cardIndex];
+          if (card.type === 'player') {
+            formattedAssignments[card.data.id] = tier;
+          }
+        });
+      });
+      onRevealComplete(formattedAssignments);
+    } else {
+      onRevealComplete();
+    }
   };
 
   // Get glow color based on pull_percentage (lower % = rarer = better glow)
@@ -86,12 +139,17 @@ function CardReveal({ items, onRevealComplete }) {
   };
 
   return (
-    <div className="w-full h-screen flex flex-col justify-center px-4 py-8 max-w-7xl mx-auto">
+    <div className="w-full h-screen flex flex-col justify-center px-4 py-8 pb-20 max-w-7xl mx-auto">
       {/* Header */}
       <div className="text-center mb-6">
-        <h2 className="text-2xl font-bold text-white mb-3">Your Pull!</h2>
+        <h2 className="text-2xl font-bold text-white mb-3">
+          {showTierUI ? 'Assign Your Tier Boosts!' : 'Your Pull!'}
+        </h2>
         <p className="text-primary-black-300 mb-3">
-          Click each card to reveal what you got
+          {showTierUI 
+            ? 'Click on a player card, then select a tier below to assign them'
+            : 'Click each card to reveal what you got'
+          }
         </p>
         {!allRevealed && (
           <button
@@ -105,11 +163,14 @@ function CardReveal({ items, onRevealComplete }) {
 
       {/* Cards Container */}
       <div className="flex-1 flex items-center justify-center min-h-0">
-        <div className="flex gap-4 justify-center flex-wrap max-w-full">
+        <div className="flex gap-4 justify-center flex-wrap max-w-full mb-12">
           {items.map((item, index) => {
             const isRevealed = revealedIndices.has(index);
             const isHovered = hoveredIndex === index;
             const glowStyle = getGlowColor(item.data.pull_percentage);
+            const assignedTier = Object.keys(tierAssignments).find(tier => 
+              tierAssignments[tier]?.includes(index)
+            );
               
             return (
               <div
@@ -197,6 +258,15 @@ function CardReveal({ items, onRevealComplete }) {
                               background: `radial-gradient(circle at center, ${glowStyle.glow} 0%, transparent 70%)`
                             }}
                           />
+                        )}
+
+                        {/* Tier Badge (shows during tier assignment) */}
+                        {showTierUI && assignedTier && (
+                          <div className="absolute top-2 right-2 z-10">
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-primary-green-500 text-white border border-primary-green-400">
+                              {assignedTier}
+                            </span>
+                          </div>
                         )}
 
                         {/* Position Badge */}
@@ -308,14 +378,91 @@ function CardReveal({ items, onRevealComplete }) {
       </div>
 
       {/* Continue Button */}
-      {allRevealed && (
+      {allRevealed && !showTierUI && (
         <div className="text-center mt-6">
           <button
-            onClick={onRevealComplete}
+            onClick={handleContinue}
             className="px-6 py-3 bg-primary-green-500 hover:bg-primary-green-400 text-primary-black-950 font-bold rounded-lg transition-all shadow-glow-green hover:scale-105"
           >
             Continue
           </button>
+        </div>
+      )}
+
+      {/* Tier Assignment UI */}
+      {showTierUI && tierConfig && (
+        <div className="mt-8 space-y-4">
+          {/* Tier Selection Buttons */}
+          <div className="flex gap-3 justify-center flex-wrap">
+            {Object.keys(tierConfig).map(tier => {
+              const config = tierConfig[tier];
+              const assigned = tierAssignments[tier] || [];
+              const isFull = assigned.length >= config.slots;
+              
+              return (
+                <button
+                  key={tier}
+                  onClick={() => {
+                    // Find selected player card
+                    const selectedPlayerIndex = items.findIndex((item, idx) => 
+                      item.type === 'player' && hoveredIndex === idx
+                    );
+                    if (selectedPlayerIndex >= 0) {
+                      handleTierSelect(selectedPlayerIndex, isFull ? null : tier);
+                    }
+                  }}
+                  disabled={isFull && !assigned.includes(hoveredIndex)}
+                  className={`
+                    px-4 py-2 rounded-lg font-bold text-sm transition-all
+                    ${isFull && !assigned.includes(hoveredIndex)
+                      ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                      : 'bg-primary-black-700 hover:bg-primary-black-600 text-white hover:scale-105'
+                    }
+                  `}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl">{config.icon}</span>
+                    <div className="text-left">
+                      <div>{tier} Tier</div>
+                      <div className="text-xs text-primary-black-400">
+                        {assigned.length}/{config.slots} assigned
+                      </div>
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Progress Bar */}
+          <div className="max-w-md mx-auto">
+            <div className="h-2 bg-primary-black-700 rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-primary-green-500 transition-all duration-300"
+                style={{
+                  width: `${(Object.values(tierAssignments).flat().length / 
+                           Object.values(tierConfig).reduce((sum, t) => sum + t.slots, 0)) * 100}%`
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Confirm Button */}
+          <div className="text-center">
+            <button
+              onClick={handleContinue}
+              disabled={!canConfirmTiers()}
+              className={`
+                px-8 py-3 rounded-lg font-bold text-lg transition-all
+                ${canConfirmTiers()
+                  ? 'bg-primary-green-500 hover:bg-primary-green-400 text-primary-black-950 hover:scale-105 shadow-glow-green'
+                  : 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                }
+              `}
+            >
+              {canConfirmTiers() ? 'Confirm Tiers' : 'Assign All Players'}
+            </button>
+          </div>
         </div>
       )}
 
@@ -336,6 +483,8 @@ CardReveal.propTypes = {
     data: PropTypes.object.isRequired,
   })).isRequired,
   onRevealComplete: PropTypes.func,
+  isStarterPack: PropTypes.bool,
+  tierConfig: PropTypes.object,
 };
 
 export default CardReveal;
