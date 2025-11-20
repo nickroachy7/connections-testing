@@ -390,7 +390,7 @@ export default function InventoryPanel({
                             )}
                             {player.player_card.pull_percentage && (
                               <span className={`font-semibold ${getPullPercentageColor(player.player_card.pull_percentage)}`}>
-                                {player.player_card.pull_percentage}% pull
+                                {player.player_card.pull_percentage.toFixed(1)}% pull
                               </span>
                             )}
                             {player.total_fantasy_points > 0 && (

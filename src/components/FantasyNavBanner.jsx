@@ -41,6 +41,9 @@ export default function FantasyNavBanner({
   const [simulatedAverage, setSimulatedAverage] = useState(null);
   const averageCalculatedRef = useRef(false);
   const [weekIsFinalized, setWeekIsFinalized] = useState(false); // Track if current week is finalized
+  const [showColorPicker, setShowColorPicker] = useState(false);
+  const [bannerTheme, setBannerTheme] = useState('default');
+  const colorPickerRef = useRef(null);
 
   const navItems = [
     { path: `/teams/${teamId}/dashboard`, label: 'DASHBOARD' },
@@ -49,6 +52,96 @@ export default function FantasyNavBanner({
     { path: `/teams/${teamId}/leaderboard`, label: 'LEADERBOARD' },
     { path: `/teams/${teamId}/pack-shop`, label: 'PACK SHOP' }
   ];
+
+  // Banner theme options
+  const themeOptions = [
+    { 
+      id: 'default', 
+      name: 'Classic Dark', 
+      bg: 'bg-dk-black-secondary',
+      preview: 'linear-gradient(to right, #1a1a1a, #1a1a1a)'
+    },
+    { 
+      id: 'ocean', 
+      name: 'Ocean Blue', 
+      bg: 'bg-gradient-to-r from-blue-900 to-blue-800',
+      preview: 'linear-gradient(to right, #1e3a8a, #1e40af)'
+    },
+    { 
+      id: 'forest', 
+      name: 'Forest Green', 
+      bg: 'bg-gradient-to-r from-emerald-900 to-green-800',
+      preview: 'linear-gradient(to right, #064e3b, #166534)'
+    },
+    { 
+      id: 'sunset', 
+      name: 'Sunset Orange', 
+      bg: 'bg-gradient-to-r from-orange-900 to-red-900',
+      preview: 'linear-gradient(to right, #7c2d12, #7f1d1d)'
+    },
+    { 
+      id: 'purple', 
+      name: 'Royal Purple', 
+      bg: 'bg-gradient-to-r from-purple-900 to-indigo-900',
+      preview: 'linear-gradient(to right, #581c87, #312e81)'
+    },
+    { 
+      id: 'crimson', 
+      name: 'Crimson Red', 
+      bg: 'bg-gradient-to-r from-red-950 to-rose-900',
+      preview: 'linear-gradient(to right, #450a0a, #881337)'
+    },
+    { 
+      id: 'cow', 
+      name: 'Moo Cow', 
+      bg: 'bg-gradient-to-br from-zinc-100 via-zinc-900 to-zinc-100',
+      preview: 'linear-gradient(135deg, #f4f4f5, #18181b, #f4f4f5)'
+    },
+    { 
+      id: 'matrix', 
+      name: 'Matrix Code', 
+      bg: 'bg-gradient-to-b from-black via-green-950 to-black',
+      preview: 'linear-gradient(to bottom, #000000, #052e16, #000000)'
+    },
+    { 
+      id: 'lava', 
+      name: 'Molten Lava', 
+      bg: 'bg-gradient-to-r from-red-600 via-orange-600 to-yellow-500',
+      preview: 'linear-gradient(to right, #dc2626, #ea580c, #eab308)'
+    }
+  ];
+
+  // Load saved theme from localStorage
+  useEffect(() => {
+    const savedTheme = localStorage.getItem(`bannerTheme_${teamId}`);
+    if (savedTheme) {
+      setBannerTheme(savedTheme);
+    }
+  }, [teamId]);
+
+  // Close color picker when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (colorPickerRef.current && !colorPickerRef.current.contains(event.target)) {
+        setShowColorPicker(false);
+      }
+    }
+    
+    if (showColorPicker) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showColorPicker]);
+
+  const handleThemeChange = (themeId) => {
+    setBannerTheme(themeId);
+    localStorage.setItem(`bannerTheme_${teamId}`, themeId);
+    setShowColorPicker(false);
+  };
+
+  const getCurrentTheme = () => {
+    return themeOptions.find(t => t.id === bannerTheme) || themeOptions[0];
+  };
 
   // Fetch team image and name when component mounts or teamId changes
   useEffect(() => {
@@ -886,8 +979,56 @@ export default function FantasyNavBanner({
       />
 
       {/* Compact Header - Single Row Design */}
-      <div className="bg-dk-black-secondary border-b border-dk-black-light">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 h-[180px]">
+      <div className={`${getCurrentTheme().bg} border-b border-dk-black-light transition-all duration-300`}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 h-[180px] relative">
+          {/* Color Picker Button - Top Right */}
+          <div className="absolute top-3 right-4 z-10" ref={colorPickerRef}>
+            <button
+              onClick={() => setShowColorPicker(!showColorPicker)}
+              className="p-2 rounded-lg bg-black/30 hover:bg-black/50 border border-white/20 transition-all duration-200 group"
+              title="Customize banner color"
+            >
+              <svg className="w-5 h-5 text-white/80 group-hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+              </svg>
+            </button>
+
+            {/* Color Picker Dropdown */}
+            {showColorPicker && (
+              <div className="absolute top-full right-0 mt-2 w-72 bg-dk-black-tertiary border-2 border-dk-black-light rounded-lg shadow-2xl overflow-hidden">
+                <div className="p-3 bg-dk-black-secondary border-b border-dk-black-light">
+                  <h3 className="text-sm font-dk-display font-bold text-dk-white-primary">Choose Banner Theme</h3>
+                </div>
+                <div className="p-2 max-h-96 overflow-y-auto">
+                  {themeOptions.map(theme => (
+                    <button
+                      key={theme.id}
+                      onClick={() => handleThemeChange(theme.id)}
+                      className={`w-full flex items-center gap-3 p-2.5 rounded-lg mb-1.5 transition-all duration-200 ${
+                        bannerTheme === theme.id 
+                          ? 'bg-dk-green-primary/20 border-2 border-dk-green-primary' 
+                          : 'bg-dk-black-secondary border-2 border-transparent hover:border-dk-black-light'
+                      }`}
+                    >
+                      <div 
+                        className="w-12 h-12 rounded-md border-2 border-dk-black-light flex-shrink-0"
+                        style={{ background: theme.preview }}
+                      />
+                      <div className="flex-1 text-left">
+                        <div className="text-sm font-dk-display font-bold text-dk-white-primary">
+                          {theme.name}
+                        </div>
+                        {bannerTheme === theme.id && (
+                          <div className="text-xs text-dk-green-primary mt-0.5">✓ Active</div>
+                        )}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Single Row Layout - Just Team Name */}
           <div className="flex items-center justify-between gap-4 mb-3">
             {/* Team Name with Image and Edit Button */}

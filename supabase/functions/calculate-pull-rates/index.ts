@@ -28,25 +28,25 @@ function calculatePullPercentage(
     return 5.0; // Rare - backups shouldn't dominate packs
   }
   
-  // Position thresholds
-  // REBALANCED 2025-11-19: Raised PPG requirements to make elite tier more exclusive
+  // Position thresholds - REBALANCED to create better distribution
+  // Lower thresholds = more players in the "exciting" 10-30% pull rate range
   const thresholds: Record<string, any> = {
-    'Quarterback': { elite: 24, top: 20, solid: 16, rotational: 12 },   // Was 22/18/14/10
-    'Running Back': { elite: 20, top: 16, solid: 12, rotational: 8 },    // Was 18/14/10/6
-    'Wide Receiver': { elite: 18, top: 14, solid: 10, rotational: 6 },   // Was 16/12/8/4
-    'Tight End': { elite: 16, top: 12, solid: 8, rotational: 4 },        // Was 14/10/6/3
+    'Quarterback': { elite: 22, top: 18, solid: 14, rotational: 10, deep: 6 },
+    'Running Back': { elite: 18, top: 14, solid: 10, rotational: 6, deep: 3 },
+    'Wide Receiver': { elite: 16, top: 12, solid: 8, rotational: 5, deep: 2 },
+    'Tight End': { elite: 14, top: 10, solid: 6, rotational: 4, deep: 2 },
   };
   
   const threshold = thresholds[position] || thresholds['Wide Receiver'];
-  let basePercentage = 85.0; // Default for backups (was 95.0) - REBALANCED 2025-11-19
+  let basePercentage = 70.0; // Default for deep backups
   
-  // INVERTED: Lower % = better player quality AND more common in packs
-  // REBALANCED 2025-11-19: Made elite rarer, solid starters less common
-  if (seasonPPG >= threshold.elite) basePercentage = 1.0;        // Was 2.0 - Elite (~0.5-1%)
-  else if (seasonPPG >= threshold.top) basePercentage = 10.0;    // Was 18.0 - Top starters (~8-12%)
-  else if (seasonPPG >= threshold.solid) basePercentage = 25.0;  // Was 45.0 - Solid starters (~20-25%)
-  else if (seasonPPG >= threshold.rotational) basePercentage = 55.0; // Was 70.0 - Rotational (~45-55%)
-  // else: 85.0% (was 95.0%) - Backups (~10-15%)
+  // Better distribution: More players in 10-30% range for excitement
+  if (seasonPPG >= threshold.elite) basePercentage = 5.0;         // Elite - truly rare
+  else if (seasonPPG >= threshold.top) basePercentage = 15.0;     // Top starters - exciting pulls
+  else if (seasonPPG >= threshold.solid) basePercentage = 25.0;   // Solid starters - good pulls
+  else if (seasonPPG >= threshold.rotational) basePercentage = 40.0; // Rotational - decent
+  else if (seasonPPG >= threshold.deep) basePercentage = 55.0;    // Deep bench - common
+  // else: 70.0% - Practice squad/inactive
   
   // Apply modifiers (make worse players have higher %)
   if (gamesPlayed < 4) {

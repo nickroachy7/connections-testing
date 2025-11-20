@@ -154,7 +154,7 @@ export default function BenchCarousel({
                       )}
                       {player.player_card.pull_percentage && (
                         <span className="text-primary-green-400 font-semibold">
-                          {player.player_card.pull_percentage}% pull
+                          {player.player_card.pull_percentage.toFixed(1)}% pull
                         </span>
                       )}
                     </div>

@@ -142,11 +142,12 @@ export default function BenchAndTokensPanel({
 
   const getPullPercentageColor = (percentage) => {
     if (!percentage) return 'text-primary-black-500';
-    if (percentage <= 2) return 'text-yellow-400'; // Elite - very rare (2%)
-    if (percentage <= 18) return 'text-purple-400'; // Top starters - uncommon (18%)
-    if (percentage <= 12) return 'text-blue-400'; // Rotational - less common (12%)
-    if (percentage >= 50) return 'text-primary-green-400'; // Solid starters - most common (55%)
-    return 'text-primary-black-400'; // Backup/trash - rare (5%)
+    // Lower % = rarer/better player = gold/purple colors
+    if (percentage <= 5) return 'text-yellow-400'; // Elite - 1-5%
+    if (percentage <= 15) return 'text-purple-400'; // Top - 6-15%
+    if (percentage <= 30) return 'text-blue-400'; // Solid - 16-30%
+    if (percentage <= 60) return 'text-primary-green-400'; // Rotational - 31-60%
+    return 'text-primary-black-400'; // Backup - 60%+
   };
 
   const getTierBadgeInfo = (tier) => {
@@ -347,7 +348,7 @@ export default function BenchAndTokensPanel({
             )}
             {player.player_card.pull_percentage && (
               <span className={`font-semibold ${getPullPercentageColor(player.player_card.pull_percentage)}`}>
-                {player.player_card.pull_percentage}% pull
+                {player.player_card.pull_percentage.toFixed(1)}% pull
               </span>
             )}
           </div>
