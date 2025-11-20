@@ -1,469 +1,65 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Roboto:wght@400;500;700;900&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
-  * {
-    @apply border-dk-black-light;
-  }
-  
-  html, body {
-    min-height: 100%;
-  }
-  
   body {
-    @apply m-0 bg-primary-black-950 text-primary-black-50 font-dk antialiased;
-    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
-    line-height: 1.5;
+    @apply bg-primary-black-950 text-primary-black-50 font-sans antialiased;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+      'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+      sans-serif;
   }
-  
-  #root {
-    min-height: 100%;
-  }
-  
-  h1, h2, h3, h4, h5, h6 {
-    @apply font-dk-display font-bold text-primary-black-50;
-    letter-spacing: -0.02em;
-    line-height: 1.2;
-  }
-  
-  h1 {
-    @apply text-4xl md:text-5xl lg:text-6xl xl:text-7xl;
-    font-weight: 900;
-  }
-  
-  h2 {
-    @apply text-3xl md:text-4xl lg:text-5xl;
-    font-weight: 800;
-  }
-  
-  h3 {
-    @apply text-2xl md:text-3xl lg:text-4xl;
-    font-weight: 700;
-  }
-  
-  h4 {
-    @apply text-xl md:text-2xl lg:text-3xl;
-    font-weight: 700;
-  }
-  
-  h5 {
-    @apply text-lg md:text-xl lg:text-2xl;
-    font-weight: 600;
-  }
-  
-  h6 {
-    @apply text-base md:text-lg lg:text-xl;
-    font-weight: 600;
-  }
-  
-  p {
-    @apply text-primary-black-300;
-    line-height: 1.7;
-  }
-  
-  strong, b {
-    @apply text-primary-black-50 font-bold;
-  }
-  
-  a {
-    @apply text-primary-green-500 font-dk-display font-semibold;
-    transition: all 0.2s ease;
-    position: relative;
-  }
-  
-  a:hover {
-    @apply text-primary-green-400;
-  }
-  
-  /* Modern scrollbar */
-  ::-webkit-scrollbar {
-    width: 8px;
-  }
-  
-  ::-webkit-scrollbar-track {
-    background: #0d0d0d;
-  }
-  
-  ::-webkit-scrollbar-thumb {
-    background: #404040;
-    border-radius: 4px;
-  }
-  
-  ::-webkit-scrollbar-thumb:hover {
-    background: #525252;
-  }
-  
-  /* Background pattern */
-  .bg-pattern {
-    background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23161616' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+
+  * {
+    @apply m-0 p-0 box-border;
   }
 }
 
-@layer components {
-  /* Modern button system */
-  .btn {
-    @apply px-6 py-3 bg-primary-green-500 text-primary-black-950 font-dk-display font-semibold text-base border border-primary-green-500 rounded-lg transition-all duration-200 hover:bg-primary-green-400 hover:border-primary-green-400 hover:shadow-glow-green hover:-translate-y-0.5 active:scale-95 focus:outline-none focus:ring-2 focus:ring-primary-green-500 focus:ring-offset-2 focus:ring-offset-primary-black-950;
+@layer utilities {
+  /* Perspective utility for 3D transforms */
+  .perspective-1000 {
+    perspective: 1000px;
   }
-  
-  .btn-orange {
-    @apply bg-accent-orange-500 text-primary-black-50 border-accent-orange-500 hover:bg-accent-orange-400 hover:border-accent-orange-400 hover:shadow-glow-orange;
+
+  /* Green Glow Effect */
+  .shadow-glow-green {
+    box-shadow: 0 0 20px rgba(34, 197, 94, 0.6), 0 0 40px rgba(34, 197, 94, 0.3);
   }
-  
-  .btn-secondary {
-    @apply bg-transparent text-primary-green-500 border-primary-green-500 hover:bg-primary-green-500 hover:text-primary-black-950;
-  }
-  
-  .btn-ghost {
-    @apply bg-transparent text-primary-black-300 border-transparent hover:bg-primary-black-800 hover:text-primary-black-50;
-  }
-  
-  .btn-lg {
-    @apply px-8 py-4 text-lg;
-  }
-  
-  .btn-sm {
-    @apply px-4 py-2 text-sm;
-  }
-  
-  /* Modern card system */
-  .card {
-    @apply bg-primary-black-900 border border-primary-black-700 rounded-xl p-6 shadow-soft;
-  }
-  
-  .card-hover {
-    @apply transition-all duration-200 hover:border-primary-green-500 hover:shadow-medium hover:-translate-y-1 cursor-pointer;
-  }
-  
-  .card-glass {
-    @apply bg-primary-black-900/80 backdrop-blur-sm border border-primary-black-700;
-  }
-  
-  /* Modern input system */
-  .input {
-    @apply bg-primary-black-900 border border-primary-black-700 rounded-lg px-4 py-3 text-primary-black-50 placeholder-primary-black-400 focus:border-primary-green-500 focus:outline-none focus:ring-2 focus:ring-primary-green-500 focus:ring-opacity-20 transition-all duration-200;
-  }
-  
-  .input-error {
-    @apply border-accent-orange-500 focus:border-accent-orange-500 focus:ring-accent-orange-500;
-  }
-  
-  /* Modern link system */
-  .link {
-    @apply text-primary-green-500 font-dk-display font-medium hover:text-primary-green-400 transition-colors duration-200 relative;
-  }
-  
-  .link::after {
-    content: '';
-    @apply absolute bottom-0 left-0 w-0 h-0.5 bg-primary-green-500 transition-all duration-200;
-  }
-  
-  .link:hover::after {
-    @apply w-full;
-  }
-  
-  .link-orange {
-    @apply text-accent-orange-500 hover:text-accent-orange-400;
-  }
-  
-  .link-orange::after {
-    @apply bg-accent-orange-500;
-  }
-  
-  /* Modern badge system */
-  .badge {
-    @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-dk-display font-semibold;
-  }
-  
-  .badge-green {
-    @apply bg-primary-green-500/20 text-primary-green-400 border border-primary-green-500/30;
-  }
-  
-  .badge-orange {
-    @apply bg-accent-orange-500/20 text-accent-orange-400 border border-accent-orange-500/30;
-  }
-  
-  .badge-dark {
-    @apply bg-primary-black-700 text-primary-black-200 border border-primary-black-600;
-  }
-  
-  /* Modern stat system */
-  .stat-card {
-    @apply bg-primary-black-900 border border-primary-black-700 rounded-xl p-6 text-center hover:border-primary-green-500 transition-all duration-200;
-  }
-  
-  .stat-value {
-    @apply text-3xl font-dk-display font-bold text-primary-black-50;
-  }
-  
-  .stat-label {
-    @apply text-sm text-primary-black-400 font-dk mt-2 uppercase tracking-wider;
-  }
-  
-  /* Modern navigation */
-  .nav-link {
-    @apply flex items-center space-x-2 px-4 py-2 rounded-lg text-primary-black-300 font-dk-display font-medium hover:bg-primary-black-800 hover:text-primary-black-50 transition-all duration-200;
-  }
-  
-  .nav-link-active {
-    @apply bg-primary-green-500 text-primary-black-950;
-  }
-  
-  /* Modern table system */
-  .data-table {
-    @apply w-full bg-primary-black-900 border border-primary-black-700 rounded-xl overflow-hidden;
-  }
-  
-  .data-table th {
-    @apply bg-primary-black-800 px-4 py-3 text-left font-dk-display font-semibold text-primary-black-200 text-sm uppercase tracking-wider;
-  }
-  
-  .data-table td {
-    @apply px-4 py-3 border-t border-primary-black-700 text-primary-black-300;
-  }
-  
-  .data-table tr:hover {
-    @apply bg-primary-black-800;
-  }
-  
-  /* Modern grid system */
-  .grid-responsive {
-    @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6;
-  }
-  
-  .grid-responsive-2 {
-    @apply grid grid-cols-1 md:grid-cols-2 gap-6;
-  }
-  
-  .grid-responsive-3 {
-    @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6;
-  }
-  
-  /* Modern layout utilities */
-  .container-modern {
-    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
-  }
-  
-  .section-spacing {
-    @apply py-12 md:py-16 lg:py-20;
-  }
-  
-  .content-spacing {
-    @apply space-y-6 md:space-y-8;
-  }
-  
-  /* Enhanced DraftKings-style components */
-  .odds-card {
-    @apply bg-primary-black-900 border-2 border-primary-green-500 rounded-xl p-6 relative overflow-hidden hover:border-primary-green-400 transition-all duration-200;
-  }
-  
-  .odds-card::before {
-    content: '';
-    @apply absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary-green-500 to-primary-green-400;
-  }
-  
-  .odds-card-orange::before {
-    @apply bg-gradient-to-r from-accent-orange-500 to-accent-orange-400;
-  }
-  
-  .betting-slip {
-    @apply bg-primary-black-800 border border-primary-black-600 rounded-xl p-6 shadow-medium;
-  }
-  
-  .price-tag {
-    @apply inline-flex items-center justify-center bg-primary-green-500 text-primary-black-950 font-dk-display font-bold text-lg px-4 py-2 rounded-lg min-w-[80px] shadow-soft;
-  }
-  
-  .price-tag-orange {
-    @apply bg-accent-orange-500 text-primary-black-50;
-  }
-  
-  .live-indicator {
-    @apply inline-flex items-center space-x-2 bg-primary-green-500/10 border border-primary-green-500/30 rounded-full px-4 py-2;
-  }
-  
-  .live-dot {
-    @apply w-2 h-2 bg-primary-green-500 rounded-full animate-pulse;
-  }
-  
-  .stat-row {
-    @apply flex justify-between items-center py-3 border-b border-primary-black-700 last:border-b-0;
-  }
-  
-  .stat-label-modern {
-    @apply text-primary-black-400 font-dk text-sm uppercase tracking-wider;
-  }
-  
-  .stat-value-modern {
-    @apply text-primary-black-50 font-dk-display font-bold text-lg;
-  }
-  
-  .player-card-modern {
-    @apply bg-primary-black-900 border border-primary-black-700 rounded-xl p-6 hover:border-primary-green-500 transition-all duration-200 cursor-pointer hover:shadow-glow-green hover:-translate-y-1;
-  }
-  
-  .team-logo-placeholder {
-    @apply w-12 h-12 bg-primary-black-800 rounded-lg flex items-center justify-center text-primary-green-500 font-dk-display font-bold text-lg border border-primary-black-600;
-  }
-  
-  .score-display {
-    @apply bg-primary-black-800 rounded-lg px-4 py-2 font-dk-display font-bold text-2xl text-primary-black-50 border border-primary-black-600;
-  }
-  
-  .winner-score {
-    @apply text-primary-green-500;
-  }
-  
-  .loser-score {
-    @apply text-primary-black-400;
-  }
-  
-  .division-header {
-    @apply bg-primary-black-800 border-l-4 border-primary-green-500 px-4 py-3 mb-4 rounded-r-lg;
-  }
-  
-  .division-header-orange {
-    @apply border-l-accent-orange-500;
-  }
-  
-  .compact-table {
-    @apply text-sm;
-  }
-  
-  .compact-table th {
-    @apply px-3 py-2 text-xs;
-  }
-  
-  .compact-table td {
-    @apply px-3 py-2;
-  }
-  
-  /* Loading states */
-  .skeleton {
-    @apply bg-primary-black-800 rounded animate-pulse;
-  }
-  
-  .skeleton-text {
-    @apply h-4 bg-primary-black-800 rounded animate-pulse;
-  }
-  
-  .skeleton-avatar {
-    @apply w-10 h-10 bg-primary-black-800 rounded-full animate-pulse;
-  }
-  
-  /* Mobile optimizations */
-  @media (max-width: 768px) {
-    .container-modern {
-      @apply px-4;
+
+  /* Shimmer Animation */
+  @keyframes shimmer {
+    0% {
+      background-position: -200% 0;
     }
-    
-    .section-spacing {
-      @apply py-8;
-    }
-    
-    .card {
-      @apply p-4;
-    }
-    
-    .btn {
-      @apply px-4 py-3 text-base;
-    }
-    
-    .btn-lg {
-      @apply px-6 py-4 text-lg;
-    }
-    
-    .btn-sm {
-      @apply px-3 py-2 text-sm;
-    }
-    
-    /* Touch-friendly tap targets */
-    .nav-link {
-      @apply px-3 py-3 text-base;
-    }
-    
-    .card-hover {
-      @apply hover:transform-none hover:shadow-soft;
-    }
-    
-    /* Better mobile spacing */
-    .content-spacing {
-      @apply space-y-4;
-    }
-    
-    /* Mobile text adjustments */
-    h1 {
-      @apply text-3xl;
-    }
-    
-    h2 {
-      @apply text-2xl;
-    }
-    
-    h3 {
-      @apply text-xl;
-    }
-    
-    /* Mobile grid adjustments */
-    .grid-responsive {
-      @apply grid-cols-1 gap-4;
-    }
-    
-    .grid-responsive-2 {
-      @apply grid-cols-1 gap-4;
-    }
-    
-    .grid-responsive-3 {
-      @apply grid-cols-1 gap-4;
+    100% {
+      background-position: 200% 0;
     }
   }
-  
-  /* Touch device optimizations */
-  @media (hover: none) and (pointer: coarse) {
-    .card-hover {
-      @apply transition-none;
+
+  .animate-shimmer {
+    animation: shimmer 2s infinite;
+  }
+
+  /* Fade In Animation */
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
     }
-    
-    .btn:hover {
-      @apply transform-none;
-    }
-    
-    .nav-link:hover {
-      @apply transform-none;
-    }
-    
-    /* Remove hover effects on touch devices */
-    .odds-card:hover {
-      @apply transform-none border-primary-green-500;
-    }
-    
-    .player-card-modern:hover {
-      @apply transform-none border-primary-green-500;
+    to {
+      opacity: 1;
+      transform: translateY(0);
     }
   }
-  
-  /* High contrast mode support */
-  @media (prefers-contrast: high) {
-    .card {
-      @apply border-2 border-primary-black-600;
-    }
-    
-    .btn {
-      @apply border-2;
-    }
-    
-    .odds-card {
-      @apply border-4;
-    }
+
+  .animate-fade-in {
+    animation: fadeIn 0.5s ease-out;
   }
-  
-  /* Reduced motion support */
-  @media (prefers-reduced-motion: reduce) {
-    * {
-      animation-duration: 0.01ms !important;
-      animation-iteration-count: 1 !important;
-      transition-duration: 0.01ms !important;
-    }
+
+  /* Card Border Width */
+  .border-3 {
+    border-width: 3px;
   }
 }
