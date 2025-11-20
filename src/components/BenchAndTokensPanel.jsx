@@ -28,11 +28,7 @@ export default function BenchAndTokensPanel({
   tokenFilterPlayer = null,
   onApplyTokenToPlayer,
   onMoveToSlot,
-  onClearFilter,
-  selectedForBulkAction = [],
-  onToggleBulkSelect,
-  onBulkSell,
-  selling = {}
+  onClearFilter
 }) {
   const [activeTab, setActiveTab] = useState('all'); // 'all', 'players', or 'tokens'
   const [isDragOver, setIsDragOver] = useState(false);
@@ -285,7 +281,6 @@ export default function BenchAndTokensPanel({
   const renderPlayerRow = (player, index) => {
     const appliedToken = inventory?.tokens?.find(t => t.applied_to_player_id === player.id && t.is_active);
     const isLocked = player?.is_locked || isPlayerGameLiveOrFinal(player);
-    const isSelected = selectedForBulkAction.some(s => s.id === player.id);
     const gameData = liveGameData?.get(player.player_card.player_id);
     const playerProjection = projections?.get(player.player_card.player_id);
     
@@ -311,27 +306,12 @@ export default function BenchAndTokensPanel({
           flex items-center gap-4 px-2 py-3 pr-6 transition-all 
           ${isLocked ? 'cursor-not-allowed opacity-60 bg-red-900/20' : 'cursor-move hover:bg-primary-green-500/10 hover:border-primary-green-500'}
           ${!isLocked && 'border-l-4'}
-          ${isLocked ? 'border-red-500/50' : isSelected ? 'border-primary-green-500 bg-primary-green-500/20' : 'border-transparent'}
-          ${index % 2 === 0 && !isLocked && !isSelected ? 'bg-primary-black-900' : !isLocked && !isSelected ? 'bg-primary-black-800/50' : ''}
+          ${isLocked ? 'border-red-500/50' : 'border-transparent'}
+          ${index % 2 === 0 && !isLocked ? 'bg-primary-black-900' : !isLocked ? 'bg-primary-black-800/50' : ''}
         `}
       >
         {/* SECTION 1: SLOT & PLAYER */}
         <div className="flex items-center gap-2 flex-shrink-0">
-          {/* Checkbox */}
-          <div className="flex-shrink-0 flex items-center justify-center" style={{ width: '24px' }}>
-            {!isLocked ? (
-              <input
-                type="checkbox"
-                checked={isSelected}
-                onChange={() => onToggleBulkSelect && onToggleBulkSelect(player, 'player')}
-                onClick={(e) => e.stopPropagation()}
-                className="w-5 h-5 rounded border-2 border-primary-black-600 bg-primary-black-800 checked:bg-primary-green-500 checked:border-primary-green-500 cursor-pointer hover:border-primary-green-500 transition-colors"
-              />
-            ) : (
-              <div className="w-5 h-5"></div>
-            )}
-          </div>
-          
           {/* Position Badge */}
           <div className="flex-shrink-0 flex items-center justify-center" style={{ width: '40px' }}>
             <span className="px-2 py-1 bg-primary-black-700 text-primary-black-300 rounded text-xs font-semibold text-center">
@@ -589,28 +569,6 @@ export default function BenchAndTokensPanel({
                   </button>
                 ) : (
                   <div className="flex gap-2">
-                    {selectedForBulkAction.length > 0 && (
-                      <>
-                        <div className="flex items-center gap-3 px-3 py-1.5 bg-primary-black-800 rounded-lg">
-                        <div className="text-xs">
-                          <span className="text-primary-black-400">Selected:</span>{' '}
-                          <span className="font-bold text-primary-green-400">{selectedForBulkAction.length}</span>{' '}
-                          <span className="text-primary-black-500">•</span>{' '}
-                          <span className="font-bold text-primary-green-400">
-                            💰 {selectedForBulkAction.reduce((sum, s) => sum + s.value, 0)}
-                          </span>
-                        </div>
-                        </div>
-                        <button
-                          onClick={onBulkSell}
-                          disabled={selling?.bulk}
-                          className="px-4 py-2 bg-red-600 hover:bg-red-500 disabled:bg-red-800 disabled:cursor-not-allowed text-white rounded-lg text-sm font-bold transition-all shadow-lg"
-                        >
-                          {selling?.bulk ? 'Selling...' : `Sell ${selectedForBulkAction.length}`}
-                        </button>
-                        <div className="w-px bg-primary-black-700"></div>
-                      </>
-                    )}
                     <button
                       onClick={() => setActiveTab('all')}
                       className={`
@@ -849,7 +807,6 @@ export default function BenchAndTokensPanel({
                     
                     {/* Token Rows */}
                     {filteredTokens.map((token, index) => {
-                      const isSelected = selectedForBulkAction.some(s => s.id === token.id);
                       
                       return (
                         <div
@@ -860,23 +817,12 @@ export default function BenchAndTokensPanel({
                           className={`
                             flex items-center gap-4 px-2 py-3 pr-6 transition-all border-l-4
                             ${tokenFilterPlayerId ? 'cursor-default' : 'cursor-move hover:bg-primary-green-500/10 hover:border-primary-green-500'}
-                            ${isSelected ? 'border-primary-green-500 bg-primary-green-500/20' : 'border-transparent'}
-                            ${index % 2 === 0 && !isSelected ? 'bg-primary-black-900' : !isSelected ? 'bg-primary-black-800/50' : ''}
+                            border-transparent
+                            ${index % 2 === 0 ? 'bg-primary-black-900' : 'bg-primary-black-800/50'}
                           `}
                         >
                           {/* SECTION 1: TYPE & TOKEN */}
                           <div className="flex items-center gap-2 flex-shrink-0">
-                            {/* Checkbox */}
-                            <div className="flex-shrink-0 flex items-center justify-center" style={{ width: '24px' }}>
-                              <input
-                                type="checkbox"
-                                checked={isSelected}
-                                onChange={() => onToggleBulkSelect && onToggleBulkSelect(token, 'token')}
-                                onClick={(e) => e.stopPropagation()}
-                                className="w-5 h-5 rounded border-2 border-primary-black-600 bg-primary-black-800 checked:bg-primary-green-500 checked:border-primary-green-500 cursor-pointer hover:border-primary-green-500 transition-colors"
-                              />
-                            </div>
-                            
                             {/* Type Badge */}
                             <div className="flex-shrink-0 flex items-center justify-center" style={{ width: '40px' }}>
                               <span className="px-2 py-1 bg-primary-black-700 text-primary-black-300 rounded text-xs font-semibold text-center">
@@ -1120,7 +1066,6 @@ export default function BenchAndTokensPanel({
               </div>
             ) : (
               filteredTokens.map((token, index) => {
-                const isSelected = selectedForBulkAction.some(s => s.id === token.id);
                 
                 return (
                 <div
@@ -1131,21 +1076,10 @@ export default function BenchAndTokensPanel({
                   className={`
                     flex items-center gap-4 px-4 py-4 transition-all border-l-4
                     ${tokenFilterPlayerId ? 'cursor-default' : 'cursor-move'}
-                    ${isSelected ? 'border-primary-green-500 bg-primary-green-500/20' : 'border-transparent hover:bg-primary-green-500/10 hover:border-primary-green-500'}
-                    ${index % 2 === 0 && !isSelected ? 'bg-primary-black-900' : !isSelected ? 'bg-primary-black-800/50' : ''}
+                    border-transparent hover:bg-primary-green-500/10 hover:border-primary-green-500
+                    ${index % 2 === 0 ? 'bg-primary-black-900' : 'bg-primary-black-800/50'}
                   `}
                 >
-                  {/* Checkbox */}
-                  <div className="flex-shrink-0 flex items-center justify-center w-6">
-                    <input
-                      type="checkbox"
-                      checked={isSelected}
-                      onChange={() => onToggleBulkSelect && onToggleBulkSelect(token, 'token')}
-                      onClick={(e) => e.stopPropagation()}
-                      className="w-5 h-5 rounded border-2 border-primary-black-600 bg-primary-black-800 checked:bg-primary-green-500 checked:border-primary-green-500 cursor-pointer hover:border-primary-green-500 transition-colors"
-                    />
-                  </div>
-                  
                   {/* Position Badge for Token */}
                   <span className="px-2 py-0.5 bg-primary-black-700 text-primary-black-300 rounded text-xs font-semibold flex-shrink-0">
                     TK
@@ -1254,9 +1188,5 @@ BenchAndTokensPanel.propTypes = {
   tokenFilterPlayer: PropTypes.object,
   onApplyTokenToPlayer: PropTypes.func,
   onMoveToSlot: PropTypes.func,
-  onClearFilter: PropTypes.func,
-  selectedForBulkAction: PropTypes.array,
-  onToggleBulkSelect: PropTypes.func,
-  onBulkSell: PropTypes.func,
-  selling: PropTypes.object
+  onClearFilter: PropTypes.func
 };

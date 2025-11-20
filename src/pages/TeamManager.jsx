@@ -125,9 +125,6 @@ export default function TeamManager() {
   const [comparisonMode, setComparisonMode] = useState(false);
   const [selectedForComparison, setSelectedForComparison] = useState([]);
   
-  // Bulk actions state - Array of {id, type: 'player'|'token', value, item}
-  const [selectedForBulkAction, setSelectedForBulkAction] = useState([]);
-  
   // UI state
   const [draggedPlayer, setDraggedPlayer] = useState(null);
   const [draggedToken, setDraggedToken] = useState(null);
@@ -1361,55 +1358,6 @@ export default function TeamManager() {
     }
   };
 
-  // Bulk action handlers
-  const toggleBulkSelect = (item, cardType) => {
-    const itemId = item.id;
-    if (selectedForBulkAction.find(s => s.id === itemId)) {
-      setSelectedForBulkAction(selectedForBulkAction.filter(s => s.id !== itemId));
-    } else {
-      const value = cardType === 'player' ? calculatePlayerSellValue(item) : calculateTokenSellValue(item);
-      setSelectedForBulkAction([...selectedForBulkAction, { id: itemId, type: cardType, value, item }]);
-    }
-  };
-
-  const handleBulkQuickSell = async () => {
-    const totalValue = selectedForBulkAction.reduce((sum, s) => sum + s.value, 0);
-    const playerCount = selectedForBulkAction.filter(s => s.type === 'player').length;
-    const tokenCount = selectedForBulkAction.filter(s => s.type === 'token').length;
-    
-    const itemText = playerCount && tokenCount 
-      ? `${playerCount} player${playerCount > 1 ? 's' : ''} and ${tokenCount} token${tokenCount > 1 ? 's' : ''}`
-      : playerCount 
-        ? `${playerCount} player${playerCount > 1 ? 's' : ''}`
-        : `${tokenCount} token${tokenCount > 1 ? 's' : ''}`;
-    
-    if (!window.confirm(`Sell ${itemText} for ${totalValue} coins total?`)) {
-      return;
-    }
-
-    setSelling(prev => ({ ...prev, bulk: true }));
-    setError('');
-
-    try {
-      // Sell all cards in parallel for instant execution
-      await Promise.all(
-        selectedForBulkAction.map(selection => 
-          quickSellCard(selection.id, selection.type)
-        )
-      );
-      
-      // Clear selection and reload inventory after all sales complete
-      setSelectedForBulkAction([]);
-      await loadInventory();
-    } catch (err) {
-      console.error('Error bulk selling:', err);
-      setError(err.message || 'Failed to sell cards');
-      setTimeout(() => setError(''), 3000);
-    } finally {
-      setSelling(prev => ({ ...prev, bulk: false }));
-    }
-  };
-
   // Filter players - add null safety
   const filteredPlayers = (inventory?.players || []).filter(player => {
     const matchesPosition = filters.position === 'all' || player.player_card.position === filters.position;
@@ -1673,10 +1621,6 @@ export default function TeamManager() {
             setBenchFilterPosition(null);
             setTokenFilterPlayerId(null);
           }}
-          selectedForBulkAction={selectedForBulkAction}
-          onToggleBulkSelect={toggleBulkSelect}
-          onBulkSell={handleBulkQuickSell}
-          selling={selling}
         />
       </section>
 

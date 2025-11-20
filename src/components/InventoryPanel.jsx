@@ -397,7 +397,7 @@ export default function InventoryPanel({
                               <input
                                 type="checkbox"
                                 checked={isSelected}
-                                onChange={() => toggleBulkSelect(player, 'player')}
+                                onChange={() => handleToggleBulkSelect(player, 'player')}
                                 onClick={(e) => e.stopPropagation()}
                                 className="w-5 h-5 rounded border-2 border-primary-black-600 bg-primary-black-800 checked:bg-primary-green-500 checked:border-primary-green-500 cursor-pointer hover:border-primary-green-500 transition-colors"
                               />
@@ -653,7 +653,7 @@ export default function InventoryPanel({
                               <input
                                 type="checkbox"
                                 checked={isSelected}
-                                onChange={() => toggleBulkSelect(token, 'token')}
+                                onChange={() => handleToggleBulkSelect(token, 'token')}
                                 onClick={(e) => e.stopPropagation()}
                                 className="w-5 h-5 rounded border-2 border-primary-black-600 bg-primary-black-800 checked:bg-primary-green-500 checked:border-primary-green-500 cursor-pointer hover:border-primary-green-500 transition-colors"
                               />
@@ -827,7 +827,7 @@ export default function InventoryPanel({
                               <input
                                 type="checkbox"
                                 checked={isSelected}
-                                onChange={() => toggleBulkSelect(player, 'player')}
+                                onChange={() => handleToggleBulkSelect(player, 'player')}
                                 onClick={(e) => e.stopPropagation()}
                                 className="w-5 h-5 rounded border-2 border-primary-black-600 bg-primary-black-800 checked:bg-primary-green-500 checked:border-primary-green-500 cursor-pointer hover:border-primary-green-500 transition-colors"
                               />
@@ -1097,7 +1097,7 @@ export default function InventoryPanel({
                           <input
                             type="checkbox"
                             checked={isSelected}
-                            onChange={() => toggleBulkSelect(token, 'token')}
+                            onChange={() => handleToggleBulkSelect(token, 'token')}
                             onClick={(e) => e.stopPropagation()}
                             className="w-5 h-5 rounded border-2 border-primary-black-600 bg-primary-black-800 checked:bg-primary-green-500 checked:border-primary-green-500 cursor-pointer hover:border-primary-green-500 transition-colors"
                           />
