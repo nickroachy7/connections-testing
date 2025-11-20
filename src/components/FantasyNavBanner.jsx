@@ -50,7 +50,8 @@ export default function FantasyNavBanner({
     { path: `/teams/${teamId}/starting-lineup`, label: 'STARTING LINEUP' },
     { path: `/teams/${teamId}/manage-team`, label: 'MANAGE TEAM' },
     { path: `/teams/${teamId}/leaderboard`, label: 'LEADERBOARD' },
-    { path: `/teams/${teamId}/pack-shop`, label: 'PACK SHOP' }
+    { path: `/teams/${teamId}/pack-shop`, label: 'PACK SHOP' },
+    { path: `/teams/${teamId}/activity`, label: 'ACTIVITY' }
   ];
 
   // Banner theme options
@@ -491,8 +492,8 @@ export default function FantasyNavBanner({
 
   // Calculate projected points from lineup prop whenever it changes
   useEffect(() => {
-    if (!lineup || !projections || projections.size === 0) {
-      console.log('⏳ Waiting for projections to load...');
+    if (!lineup) {
+      console.log('⏳ Waiting for lineup to load...');
       return;
     }
     
@@ -503,25 +504,32 @@ export default function FantasyNavBanner({
     positions.forEach(pos => {
       const player = lineup[pos];
       if (player?.player_card) {
-        // Get projection from projections Map (this is what player cards display)
-        const projection = projections.get(player.player_card.player_id);
-        if (projection?.projected) {
-          total += projection.projected;
+        // First try weekly_projected_points from player_cards (most reliable)
+        const weeklyProj = player.player_card.weekly_projected_points;
+        if (weeklyProj && parseFloat(weeklyProj) > 0) {
+          const projValue = parseFloat(weeklyProj);
+          total += projValue;
           foundProjections++;
-          console.log(`  ${pos}: ${player.player_card.player_name} = ${projection.projected.toFixed(1)}`);
+          console.log(`  ${pos}: ${player.player_card.player_name} = ${projValue.toFixed(1)} (from DB)`);
+        } else if (projections && projections.size > 0) {
+          // Fallback to projections Map if weekly_projected_points not available
+          const projection = projections.get(player.player_card.player_id);
+          if (projection?.projected) {
+            total += projection.projected;
+            foundProjections++;
+            console.log(`  ${pos}: ${player.player_card.player_name} = ${projection.projected.toFixed(1)} (from Map)`);
+          } else {
+            console.log(`  ${pos}: ${player.player_card.player_name} = no projection yet`);
+          }
         } else {
-          console.log(`  ${pos}: ${player.player_card.player_name} = no projection yet`);
+          console.log(`  ${pos}: ${player.player_card.player_name} = no projection`);
         }
       }
     });
     
-    // Only update if we found projections for at least some players
-    if (foundProjections > 0) {
-      setProjectedPoints(total);
-      console.log(`📊 Total projected points: ${total.toFixed(1)} (from ${foundProjections} players)`);
-    } else {
-      console.log('⚠️ No projections found yet for any players');
-    }
+    // Update projectedPoints (this is what shows in PROJECTED badge)
+    setProjectedPoints(total);
+    console.log(`📊 Total projected points: ${total.toFixed(1)} (from ${foundProjections} players)`);
   }, [lineup, projections]);
 
   // Fetch global stats and user's lineup data
@@ -591,27 +599,17 @@ export default function FantasyNavBanner({
         let weekIsLive = false;
         
         if (lineupData && !simulatedSeasonId) {
-          // Team must have a weekly_lineup entry to be "live"
+          // Team must have a weekly_lineup entry to potentially be "live"
           // For regular seasons, check if the week is "live"
           // A week is live if ANY game has started (even if finished)
           // BUT NOT if the week is finalized
-          if (!weekFinalizedStatus && liveGameData && liveGameData.size > 0) {
-            // Check if ANY player has a game that's started (live, halftime, or final)
-            for (const [playerId, gameData] of liveGameData.entries()) {
-              const statusLower = gameData?.gameStatus?.toLowerCase();
-              if (statusLower === 'live' || statusLower === 'halftime' || statusLower === 'final') {
-                weekIsLive = true;
-                console.log('🔴 Week is LIVE - game detected:', gameData.gameStatus);
-                break;
-              }
-            }
-          }
           
-          // Fallback: Query database for games that have started
-          if (!weekIsLive && (!liveGameData || liveGameData.size === 0) && !weekFinalizedStatus) {
+          // IMPORTANT: Don't check liveGameData first - it may be stale/empty
+          // Always query the database for actual game statuses
+          if (!weekFinalizedStatus) {
             const { data: startedGames } = await supabase
               .from('game_scores')
-              .select('id, game_status')
+              .select('id, game_status, game_start_time')
               .eq('week_number', displayWeek.week)
               .eq('season_year', displayWeek.year)
               .in('game_status', ['live', 'halftime', 'final']);  // Any game that has started
@@ -619,6 +617,8 @@ export default function FantasyNavBanner({
             weekIsLive = startedGames && startedGames.length > 0;
             if (weekIsLive) {
               console.log('🔴 Week is LIVE - games from DB:', startedGames.length, 'games started');
+            } else {
+              console.log('⚪ Week is NOT live - all games scheduled (', displayWeek.week, ')');
             }
           }
         }
@@ -764,47 +764,92 @@ export default function FantasyNavBanner({
               }
             }
           } else {
-            // Week not live yet - show projections
-            console.log('⚪ Week not live - showing PROJECTED points');
-            setProjectedFinal(0);
+            // Week not live yet - calculate projected points from lineup_snapshot
+            console.log('⚪ Week not live - calculating PROJECTED points from lineup_snapshot');
+            
+            let calculatedProjected = 0;
+            
+            if (lineupData.lineup_snapshot) {
+              const positions = Object.keys(lineupData.lineup_snapshot);
+              positions.forEach(pos => {
+                const playerData = lineupData.lineup_snapshot[pos];
+                if (playerData && playerData.projected_points) {
+                  calculatedProjected += parseFloat(playerData.projected_points);
+                  console.log(`  📈 ${pos}: ${playerData.projected_points} pts (${playerData.player_name})`);
+                }
+              });
+            } else if (lineup) {
+              // Fallback: calculate from current lineup prop if no snapshot
+              const positions = ['QB', 'RB1', 'RB2', 'WR1', 'WR2', 'WR3', 'TE', 'FLEX'];
+              positions.forEach(pos => {
+                const player = lineup[pos];
+                if (player?.player_card?.weekly_projected_points) {
+                  const projected = parseFloat(player.player_card.weekly_projected_points);
+                  calculatedProjected += projected;
+                  console.log(`  📈 ${pos}: ${projected} pts (from current lineup)`);
+                }
+              });
+            }
+            
+            setProjectedFinal(calculatedProjected);
+            console.log('📊 Total PROJECTED:', calculatedProjected);
           }
         } else {
           // No lineup data in database yet - calculate from lineup prop
           console.log('📦 No weekly_lineups entry yet - calculating from lineup prop');
           
-          if (weekIsLive && lineup) {
-            // Calculate live points and projected final from lineup prop
-            let calculatedLive = 0;
-            let calculatedProjectedFinal = 0;
-            const positions = ['QB', 'RB1', 'RB2', 'WR1', 'WR2', 'WR3', 'TE', 'FLEX'];
-            
-            positions.forEach(pos => {
-              const player = lineup[pos];
-              if (player?.player_card?.player_id) {
-                const gameData = liveGameData?.get(player.player_card.player_id);
-                const statusLower = gameData?.gameStatus?.toLowerCase();
-                
-                // Add live points if game has started
-                if (gameData && (statusLower === 'final' || statusLower === 'live' || statusLower === 'halftime')) {
-                  const pts = gameData.currentPoints || 0;
-                  calculatedLive += pts;
-                  calculatedProjectedFinal += pts;
-                  console.log(`  ✓ ${pos}: ${pts} pts LIVE (${gameData.gameStatus})`);
-                } else {
-                  // Game hasn't started - use projection
-                  const projection = projections?.get(player.player_card.player_id);
-                  if (projection?.projected) {
-                    calculatedProjectedFinal += projection.projected;
-                    console.log(`  📈 ${pos}: ${projection.projected} pts PROJECTED (game not started)`);
+          if (lineup) {
+            if (weekIsLive) {
+              // Calculate live points and projected final from lineup prop
+              let calculatedLive = 0;
+              let calculatedProjectedFinal = 0;
+              const positions = ['QB', 'RB1', 'RB2', 'WR1', 'WR2', 'WR3', 'TE', 'FLEX'];
+              
+              positions.forEach(pos => {
+                const player = lineup[pos];
+                if (player?.player_card?.player_id) {
+                  const gameData = liveGameData?.get(player.player_card.player_id);
+                  const statusLower = gameData?.gameStatus?.toLowerCase();
+                  
+                  // Add live points if game has started
+                  if (gameData && (statusLower === 'final' || statusLower === 'live' || statusLower === 'halftime')) {
+                    const pts = gameData.currentPoints || 0;
+                    calculatedLive += pts;
+                    calculatedProjectedFinal += pts;
+                    console.log(`  ✓ ${pos}: ${pts} pts LIVE (${gameData.gameStatus})`);
+                  } else {
+                    // Game hasn't started - use projection
+                    const projection = projections?.get(player.player_card.player_id);
+                    if (projection?.projected) {
+                      calculatedProjectedFinal += projection.projected;
+                      console.log(`  📈 ${pos}: ${projection.projected} pts PROJECTED (game not started)`);
+                    }
                   }
                 }
-              }
-            });
-            
-            setLivePoints(calculatedLive);
-            setProjectedFinal(calculatedProjectedFinal);
-            console.log('🔴 LIVE (no DB entry):', calculatedLive);
-            console.log('📊 PROJECTED FINAL (no DB entry):', calculatedProjectedFinal);
+              });
+              
+              setLivePoints(calculatedLive);
+              setProjectedFinal(calculatedProjectedFinal);
+              console.log('🔴 LIVE (no DB entry):', calculatedLive);
+              console.log('📊 PROJECTED FINAL (no DB entry):', calculatedProjectedFinal);
+            } else {
+              // Week not live - calculate projected from lineup prop
+              console.log('⚪ Week not live (no DB entry) - calculating PROJECTED from lineup prop');
+              let calculatedProjected = 0;
+              const positions = ['QB', 'RB1', 'RB2', 'WR1', 'WR2', 'WR3', 'TE', 'FLEX'];
+              
+              positions.forEach(pos => {
+                const player = lineup[pos];
+                if (player?.player_card?.weekly_projected_points) {
+                  const projected = parseFloat(player.player_card.weekly_projected_points);
+                  calculatedProjected += projected;
+                  console.log(`  📈 ${pos}: ${projected} pts (${player.player_card.player_name})`);
+                }
+              });
+              
+              setProjectedFinal(calculatedProjected);
+              console.log('📊 Total PROJECTED (no DB):', calculatedProjected);
+            }
           }
         }
       } catch (error) {
@@ -1298,15 +1343,6 @@ export default function FantasyNavBanner({
       <div className="bg-dk-black-secondary border-b border-dk-black-light">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex flex-wrap gap-2">
-            {/* Back to Teams Button */}
-            <button
-              onClick={() => navigate('/fantasy')}
-              className="px-3 py-2 rounded text-sm font-dk-display font-bold transition-all duration-200 bg-dk-black-tertiary text-dk-white-secondary border border-dk-black-light hover:bg-dk-black-light"
-              title="Back to Teams"
-            >
-              ←
-            </button>
-            
             {navItems.map(item => (
               <button
                 key={item.path}

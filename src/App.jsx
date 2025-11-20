@@ -34,6 +34,7 @@ const TeamsLayout = lazy(() => import('./components/TeamsLayout'))
 const TeamSelection = lazy(() => import('./pages/TeamSelection'))
 const PackOpening = lazy(() => import('./pages/PackOpening'))
 const SimulatedSeason = lazy(() => import('./pages/SimulatedSeason'))
+const Activity = lazy(() => import('./pages/Activity'))
 
 // Loading fallback component
 function PageLoader() {
@@ -120,6 +121,10 @@ const router = createBrowserRouter([
           {
             path: 'pack-shop',
             element: <PackShop />
+          },
+          {
+            path: 'activity',
+            element: <Activity />
           },
           {
             path: 'starting-lineup',

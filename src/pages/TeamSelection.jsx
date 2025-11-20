@@ -92,53 +92,34 @@ export default function TeamSelection() {
 
     setLoading(true)
     try {
-      if (!selectedContestType) {
-        showError('Please select a contest type')
+      // Use first contest type as default if not selected
+      const contestTypeId = selectedContestType || (contestTypes.length > 0 ? contestTypes[0].id : null)
+      
+      if (!contestTypeId) {
+        showError('No contest types available')
         return
       }
 
-      if (isSimulated) {
-        // Create simulated season with bot teams
-        const { data, error } = await supabase.rpc('create_simulated_season', {
-          p_user_id: user.id,
-          p_team_name: newTeamName.trim(),
-          p_contest_type_id: selectedContestType,
-          p_team_image_url: null
-        })
-
-        if (error) {
-          console.error('Error creating simulated season:', error)
-          throw error
+      // Always create regular team (not simulated)
+      // Regular team creation - use edge function instead of direct RPC
+      const { data, error } = await supabase.functions.invoke('start-new-team', {
+        body: {
+          team_name: newTeamName.trim(),
+          contest_type_id: contestTypeId,
+          team_image_url: null
         }
+      })
 
-        // Function now returns JSON object with team_id and season_id
-        const newTeamId = data.team_id
+      if (error) throw error
 
-        success(`Simulated season "${newTeamName}" created with 12 teams!`)
-        
-        // Navigate directly to team dashboard
-        navigate(`/teams/${newTeamId}`)
-      } else {
-        // Regular team creation - use edge function instead of direct RPC
-        const { data, error } = await supabase.functions.invoke('start-new-team', {
-          body: {
-            team_name: newTeamName.trim(),
-            contest_type_id: selectedContestType,
-            team_image_url: null
-          }
-        })
+      // Edge function returns {team, starter_pack_id, user_pack_id, message}
+      const newTeamId = data.team.id
+      const userPackId = data.user_pack_id
 
-        if (error) throw error
-
-        // Edge function returns {team, starter_pack_id, user_pack_id, message}
-        const newTeamId = data.team.id
-        const userPackId = data.user_pack_id
-
-        success(`Team "${newTeamName}" created!`)
-        
-        // Navigate to pack opening experience
-        navigate(`/teams/${newTeamId}/open-pack/${userPackId}`)
-      }
+      success(`Team "${newTeamName}" created!`)
+      
+      // Navigate to pack opening experience
+      navigate(`/teams/${newTeamId}/open-pack/${userPackId}`)
     } catch (error) {
       console.error('Error creating team:', error)
       showError(error.message || 'Failed to create team')
@@ -146,7 +127,6 @@ export default function TeamSelection() {
       setLoading(false)
       setNewTeamName('')
       setIsCreating(false)
-      setIsSimulated(false)
     }
   }
 
@@ -242,160 +222,89 @@ export default function TeamSelection() {
         </div>
       )}
 
+      {/* Create New Team Button/Section */}
+      <div className="mb-6">
+        {!isCreating ? (
+          <button
+            onClick={() => setIsCreating(true)}
+            className="w-full px-4 py-3 bg-primary-green-500 hover:bg-primary-green-400 text-primary-black-950 font-bold rounded-lg transition-all duration-200 flex items-center justify-center gap-2 border-2 border-dashed border-primary-green-600"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            <span>Create New Team</span>
+          </button>
+        ) : (
+          <div className="bg-primary-black-900 border-2 border-primary-green-500 rounded-xl p-6">
+            <h3 className="text-xl font-bold text-primary-black-50 mb-4">Create New Team</h3>
+            <form onSubmit={handleCreateTeam} className="space-y-4">
+              <div>
+                <label htmlFor="teamName" className="block text-sm font-medium text-primary-black-300 mb-2">
+                  Team Name
+                </label>
+                <input
+                  type="text"
+                  id="teamName"
+                  value={newTeamName}
+                  onChange={(e) => setNewTeamName(e.target.value)}
+                  placeholder="Enter your team name..."
+                  maxLength={50}
+                  className="w-full px-4 py-3 bg-primary-black-700 border border-primary-black-600 rounded-lg text-primary-black-50 placeholder-primary-black-500 focus:outline-none focus:border-primary-green-500 transition-colors"
+                  autoFocus
+                />
+                <p className="text-xs text-primary-black-500 mt-1">
+                  {newTeamName.length}/50 characters
+                </p>
+              </div>
+
+              <div className="bg-primary-green-900/20 border border-primary-green-700 rounded-lg p-3">
+                <p className="text-sm text-primary-green-300">
+                  <strong>Starter Pack Included:</strong> 8 players + 3 tokens + 1,000 coins
+                </p>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  type="submit"
+                  disabled={loading || !newTeamName.trim()}
+                  className="flex-1 px-4 py-3 bg-primary-green-500 hover:bg-primary-green-400 disabled:bg-primary-black-700 disabled:text-primary-black-500 text-primary-black-950 font-bold rounded-lg transition-colors flex items-center justify-center"
+                >
+                  {loading ? (
+                    <>
+                      <LoadingSpinner size="sm" />
+                      <span className="ml-2">Creating...</span>
+                    </>
+                  ) : (
+                    'Create Team'
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsCreating(false)
+                    setNewTeamName('')
+                  }}
+                  className="px-4 py-3 bg-primary-black-700 hover:bg-primary-black-600 text-primary-black-300 font-medium rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+      </div>
+
+      {/* YOUR TEAMS Heading */}
+      <div className="mb-4">
+        <h2 className="text-2xl font-dk-display font-bold text-dk-white-primary">
+          YOUR TEAMS
+        </h2>
+      </div>
+
       {/* Teams List Container */}
       <div className="bg-primary-black-900 border-2 border-primary-black-700 rounded-xl">
           {/* Teams List */}
           <div className="py-4">
-            {/* Create New Team Form */}
-            {isCreating && (
-              <div className="px-4 py-4 bg-primary-black-800 border-l-4 border-primary-green-500 mb-2">
-                <h3 className="text-lg font-bold text-primary-black-50 mb-3">Create New Team</h3>
-                <form onSubmit={handleCreateTeam} className="space-y-3">
-                  <div>
-                    <label htmlFor="teamName" className="block text-sm font-medium text-primary-black-300 mb-2">
-                      Team Name
-                    </label>
-                    <input
-                      type="text"
-                      id="teamName"
-                      value={newTeamName}
-                      onChange={(e) => setNewTeamName(e.target.value)}
-                      placeholder="Enter team name..."
-                      maxLength={50}
-                      className="w-full px-4 py-2 bg-primary-black-700 border border-primary-black-600 rounded-lg text-primary-black-50 placeholder-primary-black-500 focus:outline-none focus:border-primary-green-500 transition-colors"
-                      autoFocus
-                    />
-                    <p className="text-xs text-primary-black-500 mt-1">
-                      {newTeamName.length}/50 characters
-                    </p>
-                  </div>
-
-                  {/* Team Type Toggle */}
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-primary-black-300">
-                      Team Type
-                    </label>
-                    <div className="flex gap-3">
-                      <button
-                        type="button"
-                        onClick={() => setIsSimulated(false)}
-                        className={`flex-1 px-4 py-3 rounded-lg border-2 transition-all ${
-                          !isSimulated
-                            ? 'bg-primary-green-500/20 border-primary-green-500 text-primary-green-400'
-                            : 'bg-primary-black-700 border-primary-black-600 text-primary-black-400 hover:border-primary-black-500'
-                        }`}
-                      >
-                        <div className="font-bold">Regular Team</div>
-                        <div className="text-xs mt-1">Compete online</div>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setIsSimulated(true)}
-                        className={`flex-1 px-4 py-3 rounded-lg border-2 transition-all ${
-                          isSimulated
-                            ? 'bg-primary-green-500/20 border-primary-green-500 text-primary-green-400'
-                            : 'bg-primary-black-700 border-primary-black-600 text-primary-black-400 hover:border-primary-black-500'
-                        }`}
-                      >
-                        <div className="font-bold">Simulated Season</div>
-                        <div className="text-xs mt-1">Play vs 11 bots</div>
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Contest Type Selector */}
-                  <div className="space-y-2">
-                    <label htmlFor="contestType" className="block text-sm font-medium text-primary-black-300">
-                      Contest Type
-                    </label>
-                    <select
-                      id="contestType"
-                      value={selectedContestType || ''}
-                      onChange={(e) => setSelectedContestType(e.target.value)}
-                      className="w-full px-4 py-2 bg-primary-black-700 border border-primary-black-600 rounded-lg text-primary-black-50 focus:outline-none focus:border-primary-green-500 transition-colors"
-                    >
-                      {contestTypes.map(ct => (
-                        <option key={ct.id} value={ct.id}>
-                          {ct.display_name}
-                        </option>
-                      ))}
-                    </select>
-                    
-                    {/* Show contest details */}
-                    {selectedContestType && contestTypes.length > 0 && (
-                      <div className="bg-blue-900/20 border border-blue-700 rounded-lg p-3 text-sm space-y-2">
-                        <div className="font-bold text-blue-300">Contest Rules:</div>
-                        {(() => {
-                          const selected = contestTypes.find(c => c.id === selectedContestType)
-                          if (!selected) return null
-                          
-                          const tierConfig = selected.starter_tier_config
-                          const tierBoosts = []
-                          if (tierConfig.all_star > 0) tierBoosts.push(`${tierConfig.all_star} All-Star${tierConfig.all_star > 1 ? 's' : ''}`)
-                          if (tierConfig.starter > 0) tierBoosts.push(`${tierConfig.starter} Starter${tierConfig.starter > 1 ? 's' : ''}`)
-                          if (tierConfig.role_player > 0) tierBoosts.push(`${tierConfig.role_player} Role Player${tierConfig.role_player > 1 ? 's' : ''}`)
-                          
-                          return (
-                            <ul className="space-y-1 text-blue-200">
-                              <li>• {selected.total_weeks} weeks to compete</li>
-                              <li>• {selected.max_losses} loss elimination limit</li>
-                              <li>• {selected.scoring_type === 'full_ppr' ? 'Full PPR' : selected.scoring_type === 'half_ppr' ? 'Half PPR' : 'Standard'} scoring</li>
-                              {tierBoosts.length > 0 && (
-                                <li>• Starter Pack Boosts: {tierBoosts.join(', ')}</li>
-                              )}
-                            </ul>
-                          )
-                        })()}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className={`border rounded-lg p-3 ${
-                    isSimulated 
-                      ? 'bg-blue-900/20 border-blue-700' 
-                      : 'bg-primary-green-900/20 border-primary-green-700'
-                  }`}>
-                    {isSimulated ? (
-                      <div className="text-sm text-blue-300">
-                        <strong>🤖 Simulated Season:</strong> Your team will compete against 11 bot teams. Perfect for testing game mechanics! You can simulate weeks with a button and the season auto-deletes when complete.
-                      </div>
-                    ) : (
-                      <p className="text-sm text-primary-green-300">
-                        <strong>Starter Pack Included:</strong> 8 players + 3 tokens + 1,000 coins
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="flex gap-3">
-                    <button
-                      type="submit"
-                      disabled={loading || !newTeamName.trim()}
-                      className="flex-1 px-4 py-2 bg-primary-green-500 hover:bg-primary-green-400 disabled:bg-primary-black-700 disabled:text-primary-black-500 text-primary-black-950 font-bold rounded-lg transition-colors flex items-center justify-center"
-                    >
-                      {loading ? (
-                        <>
-                          <LoadingSpinner size="sm" />
-                          <span className="ml-2">Creating...</span>
-                        </>
-                      ) : (
-                        'Create Team'
-                      )}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsCreating(false)
-                        setNewTeamName('')
-                      }}
-                      className="px-4 py-2 bg-primary-black-700 hover:bg-primary-black-600 text-primary-black-300 font-medium rounded-lg transition-colors"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </form>
-              </div>
-            )}
-
             {/* Team Items */}
             {teamsList.length > 0 ? (
               <div>
@@ -510,15 +419,12 @@ export default function TeamSelection() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                     </svg>
                   </div>
-                  <p className="text-primary-black-400 text-lg mb-4">
-                    You don't have any teams yet
+                  <p className="text-primary-black-400 text-lg mb-2">
+                    No teams yet
                   </p>
-                  <button
-                    onClick={() => setIsCreating(true)}
-                    className="px-6 py-3 bg-primary-green-500 hover:bg-primary-green-400 text-primary-black-950 font-bold rounded-lg transition-colors"
-                  >
-                    Create Your First Team
-                  </button>
+                  <p className="text-primary-black-500 text-sm">
+                    Use the button above to create your first team
+                  </p>
                 </div>
               )
             )}

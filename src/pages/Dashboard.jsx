@@ -3,7 +3,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { startNewTeam, getUserInventory, supabase } from '../services/supabase';
 import LiveScoreWidget from '../components/LiveScoreWidget';
 import LineupGridReadOnly from '../components/LineupGridReadOnly';
-import RecentActivityFeed from '../components/RecentActivityFeed';
 
 export default function Dashboard() {
   const { 
@@ -514,38 +513,80 @@ export default function Dashboard() {
       // Check if activeTeam is in a simulated season
       const isSimulatedSeason = activeTeam?.simulated_season_id;
       
-      console.log('🔍 Querying lineups:', { queryWeek, seasonYear, isSimulatedSeason, activeTeamId: activeTeam?.id });
+      console.log('🔍 Querying teams and lineups:', { queryWeek, seasonYear, isSimulatedSeason, activeTeamId: activeTeam?.id });
       
-      // Load weekly lineups for selected or current week
-      let query = supabase
-        .from('weekly_lineups')
+      // Load ALL active teams first
+      let teamsQuery = supabase
+        .from('teams')
         .select(`
           id,
+          team_name,
+          team_image_url,
+          is_bot,
+          wins,
+          losses,
           total_points,
-          status,
-          week_number,
-          season_year,
-          lineup_snapshot,
-          team:teams!inner(
+          simulated_season_id,
+          is_active,
+          eliminated_at,
+          user:users(
             id,
-            team_name,
-            team_image_url,
-            is_bot,
-            simulated_season_id,
-            user:users(
-              id,
-              username,
-              avatar_url
-            )
+            username,
+            avatar_url
           )
         `)
+        .eq('is_active', true);
+      
+      // Filter by simulated season if applicable
+      if (isSimulatedSeason) {
+        teamsQuery = teamsQuery.eq('simulated_season_id', activeTeam.simulated_season_id);
+      } else {
+        // For regular teams, exclude simulated season teams
+        teamsQuery = teamsQuery.is('simulated_season_id', null);
+      }
+      
+      const { data: teams, error: teamsError } = await teamsQuery;
+      
+      if (teamsError) throw teamsError;
+      
+      if (!teams || teams.length === 0) {
+        setLeaderboardData([]);
+        setLoadingLeaderboard(false);
+        return;
+      }
+      
+      // Load weekly lineups for selected week
+      const teamIds = teams.map(t => t.id);
+      const { data: weeklyLineups, error: lineupsError } = await supabase
+        .from('weekly_lineups')
+        .select('team_id, total_points, status, lineup_snapshot')
+        .in('team_id', teamIds)
         .eq('week_number', queryWeek)
         .eq('season_year', seasonYear);
       
-      let { data: lineups, error: lineupsError } = await query
-        .order('total_points', { ascending: false });
+      if (lineupsError && lineupsError.code !== 'PGRST116') {
+        console.error('Error loading weekly lineups:', lineupsError);
+      }
       
-      if (lineupsError) throw lineupsError;
+      // Create a map of team_id -> weekly lineup data
+      const lineupsMap = {};
+      (weeklyLineups || []).forEach(lineup => {
+        lineupsMap[lineup.team_id] = lineup;
+      });
+      
+      // Combine teams with their weekly lineup data
+      let lineups = teams.map(team => {
+        const weeklyLineup = lineupsMap[team.id];
+        return {
+          id: weeklyLineup?.id || null,
+          total_points: weeklyLineup?.total_points || null,
+          status: weeklyLineup?.status || 'pending',
+          week_number: queryWeek,
+          season_year: seasonYear,
+          lineup_snapshot: weeklyLineup?.lineup_snapshot || null,
+          team: team
+        };
+      });
       
       // DEBUG: Check what we got from the database
       if (lineups && lineups.length > 1) {
@@ -559,106 +600,6 @@ export default function Dashboard() {
             keys: botLineup.lineup_snapshot ? Object.keys(botLineup.lineup_snapshot) : null,
             QB: botLineup.lineup_snapshot?.QB
           });
-        }
-      }
-      
-      // Filter by simulated season in JavaScript if needed
-      if (isSimulatedSeason && lineups) {
-        lineups = lineups.filter(lineup => 
-          lineup.team && lineup.team.simulated_season_id === activeTeam.simulated_season_id
-        );
-        
-        // IMPORTANT: For simulated seasons, also fetch teams that don't have lineups yet
-        // This ensures the user's team always shows up
-        const { data: allTeams } = await supabase
-          .from('teams')
-          .select(`
-            id,
-            team_name,
-            team_image_url,
-            is_bot,
-            simulated_season_id,
-            user:users(
-              id,
-              username,
-              avatar_url
-            )
-          `)
-          .eq('simulated_season_id', activeTeam.simulated_season_id)
-          .eq('is_active', true);
-        
-        // Find teams without lineups and add them with null points
-        if (allTeams) {
-          const teamsWithLineups = new Set(lineups.map(l => l.team.id));
-          const teamsWithoutLineups = allTeams.filter(t => !teamsWithLineups.has(t.id));
-          
-          // Add missing teams as lineups with null points
-          teamsWithoutLineups.forEach(team => {
-            lineups.push({
-              id: null,
-              total_points: null,
-              status: 'pending',
-              week_number: queryWeek,
-              season_year: seasonYear,
-              lineup_snapshot: null,
-              team: team
-            });
-          });
-        }
-      } else if (!isSimulatedSeason && lineups) {
-        // For regular teams, filter out simulated season teams
-        lineups = lineups.filter(lineup => 
-          !lineup.team || !lineup.team.simulated_season_id
-        );
-      }
-      
-      // If no lineups for current week, try previous week
-      if (!lineups || lineups.length === 0) {
-        const previousWeek = weekNumber - 1;
-        
-        let prevQuery = supabase
-          .from('weekly_lineups')
-          .select(`
-            id,
-            total_points,
-            status,
-            week_number,
-            season_year,
-            lineup_snapshot,
-            team:teams!inner(
-              id,
-              team_name,
-              team_image_url,
-              is_bot,
-              simulated_season_id,
-              user:users(
-                id,
-                username,
-                avatar_url
-              )
-            )
-          `)
-          .eq('week_number', previousWeek)
-          .eq('season_year', seasonYear);
-        
-        let { data: prevLineups, error: prevError } = await prevQuery
-          .order('total_points', { ascending: false });
-        
-        if (!prevError && prevLineups && prevLineups.length > 0) {
-          // Filter by simulated season in JavaScript if needed
-          if (isSimulatedSeason) {
-            prevLineups = prevLineups.filter(lineup => 
-              lineup.team && lineup.team.simulated_season_id === activeTeam.simulated_season_id
-            );
-          } else {
-            // For regular teams, filter out simulated season teams
-            prevLineups = prevLineups.filter(lineup => 
-              !lineup.team || !lineup.team.simulated_season_id
-            );
-          }
-          
-          lineups = prevLineups;
-          setCurrentWeek({ week: previousWeek, year: seasonYear });
         }
       }
       
@@ -760,24 +701,34 @@ export default function Dashboard() {
                   }
                 }
               }
-          } else if (lineup.lineup_snapshot) {
-            // REGULAR SEASON: Use weekly_projected_points
-            const positions = ['QB', 'RB1', 'RB2', 'WR1', 'WR2', 'TE'];
-            
-            for (const pos of positions) {
-              const playerData = lineup.lineup_snapshot[pos];
-              if (playerData && playerData.player_id) {
-                const { data: playerCard } = await supabase
-                  .from('player_cards')
-                  .select('weekly_projected_points')
-                  .eq('id', playerData.player_id)
-                  .single();
-                
-                if (playerCard && playerCard.weekly_projected_points) {
-                  projectedPoints += parseFloat(playerCard.weekly_projected_points);
+            } else if (lineup.lineup_snapshot) {
+              // Calculate from lineup_snapshot projected_points
+              const positions = Object.keys(lineup.lineup_snapshot);
+              for (const pos of positions) {
+                const playerData = lineup.lineup_snapshot[pos];
+                if (playerData && playerData.projected_points) {
+                  projectedPoints += parseFloat(playerData.projected_points);
                 }
               }
-            }
+            } else {
+              // Fallback: calculate from current inventory lineup
+              const { data: currentLineup } = await supabase
+                .from('user_player_inventory')
+                .select(`
+                  player_card:player_cards(
+                    weekly_projected_points
+                  )
+                `)
+                .eq('team_id', lineup.team.id)
+                .eq('is_in_lineup', true);
+              
+              if (currentLineup && currentLineup.length > 0) {
+                currentLineup.forEach(item => {
+                  if (item.player_card && item.player_card.weekly_projected_points) {
+                    projectedPoints += parseFloat(item.player_card.weekly_projected_points);
+                  }
+                });
+              }
             }
           }
           
@@ -789,29 +740,8 @@ export default function Dashboard() {
         })
       );
       
-      // Get team data for sorting (including elimination status)
-      const teamIds = rankedLineups.map(l => l.team?.id).filter(Boolean);
-      let teamsData = {};
-      
-      if (teamIds.length > 0) {
-        const { data: teams } = await supabase
-          .from('teams')
-          .select('id, wins, losses, total_points, is_active, eliminated_at, is_bot')
-          .in('id', teamIds);
-        
-        if (teams) {
-          teamsData = teams.reduce((acc, team) => {
-            acc[team.id] = team;
-            return acc;
-          }, {});
-        }
-      }
-      
-      // Enhance with team data
-      const enhancedLineups = rankedLineups.map(lineup => ({
-        ...lineup,
-        teamData: lineup.team ? teamsData[lineup.team.id] : null
-      }));
+      // Enhance with team data (wins, losses already in team object from initial query)
+      const enhancedLineups = rankedLineups;
       
       console.log('Total lineups loaded:', enhancedLineups.length);
       console.log('Sample projected points:', enhancedLineups.slice(0, 3).map(l => ({ 
@@ -1200,68 +1130,84 @@ export default function Dashboard() {
                   </div>
                   
                   {/* Sort Filters */}
-                  <div className="flex gap-2 flex-wrap items-center">
-                    {/* Week Selector - Only show when sorting by week */}
-                    {leaderboardSortBy === 'week' && currentWeek && (
-                      <select
-                        value={selectedWeek !== null ? selectedWeek : currentWeek.week}
-                        onChange={(e) => setSelectedWeek(parseInt(e.target.value))}
-                        className="px-3 py-1.5 rounded-lg text-xs font-medium bg-primary-black-800 text-primary-black-300 border border-primary-black-700 hover:bg-primary-black-700"
-                      >
-                        {Array.from({ length: currentWeek.week }, (_, i) => i + 1).map(week => (
-                          <option key={week} value={week}>
-                            Week {week}
-                          </option>
-                        ))}
-                      </select>
-                    )}
-                    
-                    <button
-                      onClick={() => setLeaderboardSortBy('week')}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                        leaderboardSortBy === 'week'
-                          ? 'bg-primary-green-500 text-primary-black-950'
-                          : 'bg-primary-black-800 text-primary-black-300 hover:bg-primary-black-700'
-                      }`}
-                    >
-                      Week Scores
-                    </button>
-                    <button
-                      onClick={() => setLeaderboardSortBy('projected')}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1 ${
-                        leaderboardSortBy === 'projected'
-                          ? 'bg-primary-green-500 text-primary-black-950'
-                          : 'bg-primary-black-800 text-primary-black-300 hover:bg-primary-black-700'
-                      }`}
-                      title="Projected points based on season averages with weekly variance for simulated seasons"
-                    >
-                      Projected
-                      {leaderboardSortBy === 'projected' && (
-                        <span className="text-xs">ℹ️</span>
+                  <div>
+                    <div className="mb-2">
+                      <span className="text-xs font-semibold text-primary-black-400 uppercase tracking-wide">
+                        Sort By:
+                      </span>
+                    </div>
+                    <div className="flex gap-2 flex-wrap items-center">
+                      {/* Week Selector - Only show when sorting by week */}
+                      {leaderboardSortBy === 'week' && currentWeek && (
+                        <select
+                          value={selectedWeek !== null ? selectedWeek : currentWeek.week}
+                          onChange={(e) => setSelectedWeek(parseInt(e.target.value))}
+                          className="px-3 py-2 rounded-lg text-xs font-medium bg-primary-black-800 text-primary-black-300 border border-primary-black-700 hover:bg-primary-black-700"
+                        >
+                          {Array.from({ length: currentWeek.week }, (_, i) => i + 1).map(week => (
+                            <option key={week} value={week}>
+                              Week {week}
+                            </option>
+                          ))}
+                        </select>
                       )}
-                    </button>
-                    <button
-                      onClick={() => setLeaderboardSortBy('season')}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                        leaderboardSortBy === 'season'
-                          ? 'bg-primary-green-500 text-primary-black-950'
-                          : 'bg-primary-black-800 text-primary-black-300 hover:bg-primary-black-700'
-                      }`}
-                    >
-                      Season
-                    </button>
-                    <button
-                      onClick={() => setLeaderboardSortBy('wins')}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                        leaderboardSortBy === 'wins'
-                          ? 'bg-primary-green-500 text-primary-black-950'
-                          : 'bg-primary-black-800 text-primary-black-300 hover:bg-primary-black-700'
-                      }`}
-                    >
-                      Wins
-                    </button>
+                      
+                      <button
+                        onClick={() => setLeaderboardSortBy('week')}
+                        className={`px-3 py-2 rounded-lg text-xs font-semibold transition-all ${
+                          leaderboardSortBy === 'week'
+                            ? 'bg-primary-green-500 text-primary-black-950 shadow-lg'
+                            : 'bg-primary-black-800 text-primary-black-300 hover:bg-primary-black-700 hover:text-primary-black-100'
+                        }`}
+                      >
+                        <div className="flex flex-col items-center gap-0.5">
+                          <span className="text-[10px] opacity-75">Week {currentWeek?.week}</span>
+                          <span>Points</span>
+                        </div>
+                      </button>
+                      <button
+                        onClick={() => setLeaderboardSortBy('projected')}
+                        className={`px-3 py-2 rounded-lg text-xs font-semibold transition-all ${
+                          leaderboardSortBy === 'projected'
+                            ? 'bg-primary-green-500 text-primary-black-950 shadow-lg'
+                            : 'bg-primary-black-800 text-primary-black-300 hover:bg-primary-black-700 hover:text-primary-black-100'
+                        }`}
+                      >
+                        <div className="flex flex-col items-center gap-0.5">
+                          <span className="text-[10px] opacity-75">Projected</span>
+                          <span>Points</span>
+                        </div>
+                      </button>
+                      <button
+                        onClick={() => setLeaderboardSortBy('season')}
+                        className={`px-3 py-2 rounded-lg text-xs font-semibold transition-all ${
+                          leaderboardSortBy === 'season'
+                            ? 'bg-primary-green-500 text-primary-black-950 shadow-lg'
+                            : 'bg-primary-black-800 text-primary-black-300 hover:bg-primary-black-700 hover:text-primary-black-100'
+                        }`}
+                      >
+                        <div className="flex flex-col items-center gap-0.5">
+                          <span className="text-[10px] opacity-75">Season</span>
+                          <span>Total</span>
+                        </div>
+                      </button>
+                      <button
+                        onClick={() => setLeaderboardSortBy('wins')}
+                        className={`px-3 py-2 rounded-lg text-xs font-semibold transition-all ${
+                          leaderboardSortBy === 'wins'
+                            ? 'bg-primary-green-500 text-primary-black-950 shadow-lg'
+                            : 'bg-primary-black-800 text-primary-black-300 hover:bg-primary-black-700 hover:text-primary-black-100'
+                        }`}
+                      >
+                        <div className="flex flex-col items-center gap-0.5">
+                          <span className="text-[10px] opacity-75">Win/Loss</span>
+                          <span>Record</span>
+                        </div>
+                      </button>
+                    </div>
                   </div>
                 </div>
+
                 <div>
                   {loadingLeaderboard ? (
                     <div className="flex items-center justify-center py-12">
@@ -1279,7 +1225,7 @@ export default function Dashboard() {
                         
                         return (
                           <div
-                            key={entry.id}
+                            key={entry.team?.id || `team-${index}`}
                             className={`
                               flex items-center gap-3 px-3 py-3 transition-all cursor-pointer
                               hover:bg-primary-green-500/10 border-l-4 border-transparent hover:border-primary-green-500
@@ -1334,41 +1280,77 @@ export default function Dashboard() {
                               </div>
                             </div>
 
-                            {/* Points - Dynamic based on sort */}
-                            <div className="flex-shrink-0 ml-auto">
-                              {leaderboardSortBy === 'week' && (
-                                <div className="text-primary-green-400 font-semibold text-sm text-right">
-                                  {entry.isEmpty || entry.total_points === null ? '-' : `${parseFloat(entry.total_points).toFixed(1)} pts`}
+                            {/* Metrics - Dynamic based on sort with prominent primary display */}
+                            <div className="flex items-center gap-4 flex-shrink-0 ml-auto">
+                              {/* Primary Metric */}
+                              <div className="text-center min-w-[80px]">
+                                <div className="text-xs text-primary-black-500 mb-0.5 uppercase tracking-wide font-semibold">
+                                  {leaderboardSortBy === 'week' && 'Week 12'}
+                                  {leaderboardSortBy === 'projected' && 'Projected'}
+                                  {leaderboardSortBy === 'season' && 'Season'}
+                                  {leaderboardSortBy === 'wins' && 'Record'}
                                 </div>
-                              )}
-                              {leaderboardSortBy === 'projected' && (
-                                <div className="text-blue-400 font-semibold text-sm text-right">
-                                  {entry.isEmpty || entry.projectedPoints === undefined || entry.projectedPoints === null ? '-' : (
-                                    <span title="Projected points with weekly variance">
-                                      {parseFloat(entry.projectedPoints).toFixed(1)} pts
-                                      {simulatedSeason && <span className="text-xs ml-1 text-blue-300">~</span>}
-                                    </span>
+                                <div className={`font-bold text-xl ${
+                                  leaderboardSortBy === 'week' || leaderboardSortBy === 'season' 
+                                    ? 'text-primary-green-400' 
+                                    : leaderboardSortBy === 'projected' 
+                                    ? 'text-blue-400' 
+                                    : 'text-white'
+                                }`}>
+                                  {leaderboardSortBy === 'week' && (
+                                    (entry.isEmpty || entry.total_points === null) ? '-' : parseFloat(entry.total_points).toFixed(1)
+                                  )}
+                                  {leaderboardSortBy === 'projected' && (
+                                    (entry.isEmpty || entry.projectedPoints === undefined || entry.projectedPoints === null)
+                                      ? '-' 
+                                      : parseFloat(entry.projectedPoints).toFixed(1)
+                                  )}
+                                  {leaderboardSortBy === 'season' && (
+                                    (entry.isEmpty || !entry.teamData) ? '-' : parseFloat(entry.teamData.total_points || 0).toFixed(1)
+                                  )}
+                                  {leaderboardSortBy === 'wins' && (
+                                    (entry.isEmpty || !entry.teamData) ? (
+                                      '-'
+                                    ) : (
+                                      <>
+                                        <span className="text-primary-green-400">{entry.teamData.wins || 0}</span>
+                                        <span className="text-primary-black-400">-</span>
+                                        <span className="text-red-400">{entry.teamData.losses || 0}</span>
+                                      </>
+                                    )
                                   )}
                                 </div>
-                              )}
-                              {leaderboardSortBy === 'season' && (
-                                <div className="text-primary-green-400 font-semibold text-sm text-right">
-                                  {entry.isEmpty || !entry.teamData ? '-' : `${parseFloat(entry.teamData.total_points || 0).toFixed(1)} pts`}
-                                </div>
-                              )}
-                              {leaderboardSortBy === 'wins' && (
-                                <div className="font-semibold text-sm text-right">
-                                  {entry.isEmpty || !entry.teamData ? (
-                                    '-'
-                                  ) : (
-                                    <>
-                                      <span className="text-primary-green-400">{entry.teamData.wins || 0}W</span>
-                                      <span className="text-primary-black-400"> - </span>
-                                      <span className="text-red-400">{entry.teamData.losses || 0}L</span>
-                                    </>
-                                  )}
-                                </div>
-                              )}
+                              </div>
+
+                              {/* Secondary Contextual Info */}
+                              <div className="text-center min-w-[70px]">
+                                {leaderboardSortBy === 'week' && entry.beat_median !== null && (
+                                  <div className={`text-xs font-semibold ${entry.beat_median ? 'text-primary-green-400' : 'text-red-400'}`}>
+                                    {entry.beat_median ? '✓ Beat' : '✗ Below'}<br/>Median
+                                  </div>
+                                )}
+                                {leaderboardSortBy === 'projected' && !entry.isEmpty && (
+                                  <div className="text-xs text-primary-black-500">
+                                    <div className="font-semibold">{entry.lineupCount || 0}/8</div>
+                                    <div>players</div>
+                                  </div>
+                                )}
+                                {leaderboardSortBy === 'season' && entry.teamData && (
+                                  <div className="text-xs text-primary-black-500">
+                                    <span className="text-primary-green-400 font-semibold">{entry.teamData.wins || 0}</span>
+                                    <span className="text-primary-black-400">-</span>
+                                    <span className="text-red-400 font-semibold">{entry.teamData.losses || 0}</span>
+                                  </div>
+                                )}
+                                {leaderboardSortBy === 'wins' && entry.teamData && (
+                                  <div className="text-xs text-primary-black-500">
+                                    <div className="font-semibold text-primary-green-400">
+                                      {parseFloat(entry.teamData.total_points || 0).toFixed(1)}
+                                    </div>
+                                    <div>pts</div>
+                                  </div>
+                                )}
+                              </div>
                             </div>
 
                             {/* Drag Handle */}
@@ -1880,13 +1862,6 @@ export default function Dashboard() {
                 })()}
               </div>
             </div>
-          </section>
-        )}
-
-        {/* Recent Activity Feed */}
-        {activeTeam && (
-          <section aria-label="Recent Activity" className="mt-6">
-            <RecentActivityFeed teamId={activeTeam.id} userId={user?.id} limit={10} />
           </section>
         )}
       </div>
