@@ -125,7 +125,35 @@ export default function PackOpening() {
       // Handle tier assignment for starter packs
       if (data.tier_config) {
         console.log('Starter pack detected with tier config:', data.tier_config)
-        setTierConfig(data.tier_config)
+        
+        // Transform tier config to UI format with slots and icons
+        const transformedConfig = {}
+        if (data.tier_config.all_star > 0) {
+          transformedConfig.all_star = {
+            slots: data.tier_config.all_star,
+            icon: '⭐',
+            label: 'All-Star',
+            level: 7
+          }
+        }
+        if (data.tier_config.starter > 0) {
+          transformedConfig.starter = {
+            slots: data.tier_config.starter,
+            icon: '🔥',
+            label: 'Starter',
+            level: 5
+          }
+        }
+        if (data.tier_config.role_player > 0) {
+          transformedConfig.role_player = {
+            slots: data.tier_config.role_player,
+            icon: '💪',
+            label: 'Role Player',
+            level: 3
+          }
+        }
+        
+        setTierConfig(transformedConfig)
         setNeedsTierAssignment(true)
         setUnassignedCards(data.contents.players.map(p => p.id))
         setPackTokens(data.contents.tokens || [])
@@ -206,7 +234,7 @@ export default function PackOpening() {
         .filter(item => item.type === 'player')
         .map(item => {
           const playerId = item.data.id
-          const assignedTier = tierAssignments[playerId] || 'B'
+          const assignedTier = tierAssignments[playerId] || 'base'
           return {
             ...item.data,
             tier: assignedTier
@@ -215,36 +243,43 @@ export default function PackOpening() {
 
       console.log('Players with assigned tiers:', playersWithTiers)
 
-      // Insert all cards (players and tokens) into team_cards
-      const cardsToInsert = playersWithTiers.map(player => ({
-        team_id: teamId,
-        player_id: player.id,
-        tier: player.tier,
-        level: 1,
-        is_benched: true
-      }))
+      // Insert all player cards using the RPC function
+      for (const player of playersWithTiers) {
+        const { error: cardError } = await supabase.rpc('insert_player_to_inventory', {
+          p_user_id: user.id,
+          p_team_id: teamId,
+          p_player_card_id: player.id,
+          p_card_level: 1,
+          p_card_tier: player.tier,
+          p_experience_points: 0
+        })
 
-      console.log('Inserting cards:', cardsToInsert)
-
-      const { error: cardsError } = await supabase
-        .from('team_cards')
-        .insert(cardsToInsert)
-
-      if (cardsError) throw cardsError
+        if (cardError) {
+          console.error('Error inserting player:', player.player_name, cardError)
+          throw cardError
+        }
+        
+        console.log('Added player:', player.player_name, 'at tier', player.tier)
+      }
 
       // Insert tokens if any
       if (packTokens && packTokens.length > 0) {
         console.log('Inserting tokens:', packTokens)
-        const tokensToInsert = packTokens.map(token => ({
-          team_id: teamId,
-          token_id: token.id
-        }))
+        
+        for (const token of packTokens) {
+          const { error: tokenError } = await supabase.rpc('insert_token_to_inventory', {
+            p_user_id: user.id,
+            p_team_id: teamId,
+            p_token_card_id: token.id
+          })
 
-        const { error: tokensError } = await supabase
-          .from('team_tokens')
-          .insert(tokensToInsert)
-
-        if (tokensError) throw tokensError
+          if (tokenError) {
+            console.error('Error inserting token:', token.token_name, tokenError)
+            throw tokenError
+          }
+          
+          console.log('Added token:', token.token_name)
+        }
       }
 
       // Mark pack as opened
@@ -315,10 +350,12 @@ export default function PackOpening() {
 
   // Show tier assignment screen
   if (showTierAssignment) {
+    const playerCards = revealedItems.filter(item => item.type === 'player')
+    
     return (
       <div className="min-h-screen bg-primary-black-950 py-12">
         <TierAssignment
-          cards={revealedItems.filter(item => item.type === 'player')}
+          cards={playerCards}
           tierConfig={tierConfig}
           onConfirm={handleTierAssignments}
         />
