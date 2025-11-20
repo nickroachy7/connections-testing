@@ -3,6 +3,7 @@ import { useNavigate, useRevalidator, useOutletContext, useLocation } from 'reac
 import { getUserInventory, quickSellCard, supabase } from '../services/supabase';
 import { calculateBatchProjections, getInstantBaselineProjections } from '../utils/projections';
 import { shouldBlockLineupChanges, shouldBlockTokenActions, getRosterLimitErrorMessage } from '../utils/rosterLimits';
+import { calculatePlayerSellValue, calculateTokenSellValue } from '../utils/sellValueCalculator';
 import PlayerCard from '../components/PlayerCard';
 import LineupGrid from '../components/LineupGrid';
 import BenchAndTokensPanel from '../components/BenchAndTokensPanel';
@@ -1359,7 +1360,7 @@ export default function TeamManager() {
     if (selectedForBulkAction.find(s => s.id === itemId)) {
       setSelectedForBulkAction(selectedForBulkAction.filter(s => s.id !== itemId));
     } else {
-      const value = cardType === 'player' ? item.player_card.base_value : item.token_card.base_value;
+      const value = cardType === 'player' ? calculatePlayerSellValue(item) : calculateTokenSellValue(item);
       setSelectedForBulkAction([...selectedForBulkAction, { id: itemId, type: cardType, value, item }]);
     }
   };

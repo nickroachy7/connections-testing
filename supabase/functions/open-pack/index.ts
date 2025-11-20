@@ -15,16 +15,17 @@ serve(async (req) => {
   try {
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      {
-        global: {
-          headers: { Authorization: req.headers.get('Authorization')! },
-        },
-      }
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     )
 
-    // Get user from auth context
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser()
+    // Get auth token and verify user
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader) {
+      throw new Error('No authorization header')
+    }
+
+    const token = authHeader.replace('Bearer ', '')
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token)
     if (authError || !user) {
       throw new Error('Unauthorized')
     }
@@ -248,12 +249,11 @@ serve(async (req) => {
 })
 
 async function generatePlayerCard(supabaseClient: any) {
-  // Get random player card with allowed positions only: QB, RB, WR, TE
-  // No rarity filtering - all players are equally likely
-  // Cards will start at Level 1, Base tier and progress through gameplay
+  // Get player cards with pull percentages for weighted random selection
+  // Bell curve distribution: solid starters (55%) most common, elite (2%) and trash/injured (2-5%) rare
   const { data: playerCards, error } = await supabaseClient
     .from('player_cards')
-    .select('id, player_name, position, team_abbreviation, image_url, projected_points')
+    .select('id, player_name, position, team_abbreviation, image_url, projected_points, pull_percentage, season_ppg')
     .in('position', ['Quarterback', 'Running Back', 'Wide Receiver', 'Tight End'])
     .eq('is_active', true)
 
@@ -262,10 +262,26 @@ async function generatePlayerCard(supabaseClient: any) {
     return null
   }
 
-  // Select a random player from all available skill position players
-  const playerCard = playerCards[Math.floor(Math.random() * playerCards.length)]
-
-  return playerCard
+  // Weighted random selection based on INVERTED pull_percentage
+  // Lower percentage = better quality AND more likely to pull from packs
+  // Elite (2%) gets inverted to 98 weight, trash (95%) gets inverted to 5 weight
+  const totalWeight = playerCards.reduce((sum, p) => {
+    const invertedWeight = 100 - (p.pull_percentage || 50);
+    return sum + invertedWeight;
+  }, 0)
+  let randomValue = Math.random() * totalWeight
+  
+  for (const player of playerCards) {
+    const invertedWeight = 100 - (player.pull_percentage || 50)
+    randomValue -= invertedWeight
+    if (randomValue <= 0) {
+      console.log(`✨ Pulled ${player.player_name} (${player.position}) - ${player.pull_percentage}% display (${invertedWeight} pack weight), ${player.season_ppg} PPG`)
+      return player
+    }
+  }
+  
+  // Fallback to first player (should never happen)
+  return playerCards[0]
 }
 
 async function generateTokenCard(supabaseClient: any) {

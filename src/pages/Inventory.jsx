@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { getUserInventory, quickSellCard, supabase } from '../services/supabase';
+import { calculatePlayerSellValue, calculateTokenSellValue } from '../utils/sellValueCalculator';
 import InventoryPanel from '../components/InventoryPanel';
 import RosterLimitBanner from '../components/RosterLimitBanner';
 import RosterCount from '../components/RosterCount';

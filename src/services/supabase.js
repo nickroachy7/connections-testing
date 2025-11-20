@@ -200,6 +200,7 @@ export const getUserInventory = async (userId, teamId) => {
           season_avg_points,
           games_played_season,
           injury_status,
+          pull_percentage,
           last_projection_update
         )
       `)

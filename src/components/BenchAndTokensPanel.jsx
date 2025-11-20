@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import PropTypes from 'prop-types';
 import { getRosterCount, ROSTER_LIMIT } from '../utils/rosterLimits';
+import { calculatePlayerSellValue, calculateTokenSellValue } from '../utils/sellValueCalculator';
 
 /**
  * BenchAndTokensPanel Component
@@ -138,6 +139,15 @@ export default function BenchAndTokensPanel({
   const filteredTokens = tokenFilterPlayerId 
     ? availableTokens.filter(token => !token.applied_to_player_id && !token.is_active)
     : availableTokens;
+
+  const getPullPercentageColor = (percentage) => {
+    if (!percentage) return 'text-primary-black-500';
+    if (percentage <= 2) return 'text-yellow-400'; // Elite - very rare (2%)
+    if (percentage <= 18) return 'text-purple-400'; // Top starters - uncommon (18%)
+    if (percentage <= 12) return 'text-blue-400'; // Rotational - less common (12%)
+    if (percentage >= 50) return 'text-primary-green-400'; // Solid starters - most common (55%)
+    return 'text-primary-black-400'; // Backup/trash - rare (5%)
+  };
 
   const getTierBadgeInfo = (tier) => {
     const tiers = {
@@ -335,6 +345,11 @@ export default function BenchAndTokensPanel({
                 Total: {player.total_fantasy_points.toFixed(1)} pts
               </span>
             )}
+            {player.player_card.pull_percentage && (
+              <span className={`font-semibold ${getPullPercentageColor(player.player_card.pull_percentage)}`}>
+                {player.player_card.pull_percentage}% pull
+              </span>
+            )}
           </div>
         </div>
 
@@ -358,7 +373,7 @@ export default function BenchAndTokensPanel({
           <div className="text-center">
             <div className="text-xs text-primary-black-500 mb-0.5">Sell Value</div>
             <div className="text-sm text-primary-black-300 font-semibold">
-              💰 {player.player_card.base_value}
+              💰 {calculatePlayerSellValue(player)}
             </div>
           </div>
           {/* Points Display - Live/Final on top, Projection below */}
@@ -664,7 +679,7 @@ export default function BenchAndTokensPanel({
 
                               {/* Value */}
                               <div className="flex-shrink-0 text-xs text-primary-black-400 font-medium">
-                                💰 {token.token_card.base_value}
+                                💰 {calculateTokenSellValue(token)}
                               </div>
 
                               {/* Drag Handle */}
@@ -807,7 +822,7 @@ export default function BenchAndTokensPanel({
 
                       {/* Value */}
                       <div className="flex-shrink-0 text-xs text-primary-black-400 font-medium">
-                        💰 {token.token_card.base_value}
+                        💰 {calculateTokenSellValue(token)}
                       </div>
 
                       {/* Drag Handle */}

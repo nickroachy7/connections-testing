@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import PropTypes from 'prop-types';
 import { getRosterCount, ROSTER_LIMIT } from '../utils/rosterLimits';
+import { calculatePlayerSellValue, calculateTokenSellValue } from '../utils/sellValueCalculator';
 
 /**
  * InventoryPanel Component
@@ -41,12 +42,12 @@ export default function InventoryPanel({
   });
 
   // Bulk action handlers
-  const toggleBulkSelect = (item, cardType) => {
+  const handleToggleBulkSelect = (item, cardType) => {
     const itemId = item.id;
     if (selectedForBulkAction.find(s => s.id === itemId)) {
       setSelectedForBulkAction(selectedForBulkAction.filter(s => s.id !== itemId));
     } else {
-      const value = cardType === 'player' ? item.player_card.base_value : item.token_card.base_value;
+      const value = cardType === 'player' ? calculatePlayerSellValue(item) : calculateTokenSellValue(item);
       setSelectedForBulkAction([...selectedForBulkAction, { id: itemId, type: cardType, value, item }]);
     }
   };
@@ -89,6 +90,15 @@ export default function InventoryPanel({
     } catch (err) {
       console.error('Error bulk selling:', err);
     }
+  };
+
+  const getPullPercentageColor = (percentage) => {
+    if (!percentage) return 'text-primary-black-500';
+    if (percentage <= 2) return 'text-yellow-400'; // Elite - very rare (2%)
+    if (percentage <= 18) return 'text-purple-400'; // Top starters - uncommon (18%)
+    if (percentage <= 12) return 'text-blue-400'; // Rotational - less common (12%)
+    if (percentage >= 50) return 'text-primary-green-400'; // Solid starters - most common (55%)
+    return 'text-primary-black-400'; // Backup/trash - rare (5%)
   };
 
   const getTierBadgeInfo = (tier) => {
@@ -378,6 +388,11 @@ export default function InventoryPanel({
                                 {player.experience_points} XP
                               </span>
                             )}
+                            {player.player_card.pull_percentage && (
+                              <span className={`font-semibold ${getPullPercentageColor(player.player_card.pull_percentage)}`}>
+                                {player.player_card.pull_percentage}% pull
+                              </span>
+                            )}
                             {player.total_fantasy_points > 0 && (
                               <span className="text-primary-black-500 font-medium">
                                 Total: {player.total_fantasy_points.toFixed(1)} pts
@@ -401,7 +416,7 @@ export default function InventoryPanel({
                           <div className="text-center">
                             <div className="text-xs text-primary-black-500 mb-0.5">Sell Value</div>
                             <div className="text-sm text-primary-black-300 font-semibold">
-                              💰 {player.player_card.base_value}
+                              💰 {calculatePlayerSellValue(player)}
                             </div>
                           </div>
                           <div>
@@ -421,7 +436,7 @@ export default function InventoryPanel({
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              onQuickSell(player.id, 'player', player.player_card.base_value);
+                              onQuickSell(player.id, 'player', calculatePlayerSellValue(player));
                             }}
                             disabled={selling[player.id] || player.is_locked}
                             className="px-3 py-1.5 bg-red-600 hover:bg-red-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg text-xs font-semibold transition-colors"
@@ -494,10 +509,10 @@ export default function InventoryPanel({
                           {/* Value & Sell Button */}
                           <div className="flex-shrink-0 flex items-center gap-3">
                             <span className="text-sm text-primary-green-400 font-bold">
-                              💰 {token.token_card.base_value}
+                              💰 {calculateTokenSellValue(token)}
                             </span>
                             <button
-                              onClick={() => onQuickSell(token.id, 'token', token.token_card.base_value)}
+                              onClick={() => onQuickSell(token.id, 'token', calculateTokenSellValue(token))}
                               disabled={selling[token.id]}
                               className="px-3 py-1.5 bg-red-600 hover:bg-red-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg text-xs font-semibold transition-colors"
                             >
@@ -609,7 +624,7 @@ export default function InventoryPanel({
                         <div className="text-center">
                           <div className="text-xs text-primary-black-500 mb-0.5">Sell Value</div>
                           <div className="text-sm text-primary-black-300 font-semibold">
-                            💰 {player.player_card.base_value}
+                            💰 {calculatePlayerSellValue(player)}
                           </div>
                         </div>
                         <div>
@@ -629,7 +644,7 @@ export default function InventoryPanel({
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            onQuickSell(player.id, 'player', player.player_card.base_value);
+                            onQuickSell(player.id, 'player', calculatePlayerSellValue(player));
                           }}
                           disabled={selling[player.id] || player.is_locked}
                           className="px-3 py-1.5 bg-red-600 hover:bg-red-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg text-xs font-semibold transition-colors"
@@ -715,10 +730,10 @@ export default function InventoryPanel({
                       {/* Value & Sell Button */}
                       <div className="flex-shrink-0 flex items-center gap-3">
                         <span className="text-sm text-primary-green-400 font-bold">
-                          💰 {token.token_card.base_value}
+                          💰 {calculateTokenSellValue(token)}
                         </span>
                         <button
-                          onClick={() => onQuickSell(token.id, 'token', token.token_card.base_value)}
+                          onClick={() => onQuickSell(token.id, 'token', calculateTokenSellValue(token))}
                           disabled={selling[token.id]}
                           className="px-3 py-1.5 bg-red-600 hover:bg-red-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg text-xs font-semibold transition-colors"
                         >

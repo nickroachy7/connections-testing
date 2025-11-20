@@ -152,6 +152,11 @@ export default function BenchCarousel({
                       {player.total_fantasy_points > 0 && (
                         <span>{player.total_fantasy_points.toFixed(1)} pts total</span>
                       )}
+                      {player.player_card.pull_percentage && (
+                        <span className="text-primary-green-400 font-semibold">
+                          {player.player_card.pull_percentage}% pull
+                        </span>
+                      )}
                     </div>
                   </div>
 

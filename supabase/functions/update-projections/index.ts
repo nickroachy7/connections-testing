@@ -161,6 +161,65 @@ function generateProjectionNotes(
   return notes.join(' • ');
 }
 
+/**
+ * Calculate pull percentage for pack openings
+ * Bell curve: solid starters (55%) most common, elite (2%) and trash/injured (2-5%) rare
+ */
+/**
+ * Calculate pull percentage for pack openings
+ * INVERTED SYSTEM: Lower % = better quality AND more common in packs
+ * Elite players show 2% (rare number) but are common in packs
+ * Trash players show 95% (common number) but are rare in packs
+ */
+function calculatePullPercentage(
+  position: string,
+  seasonPPG: number,
+  gamesPlayed: number,
+  injuryStatus: string
+): number {
+  
+  // Injured/inactive = HIGH % (trash quality, rare in packs)
+  const statusLower = injuryStatus.toLowerCase();
+  if (['out', 'ir', 'suspended', 'pup'].some(s => statusLower.includes(s))) {
+    return 98.0; // Very high % = trash quality, very rare in packs
+  }
+  
+  // No games = backup = HIGH %
+  if (gamesPlayed === 0) {
+    return 95.0; // High % = backup quality, rare in packs
+  }
+  
+  // Position thresholds
+  const thresholds: Record<string, any> = {
+    'Quarterback': { elite: 22, top: 18, solid: 14, rotational: 10 },
+    'Running Back': { elite: 18, top: 14, solid: 10, rotational: 6 },
+    'Wide Receiver': { elite: 16, top: 12, solid: 8, rotational: 4 },
+    'Tight End': { elite: 14, top: 10, solid: 6, rotational: 3 },
+  };
+  
+  const threshold = thresholds[position] || thresholds['Wide Receiver'];
+  let basePercentage = 95.0; // Default for trash players (high % = bad quality, rare in packs)
+  
+  // INVERTED: Lower % = better player quality AND more common in packs
+  if (seasonPPG >= threshold.elite) basePercentage = 2.0;        // Elite - 2% (best quality, common in packs)
+  else if (seasonPPG >= threshold.top) basePercentage = 18.0;    // Top starters - 18% (good quality, common in packs)
+  else if (seasonPPG >= threshold.solid) basePercentage = 45.0;  // Solid starters - 45% (decent quality, common in packs)
+  else if (seasonPPG >= threshold.rotational) basePercentage = 70.0; // Rotational - 70% (low quality, less common in packs)
+  // else: 95.0% (trash/backup - worst quality, rare in packs)
+  
+  // Apply modifiers (make worse players have higher %)
+  if (gamesPlayed < 4) {
+    basePercentage = Math.min(98.0, basePercentage * 1.2); // Increase % (worse quality)
+  }
+  
+  if (['questionable', 'doubtful'].some(s => statusLower.includes(s))) {
+    basePercentage = Math.min(98.0, basePercentage * 1.3); // Increase % (worse quality)
+  }
+  
+  // Cap at reasonable bounds (inverted: 1-99)
+  return Math.min(99.0, Math.max(1.0, basePercentage));
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
@@ -372,6 +431,14 @@ Deno.serve(async (req) => {
           defaultScoringType
         );
 
+        // Calculate pull percentage for pack openings (bell curve distribution)
+        const pullPercentage = calculatePullPercentage(
+          player.position,
+          seasonAvg,
+          gamesPlayed,
+          injuryStatus
+        );
+
         // Individual UPDATE query for each player
         const { error } = await supabase
           .from('player_cards')
@@ -385,6 +452,7 @@ Deno.serve(async (req) => {
             injury_status: injuryStatus,
             injury_designation: injuryStatus,
             projection_notes: projectionNotes,
+            pull_percentage: Math.round(pullPercentage * 100) / 100,
             last_projection_update: new Date().toISOString(),
             last_updated: new Date().toISOString(),
           })
