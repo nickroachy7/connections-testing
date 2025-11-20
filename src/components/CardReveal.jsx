@@ -8,6 +8,7 @@ function CardReveal({ items, onRevealComplete, isStarterPack = false, tierConfig
   const [allRevealed, setAllRevealed] = useState(false);
   const [tierAssignments, setTierAssignments] = useState({});
   const [showTierUI, setShowTierUI] = useState(false);
+  const [selectedTier, setSelectedTier] = useState(null);
 
   useEffect(() => {
     // Trigger shuffle animation on mount
@@ -43,23 +44,36 @@ function CardReveal({ items, onRevealComplete, isStarterPack = false, tierConfig
     });
   };
 
-  const handleTierSelect = (cardIndex, tier) => {
+  const handleCardClickForTier = (cardIndex) => {
     const item = items[cardIndex];
-    if (item.type !== 'player') return;
+    if (item.type !== 'player' || !selectedTier) return;
 
     setTierAssignments(prev => {
       const newAssignments = { ...prev };
+      
+      // Check if this tier is full
+      const tierSlots = tierConfig[selectedTier].slots;
+      const currentAssignments = newAssignments[selectedTier] || [];
+      
+      // If card is already in this tier, remove it
+      if (currentAssignments.includes(cardIndex)) {
+        newAssignments[selectedTier] = currentAssignments.filter(idx => idx !== cardIndex);
+        return newAssignments;
+      }
+      
+      // If tier is full, don't add
+      if (currentAssignments.length >= tierSlots) {
+        return newAssignments;
+      }
       
       // Remove this card from any other tier
       Object.keys(newAssignments).forEach(t => {
         newAssignments[t] = newAssignments[t].filter(idx => idx !== cardIndex);
       });
       
-      // Add to new tier if not unassigning
-      if (tier) {
-        if (!newAssignments[tier]) newAssignments[tier] = [];
-        newAssignments[tier].push(cardIndex);
-      }
+      // Add to selected tier
+      if (!newAssignments[selectedTier]) newAssignments[selectedTier] = [];
+      newAssignments[selectedTier].push(cardIndex);
       
       return newAssignments;
     });
@@ -147,7 +161,9 @@ function CardReveal({ items, onRevealComplete, isStarterPack = false, tierConfig
         </h2>
         <p className="text-primary-black-300 mb-3">
           {showTierUI 
-            ? 'Click on a player card, then select a tier below to assign them'
+            ? selectedTier 
+              ? `Click on a player to assign them to ${selectedTier} tier`
+              : 'Select a tier below, then click on players to assign them'
             : 'Click each card to reveal what you got'
           }
         </p>
@@ -178,6 +194,7 @@ function CardReveal({ items, onRevealComplete, isStarterPack = false, tierConfig
                 className={`
                   relative flex-shrink-0 transition-all duration-700 ease-out
                   ${isShuffling ? 'opacity-0 translate-y-[-50px] scale-50' : 'opacity-100 translate-y-0 scale-100'}
+                  ${showTierUI && selectedTier && item.type === 'player' && isRevealed ? 'cursor-pointer' : ''}
                 `}
                 style={{
                   transitionDelay: `${index * 80}ms`,
@@ -197,14 +214,20 @@ function CardReveal({ items, onRevealComplete, isStarterPack = false, tierConfig
                     transformStyle: 'preserve-3d',
                     aspectRatio: '0.64'
                   }}
-                  onClick={() => !isRevealed && handleCardClick(index)}
+                  onClick={() => {
+                    if (!isRevealed) {
+                      handleCardClick(index);
+                    } else if (showTierUI && item.type === 'player') {
+                      handleCardClickForTier(index);
+                    }
+                  }}
                 >
                   {/* Card Back */}
                   <div
                     className={`
                       absolute inset-0 rounded-xl border-2 bg-gradient-to-br from-primary-black-800 via-primary-black-750 to-primary-black-800 
                       flex items-center justify-center overflow-hidden
-                      ${!isRevealed && isHovered ? 'scale-105 border-primary-green-500' : 'border-primary-black-600'}
+                      ${!isRevealed && isHovered ? `scale-105 ${glowStyle.border} ${glowStyle.shadow}` : 'border-primary-black-600'}
                       transition-all duration-300
                     `}
                     style={{ backfaceVisibility: 'hidden' }}
@@ -402,19 +425,13 @@ function CardReveal({ items, onRevealComplete, isStarterPack = false, tierConfig
               return (
                 <button
                   key={tier}
-                  onClick={() => {
-                    // Find selected player card
-                    const selectedPlayerIndex = items.findIndex((item, idx) => 
-                      item.type === 'player' && hoveredIndex === idx
-                    );
-                    if (selectedPlayerIndex >= 0) {
-                      handleTierSelect(selectedPlayerIndex, isFull ? null : tier);
-                    }
-                  }}
-                  disabled={isFull && !assigned.includes(hoveredIndex)}
+                  onClick={() => setSelectedTier(selectedTier === tier ? null : tier)}
+                  disabled={isFull}
                   className={`
                     px-4 py-2 rounded-lg font-bold text-sm transition-all
-                    ${isFull && !assigned.includes(hoveredIndex)
+                    ${selectedTier === tier
+                      ? 'bg-primary-green-500 text-white scale-105 shadow-glow-green'
+                      : isFull
                       ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
                       : 'bg-primary-black-700 hover:bg-primary-black-600 text-white hover:scale-105'
                     }
