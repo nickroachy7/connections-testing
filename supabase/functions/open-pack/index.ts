@@ -1,5 +1,5 @@
-import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
-import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -7,6 +7,7 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
@@ -14,15 +15,17 @@ serve(async (req) => {
   try {
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      {
-        global: {
-          headers: { Authorization: req.headers.get('Authorization')! },
-        },
-      }
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     )
 
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser()
+    // Get auth token and verify user
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader) {
+      throw new Error('No authorization header')
+    }
+
+    const token = authHeader.replace('Bearer ', '')
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token)
     if (authError || !user) {
       throw new Error('Unauthorized')
     }
@@ -31,6 +34,7 @@ serve(async (req) => {
 
     console.log('Opening pack:', { pack_id, team_id, is_starter_pack, user_id: user.id })
 
+    // Get pack details
     const { data: pack, error: packError } = await supabaseClient
       .from('packs')
       .select('*')
@@ -42,8 +46,13 @@ serve(async (req) => {
       throw new Error(`Pack not found: ${packError?.message || 'Unknown error'}`)
     }
 
+    // No need to check coins here - coins are deducted during purchase_pack RPC
+    // This function only handles opening packs that have already been purchased
+
+    // Use the provided team_id, or fall back to active team
     let teamToUse = null
     if (team_id) {
+      // Verify the team belongs to the user
       const { data: teamData, error: teamError } = await supabaseClient
         .from('teams')
         .select('id, contest_type_id')
@@ -56,6 +65,7 @@ serve(async (req) => {
       }
       teamToUse = teamData
     } else {
+      // Fall back to active team
       const { data: teams, error: teamsError } = await supabaseClient
         .from('teams')
         .select('id, contest_type_id')
@@ -71,6 +81,7 @@ serve(async (req) => {
 
     console.log('Using team:', teamToUse)
 
+    // Get tier configuration for starter packs
     let tierConfig = { role_player: 0, starter: 0, all_star: 0 }
     if (is_starter_pack && teamToUse.contest_type_id) {
       const { data: contestType } = await supabaseClient
@@ -85,6 +96,7 @@ serve(async (req) => {
       }
     }
 
+    // Build tier assignment array
     const tiersToAssign: string[] = []
     if (tierConfig.all_star > 0) {
       for (let i = 0; i < tierConfig.all_star; i++) tiersToAssign.push('all_star')
@@ -96,16 +108,19 @@ serve(async (req) => {
       for (let i = 0; i < tierConfig.role_player; i++) tiersToAssign.push('role_player')
     }
 
+    // Shuffle tiers randomly
     const shuffledTiers = tiersToAssign.sort(() => Math.random() - 0.5)
 
     console.log('Tiers to assign:', shuffledTiers)
     console.log('Generating', pack.player_count, 'players and', pack.token_count, 'tokens')
 
+    // Start transaction
     const contents: { players: any[], tokens: any[] } = {
       players: [],
       tokens: []
     }
 
+    // Helper function to get starting level for tier
     const getStartingLevelForTier = (tier: string): number => {
       const tierLevels: Record<string, number> = {
         'base': 1,
@@ -117,54 +132,70 @@ serve(async (req) => {
       return tierLevels[tier] || 1
     }
 
+    // Generate players based on pack configuration
+    // For starter packs, return cards for user to assign tiers (client-side)
+    // For regular packs, insert cards directly at Base tier
     for (let i = 0; i < pack.player_count; i++) {
       const playerCard = await generatePlayerCard(supabaseClient)
       if (playerCard) {
         contents.players.push(playerCard)
 
+        // For starter packs, don't insert yet - return cards for tier assignment
         if (is_starter_pack) {
-          // Return for tier assignment
-        } else {
-          // Regular pack: insert at Base tier
-          const { error: insertError } = await supabaseClient
-            .from('inventory')
-            .insert({
-              user_id: user.id,
-              team_id: teamToUse.id,
-              player_card_id: playerCard.id,
-              card_tier: 'base',
-              current_level: 1,
-              xp: 0,
-              acquired_from: 'pack_opening',
-            })
-
-          if (insertError) {
-            console.error('Error adding to inventory:', insertError)
-          }
+          console.log('Starter pack - returning card for tier assignment:', playerCard.player_name)
+          continue
         }
+
+        // Regular packs: Add to inventory at Base tier, Level 1
+        const { error: inventoryError } = await supabaseClient
+          .rpc('insert_player_to_inventory', {
+            p_user_id: user.id,
+            p_team_id: teamToUse.id,
+            p_player_card_id: playerCard.id,
+            p_card_level: 1,
+            p_card_tier: 'base',
+            p_experience_points: 0
+          })
+
+        if (inventoryError) {
+          console.error('Inventory error:', inventoryError)
+          throw new Error(`Failed to add player to inventory: ${inventoryError.message}`)
+        }
+        
+        console.log('Added player:', playerCard.player_name, 'to team', teamToUse.id)
       }
     }
 
+    // Generate tokens based on pack configuration
     for (let i = 0; i < pack.token_count; i++) {
       const tokenCard = await generateTokenCard(supabaseClient)
       if (tokenCard) {
         contents.tokens.push(tokenCard)
 
-        const { error: insertError } = await supabaseClient
-          .from('token_inventory')
-          .insert({
-            user_id: user.id,
-            team_id: teamToUse.id,
-            token_card_id: tokenCard.id,
-            acquired_from: 'pack_opening',
+        // For starter packs, don't insert yet - return tokens for client to insert
+        if (is_starter_pack) {
+          console.log('Starter pack - returning token:', tokenCard.token_name)
+          continue
+        }
+
+        // Regular packs: Add to inventory immediately
+        const { error: tokenInventoryError } = await supabaseClient
+          .rpc('insert_token_to_inventory', {
+            p_user_id: user.id,
+            p_team_id: teamToUse.id,
+            p_token_card_id: tokenCard.id
           })
 
-        if (insertError) {
-          console.error('Error adding token to inventory:', insertError)
+        if (tokenInventoryError) {
+          console.error('Token inventory error:', tokenInventoryError)
+          throw new Error(`Failed to add token to inventory: ${tokenInventoryError.message}`)
         }
+        
+        console.log('Added token:', tokenCard.token_name, 'to team', teamToUse.id)
       }
     }
 
+    // If this is a starter pack, return cards + tier config for client-side assignment
     if (is_starter_pack) {
       console.log('Returning starter pack contents:', JSON.stringify({
         players_count: contents.players.length,
@@ -186,6 +217,9 @@ serve(async (req) => {
         }
       )
     }
+
+    // Coins are deducted during purchase_pack RPC, not here
+    // This function only handles opening purchased packs
 
     return new Response(
       JSON.stringify({
@@ -215,6 +249,8 @@ serve(async (req) => {
 })
 
 async function generatePlayerCard(supabaseClient: any) {
+  // Get player cards with pull percentages for weighted random selection
+  // Bell curve distribution: solid starters (55%) most common, elite (2%) and trash/injured (2-5%) rare
   const { data: playerCards, error } = await supabaseClient
     .from('player_cards')
     .select('id, player_name, position, team_abbreviation, image_url, projected_points, pull_percentage, season_ppg')
@@ -226,21 +262,31 @@ async function generatePlayerCard(supabaseClient: any) {
     return null
   }
 
-  const totalWeight = playerCards.reduce((sum, p) => sum + (p.pull_percentage || 50), 0)
+  // Weighted random selection based on INVERTED pull_percentage
+  // Lower percentage = better quality AND more likely to pull from packs
+  // Elite (2%) gets inverted to 98 weight, trash (95%) gets inverted to 5 weight
+  const totalWeight = playerCards.reduce((sum, p) => {
+    const invertedWeight = 100 - (p.pull_percentage || 50);
+    return sum + invertedWeight;
+  }, 0)
   let randomValue = Math.random() * totalWeight
   
   for (const player of playerCards) {
-    randomValue -= (player.pull_percentage || 50)
+    const invertedWeight = 100 - (player.pull_percentage || 50)
+    randomValue -= invertedWeight
     if (randomValue <= 0) {
-      console.log(`✨ Pulled ${player.player_name} (${player.position}) - ${player.pull_percentage}% weight, ${player.season_ppg} PPG`)
+      console.log(`✨ Pulled ${player.player_name} (${player.position}) - ${player.pull_percentage}% display (${invertedWeight} pack weight), ${player.season_ppg} PPG`)
       return player
     }
   }
   
+  // Fallback to first player (should never happen)
   return playerCards[0]
 }
 
 async function generateTokenCard(supabaseClient: any) {
+  // Get random token card - no rarity filtering
+  // All tokens are equally likely to drop
   const { data: tokenCards, error } = await supabaseClient
     .from('token_cards')
     .select('id, token_name, token_type, icon_url, condition, bonus_points')
@@ -250,6 +296,8 @@ async function generateTokenCard(supabaseClient: any) {
     return null
   }
 
+  // Select a random token from all available tokens
   const tokenCard = tokenCards[Math.floor(Math.random() * tokenCards.length)]
+
   return tokenCard
 }
