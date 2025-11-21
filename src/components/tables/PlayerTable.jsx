@@ -26,6 +26,7 @@ const PlayerTable = ({
   // Visual options
   showBulkSelect = false,
   showTierLevel = false,
+  showAddButton = false,
   
   // Custom column rendering
   renderExtraHeaderColumns = null,
@@ -37,10 +38,12 @@ const PlayerTable = ({
   onRowClick = null,
   onRowDragStart = null,
   onRowDragEnd = null,
+  onAddButtonClick = null,
   
   // Row customization
   getRowClassName = null,
   isRowLocked = null,
+  selectedPlayerId = null,
   
   // Empty state
   emptyMessage = "No players found",
@@ -50,9 +53,9 @@ const PlayerTable = ({
   const getGridTemplate = () => {
     let columns = [];
     
-    // Checkbox column (conditional)
-    if (showBulkSelect) {
-      columns.push('24px'); // Checkbox
+    // Checkbox/Add button column (conditional)
+    if (showBulkSelect || showAddButton) {
+      columns.push('24px'); // Checkbox or Add button
     } else {
       columns.push('24px'); // Empty/drag handle
     }
@@ -107,7 +110,7 @@ const PlayerTable = ({
       >
         {/* Checkbox or Empty column */}
         <span className="text-[10px] font-bold text-primary-black-500 uppercase tracking-wider text-center">
-          {showBulkSelect && '☐'}
+          {/* Empty - no checkbox symbol in header */}
         </span>
         
         {/* Core headers */}
@@ -141,15 +144,18 @@ const PlayerTable = ({
           index={index}
           gridTemplate={gridTemplate}
           showBulkSelect={showBulkSelect}
+          showAddButton={showAddButton}
           showTierLevel={showTierLevel}
           isSelected={selectedIds.includes(player.id)}
           isLocked={isRowLocked ? isRowLocked(player) : false}
           onBulkSelectChange={onBulkSelectChange}
+          onAddButtonClick={onAddButtonClick}
           onClick={onRowClick}
           onDragStart={onRowDragStart}
           onDragEnd={onRowDragEnd}
           getRowClassName={getRowClassName}
           renderExtraColumns={renderExtraRowColumns}
+          isSelectedForAction={selectedPlayerId === player.id}
         />
       ))}
     </div>
@@ -165,15 +171,18 @@ const PlayerTableRow = ({
   index,
   gridTemplate,
   showBulkSelect,
+  showAddButton,
   showTierLevel,
   isSelected,
   isLocked,
   onBulkSelectChange,
+  onAddButtonClick,
   onClick,
   onDragStart,
   onDragEnd,
   getRowClassName,
-  renderExtraColumns
+  renderExtraColumns,
+  isSelectedForAction
 }) => {
   const defaultClassName = `
     grid py-3 px-2 transition-all border-l-4
@@ -214,21 +223,46 @@ const PlayerTableRow = ({
         alignItems: 'center'
       }}
     >
-      {/* COLUMN 1: Checkbox or Drag Handle */}
+      {/* COLUMN 1: Add Button, Checkbox, or Drag Handle */}
       <div className="flex items-center justify-center">
-        {showBulkSelect ? (
-          <input
-            type="checkbox"
-            checked={isSelected}
-            onChange={(e) => {
+        {showAddButton ? (
+          <button
+            onClick={(e) => {
               e.stopPropagation();
-              if (onBulkSelectChange && !isLocked) {
-                onBulkSelectChange(player, e.target.checked);
+              if (onAddButtonClick && !isLocked) {
+                onAddButtonClick(player);
               }
             }}
             disabled={isLocked}
-            className="w-4 h-4 cursor-pointer"
-          />
+            className={`w-5 h-5 cursor-pointer rounded-full appearance-none border-2 transition-all flex items-center justify-center text-sm font-bold leading-none disabled:opacity-50 disabled:cursor-not-allowed ${
+              isSelectedForAction
+                ? 'border-primary-green-500 bg-primary-green-500 text-white hover:border-primary-green-400 hover:bg-primary-green-400'
+                : 'border-primary-black-600 bg-primary-black-800 hover:border-primary-green-500 hover:bg-primary-green-500/20 text-primary-black-400 hover:text-primary-green-400'
+            }`}
+            title={isSelectedForAction ? "Selected for swap" : "Add to lineup"}
+          >
+            +
+          </button>
+        ) : showBulkSelect ? (
+          <div className="relative flex items-center justify-center">
+            <input
+              type="checkbox"
+              checked={isSelected}
+              onChange={(e) => {
+                e.stopPropagation();
+                if (onBulkSelectChange && !isLocked) {
+                  onBulkSelectChange(player, e.target.checked);
+                }
+              }}
+              disabled={isLocked}
+              className="w-5 h-5 cursor-pointer rounded-full appearance-none border-2 border-primary-black-600 bg-primary-black-800 checked:bg-primary-black-700 checked:border-primary-black-500 hover:border-primary-black-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            />
+            {isSelected && (
+              <svg className="absolute w-3 h-3 text-primary-black-200 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            )}
+          </div>
         ) : isLocked ? (
           <span className="text-red-400 text-sm">🔒</span>
         ) : (
@@ -360,6 +394,7 @@ const PlayerTableRow = ({
 PlayerTable.propTypes = {
   players: PropTypes.array.isRequired,
   showBulkSelect: PropTypes.bool,
+  showAddButton: PropTypes.bool,
   showTierLevel: PropTypes.bool,
   renderExtraHeaderColumns: PropTypes.func,
   renderExtraRowColumns: PropTypes.func,
@@ -368,8 +403,10 @@ PlayerTable.propTypes = {
   onRowClick: PropTypes.func,
   onRowDragStart: PropTypes.func,
   onRowDragEnd: PropTypes.func,
+  onAddButtonClick: PropTypes.func,
   getRowClassName: PropTypes.func,
   isRowLocked: PropTypes.func,
+  selectedPlayerId: PropTypes.string,
   emptyMessage: PropTypes.string,
   emptyIcon: PropTypes.string
 };
@@ -379,15 +416,18 @@ PlayerTableRow.propTypes = {
   index: PropTypes.number.isRequired,
   gridTemplate: PropTypes.string.isRequired,
   showBulkSelect: PropTypes.bool,
+  showAddButton: PropTypes.bool,
   showTierLevel: PropTypes.bool,
   isSelected: PropTypes.bool,
   isLocked: PropTypes.bool,
   onBulkSelectChange: PropTypes.func,
+  onAddButtonClick: PropTypes.func,
   onClick: PropTypes.func,
   onDragStart: PropTypes.func,
   onDragEnd: PropTypes.func,
   getRowClassName: PropTypes.func,
-  renderExtraColumns: PropTypes.func
+  renderExtraColumns: PropTypes.func,
+  isSelectedForAction: PropTypes.bool
 };
 
 export default PlayerTable;

@@ -26,7 +26,11 @@ export default function LineupGrid({
   onRemoveToken,
   autoSaving = false,
   filterPosition = null,
-  isPreviewMode = false // If true, ignore player locks (previewing next week)
+  isPreviewMode = false, // If true, ignore player locks (previewing next week)
+  selectedPlayerForSlot = null,
+  selectedTokenForPlayer = null,
+  onSlotClickWithSelection = null,
+  onPlayerClickWithTokenSelection = null
 }) {
   const [dragOverSlot, setDragOverSlot] = useState(null);
   const [hoveredSlot, setHoveredSlot] = useState(null);
@@ -194,6 +198,40 @@ export default function LineupGrid({
     }).length;
   };
 
+  // Check if a slot is eligible for the selected player
+  const isSlotEligibleForSelectedPlayer = (slotKey) => {
+    if (!selectedPlayerForSlot) return false;
+    
+    const posAbbr = getPositionAbbreviation(slotKey);
+    const playerPos = selectedPlayerForSlot.player_card.position;
+    
+    const positionMap = {
+      'QB': ['Quarterback'],
+      'RB': ['Running Back'],
+      'WR': ['Wide Receiver'],
+      'TE': ['Tight End'],
+      'FLEX': ['Running Back', 'Wide Receiver', 'Tight End']
+    };
+    
+    const allowedPositions = positionMap[posAbbr] || [];
+    return allowedPositions.includes(playerPos);
+  };
+
+  // Check if a player is eligible for the selected token
+  const isPlayerEligibleForSelectedToken = (player) => {
+    if (!selectedTokenForPlayer || !player) return false;
+    
+    // Check if player is locked
+    if (player.is_locked) return false;
+    
+    // Check if player already has an active token
+    const hasActiveToken = inventory?.tokens?.some(t => 
+      t.applied_to_player_id === player.id && t.is_active
+    );
+    
+    return !hasActiveToken;
+  };
+
   const renderPositionSlot = (slot) => {
     const player = lineup[slot.key];
     
@@ -211,6 +249,21 @@ export default function LineupGrid({
     const availableCount = getAvailablePlayersCount(slot.key);
     const posAbbr = getPositionAbbreviation(slot.key);
     const isFilteredSlot = filterPosition === slot.key; // Check if this is the slot being filtered
+    
+    // Check if this slot is eligible for selected player
+    const isEligibleForSelectedPlayer = isSlotEligibleForSelectedPlayer(slot.key);
+    
+    // Check if this player is eligible for selected token
+    const isEligibleForSelectedToken = player && isPlayerEligibleForSelectedToken(player);
+    
+    // Handle click when player/token is selected
+    const handleSlotClick = () => {
+      if (selectedPlayerForSlot && isEligibleForSelectedPlayer && onSlotClickWithSelection) {
+        onSlotClickWithSelection(slot.key);
+      } else if (selectedTokenForPlayer && isEligibleForSelectedToken && onPlayerClickWithTokenSelection) {
+        onPlayerClickWithTokenSelection(player);
+      }
+    };
 
     return (
       <div
@@ -219,6 +272,7 @@ export default function LineupGrid({
         onMouseEnter={() => setHoveredSlot(slot.key)}
         onMouseLeave={() => setHoveredSlot(null)}
         data-lineup-slot={slot.key}
+        onClick={handleSlotClick}
       >
         <div
           onDragEnter={(e) => !isLocked && handleDragOver(e, slot.key)}
@@ -231,11 +285,17 @@ export default function LineupGrid({
                ? 'border-primary-green-500 bg-primary-green-500/20 scale-105 shadow-lg shadow-primary-green-500/50' 
                : isFilteredSlot && !player
                  ? 'border-primary-green-500/50 bg-primary-green-500/10 shadow-md shadow-primary-green-500/30'
-                 : player 
-                   ? 'border-primary-black-600 bg-primary-black-800/50' 
-                   : 'border-dashed border-primary-black-600 bg-primary-black-800/30'
+                 : (selectedPlayerForSlot || selectedTokenForPlayer) && !isEligibleForSelectedPlayer && !isEligibleForSelectedToken
+                   ? 'opacity-30 pointer-events-none'
+                   : isEligibleForSelectedPlayer
+                     ? 'border-primary-green-500/70 bg-primary-green-500/10 cursor-pointer hover:border-primary-green-500 hover:bg-primary-green-500/20'
+                     : isEligibleForSelectedToken
+                       ? 'border-yellow-500/70 bg-yellow-500/10 cursor-pointer hover:border-yellow-500 hover:bg-yellow-500/20'
+                       : player 
+                         ? 'border-primary-black-600 bg-primary-black-800/50' 
+                         : 'border-dashed border-primary-black-600 bg-primary-black-800/30'
              }
-             ${isHovered && !player && !isLocked ? 'border-primary-green-500/50 bg-primary-black-700/50' : ''}
+             ${isHovered && !player && !isLocked && !selectedPlayerForSlot && !selectedTokenForPlayer ? 'border-primary-green-500/50 bg-primary-black-700/50' : ''}
              ${isLocked ? 'opacity-60' : ''}
              ${!player ? 'pointer-events-auto' : ''}
            `}
@@ -278,6 +338,20 @@ export default function LineupGrid({
                   showStats={true}
                   className="absolute inset-0 rounded-xl"
                 />
+                
+                {/* SWAP overlay for eligible slots */}
+                {isEligibleForSelectedPlayer && (
+                  <div className="absolute inset-0 bg-primary-green-500/30 rounded-xl flex items-center justify-center pointer-events-none z-10">
+                    <span className="text-xl font-bold text-white drop-shadow-lg">SWAP</span>
+                  </div>
+                )}
+                
+                {/* APPLY overlay for eligible players with selected token */}
+                {isEligibleForSelectedToken && (
+                  <div className="absolute inset-0 bg-yellow-500/30 rounded-xl flex items-center justify-center pointer-events-none z-10">
+                    <span className="text-xl font-bold text-white drop-shadow-lg">APPLY</span>
+                  </div>
+                )}
               </div>
              ) : (
                <>
@@ -347,5 +421,9 @@ LineupGrid.propTypes = {
   onRemoveToken: PropTypes.func,
   autoSaving: PropTypes.bool,
   filterPosition: PropTypes.string,
-  isPreviewMode: PropTypes.bool
+  isPreviewMode: PropTypes.bool,
+  selectedPlayerForSlot: PropTypes.object,
+  selectedTokenForPlayer: PropTypes.object,
+  onSlotClickWithSelection: PropTypes.func,
+  onPlayerClickWithTokenSelection: PropTypes.func
 };

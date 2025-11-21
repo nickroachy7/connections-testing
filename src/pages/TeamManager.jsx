@@ -149,6 +149,10 @@ export default function TeamManager() {
   // Token filter state - when user clicks + on a player card
   const [tokenFilterPlayerId, setTokenFilterPlayerId] = useState(null);
   
+  // Selected player/token for slot highlighting
+  const [selectedPlayerForSlot, setSelectedPlayerForSlot] = useState(null);
+  const [selectedTokenForPlayer, setSelectedTokenForPlayer] = useState(null);
+  
   // No players modal state
   const [noPlayersModal, setNoPlayersModal] = useState({
     isOpen: false,
@@ -1287,6 +1291,7 @@ export default function TeamManager() {
         }
       }
       
+      // Add swapped player to bench
       newLineup.BENCH = [...newLineup.BENCH, swappedPlayer];
     }
     
@@ -1301,9 +1306,11 @@ export default function TeamManager() {
       ...prev,
       players: prev.players.map(p => {
         if (p.id === player.id) {
+          // Player being added to lineup
           return { ...p, is_in_lineup: true, lineup_position: targetPosition };
         }
-        if (newLineup[targetPosition]?.id && p.id === newLineup[targetPosition].id) {
+        if (newLineup.BENCH.find(bp => bp.id === p.id) && p.id !== player.id) {
+          // Player being swapped to bench
           return { ...p, is_in_lineup: false, lineup_position: null };
         }
         return p;
@@ -1693,6 +1700,20 @@ export default function TeamManager() {
             autoSaving={autoSaving}
             filterPosition={benchFilterPosition}
             isPreviewMode={isPreviewMode}
+            selectedPlayerForSlot={selectedPlayerForSlot}
+            selectedTokenForPlayer={selectedTokenForPlayer}
+            onSlotClickWithSelection={(slotKey) => {
+              if (selectedPlayerForSlot) {
+                handleMoveToSlot(selectedPlayerForSlot, slotKey);
+                setSelectedPlayerForSlot(null);
+              }
+            }}
+            onPlayerClickWithTokenSelection={(player) => {
+              if (selectedTokenForPlayer) {
+                handleApplyTokenToPlayer(selectedTokenForPlayer, player.id);
+                setSelectedTokenForPlayer(null);
+              }
+            }}
           />
         </section>
       </div>
@@ -1719,7 +1740,12 @@ export default function TeamManager() {
           onClearFilter={() => {
             setBenchFilterPosition(null);
             setTokenFilterPlayerId(null);
+            setSelectedPlayerForSlot(null);
+            setSelectedTokenForPlayer(null);
           }}
+          lineup={lineup}
+          onSelectPlayerForSlot={setSelectedPlayerForSlot}
+          onSelectTokenForPlayer={setSelectedTokenForPlayer}
         />
       </section>
 

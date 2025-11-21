@@ -27,7 +27,10 @@ export default function BenchAndTokensPanel({
   tokenFilterPlayer = null,
   onApplyTokenToPlayer,
   onMoveToSlot,
-  onClearFilter
+  onClearFilter,
+  lineup = null,
+  onSelectPlayerForSlot = null,
+  onSelectTokenForPlayer = null
 }) {
   const [activeTab, setActiveTab] = useState('all');
 
@@ -102,6 +105,40 @@ export default function BenchAndTokensPanel({
   const filteredTokens = tokenFilterPlayerId
     ? enrichedTokens.filter(t => !t.is_active)
     : enrichedTokens;
+
+  // Find first eligible slot for a player (empty or occupied - will swap)
+  const findEligibleSlot = (player) => {
+    if (!lineup || !onMoveToSlot) return null;
+    
+    const playerPos = player.player_card.position;
+    
+    // Define slot order to check
+    const slotOrder = {
+      'Quarterback': ['QB'],
+      'Running Back': ['RB1', 'RB2', 'FLEX'],
+      'Wide Receiver': ['WR1', 'WR2', 'WR3', 'FLEX'],
+      'Tight End': ['TE', 'FLEX']
+    };
+    
+    const eligibleSlots = slotOrder[playerPos] || [];
+    
+    // Return first eligible slot (will swap if occupied)
+    return eligibleSlots[0] || null;
+  };
+
+  // Handle add button click for players - trigger slot highlighting
+  const handleAddButtonClick = (player) => {
+    if (onSelectPlayerForSlot) {
+      onSelectPlayerForSlot(player);
+    }
+  };
+
+  // Handle add button click for tokens - trigger player highlighting
+  const handleTokenAddButtonClick = (token) => {
+    if (onSelectTokenForPlayer) {
+      onSelectTokenForPlayer(token);
+    }
+  };
 
   // Custom render for MOVE button when filtering
   const renderMoveButton = (player) => {
@@ -236,12 +273,15 @@ export default function BenchAndTokensPanel({
           <PlayerTable
             players={filteredPlayers}
             showBulkSelect={false}
+            showAddButton={!filterPosition && lineup && onMoveToSlot}
             showTierLevel={true}
             onRowDragStart={filterPosition ? null : onPlayerDragStart}
+            onAddButtonClick={handleAddButtonClick}
             isRowLocked={(player) => player.is_locked || isPlayerGameLiveOrFinal(player, liveGameData)}
             renderExtraRowColumns={filterPosition ? renderMoveButton : null}
             emptyMessage={filterPosition ? "No eligible players" : "Bench is empty"}
             emptyIcon="🪑"
+            selectedPlayerId={selectedPlayerForSlot?.id}
           />
         </div>
       )}
@@ -252,11 +292,14 @@ export default function BenchAndTokensPanel({
           <TokenTable
             tokens={filteredTokens}
             showBulkSelect={false}
+            showAddButton={!tokenFilterPlayerId && lineup && onApplyTokenToPlayer}
+            onAddButtonClick={handleTokenAddButtonClick}
             onRowDragStart={tokenFilterPlayerId ? null : onTokenDragStart}
             onRowDragEnd={onTokenDragEnd}
             renderExtraRowColumns={tokenFilterPlayerId ? renderApplyButton : null}
             emptyMessage="No tokens available"
             emptyIcon="💎"
+            selectedTokenId={selectedTokenForPlayer?.id}
           />
         </div>
       )}
@@ -291,5 +334,8 @@ BenchAndTokensPanel.propTypes = {
   tokenFilterPlayer: PropTypes.object,
   onApplyTokenToPlayer: PropTypes.func,
   onMoveToSlot: PropTypes.func,
-  onClearFilter: PropTypes.func
+  onClearFilter: PropTypes.func,
+  lineup: PropTypes.object,
+  onSelectPlayerForSlot: PropTypes.func,
+  onSelectTokenForPlayer: PropTypes.func
 };

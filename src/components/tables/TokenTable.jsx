@@ -20,6 +20,7 @@ const TokenTable = ({
   tokens = [],
   // Visual options
   showBulkSelect = false,
+  showAddButton = false,
   
   // Custom column rendering
   renderExtraHeaderColumns = null,
@@ -31,9 +32,12 @@ const TokenTable = ({
   onRowClick = null,
   onRowDragStart = null,
   onRowDragEnd = null,
+  onAddButtonClick = null,
   
   // Row customization
   getRowClassName = null,
+  isRowLocked = null,
+  selectedTokenId = null,
   
   // Empty state
   emptyMessage = "No tokens found",
@@ -43,9 +47,9 @@ const TokenTable = ({
   const getGridTemplate = () => {
     let columns = [];
     
-    // Checkbox column (conditional)
-    if (showBulkSelect) {
-      columns.push('24px'); // Checkbox
+    // Checkbox/Add button column (conditional)
+    if (showBulkSelect || showAddButton) {
+      columns.push('24px'); // Checkbox or Add button
     } else {
       columns.push('24px'); // Empty/drag handle
     }
@@ -100,7 +104,7 @@ const TokenTable = ({
       >
         {/* Checkbox or Empty column */}
         <span className="text-[10px] font-bold text-primary-black-500 uppercase tracking-wider text-center">
-          {showBulkSelect && '☐'}
+          {/* Empty - no checkbox symbol in header */}
         </span>
         
         {/* Core headers */}
@@ -121,15 +125,24 @@ const TokenTable = ({
 
       {/* Token Rows */}
       {tokens.map((token, index) => {
+        const isLocked = isRowLocked ? isRowLocked(token) : false;
         const defaultClassName = `
           grid py-3 px-2 transition-all border-l-4 border-transparent
-          cursor-move hover:bg-primary-green-500/10 hover:border-primary-green-500
+          ${
+            isLocked
+              ? 'cursor-not-allowed opacity-60'
+              : 'cursor-move hover:bg-primary-green-500/10 hover:border-primary-green-500'
+          }
           ${index % 2 === 0 ? 'bg-primary-black-900' : 'bg-primary-black-800/50'}
         `;
 
         const customClassName = getRowClassName ? getRowClassName(token, index) : defaultClassName;
 
         const handleDragStart = (e) => {
+          if (isLocked) {
+            e.preventDefault();
+            return;
+          }
           if (onRowDragStart) {
             onRowDragStart(e, token);
           }
@@ -146,7 +159,7 @@ const TokenTable = ({
         return (
           <div
             key={token.id}
-            draggable={true}
+            draggable={!isLocked}
             onDragStart={handleDragStart}
             onDragEnd={onRowDragEnd}
             onClick={handleClick}
@@ -157,20 +170,45 @@ const TokenTable = ({
               alignItems: 'center'
             }}
           >
-            {/* COLUMN 1: Checkbox or Drag Handle */}
+            {/* COLUMN 1: Add Button, Checkbox, or Drag Handle */}
             <div className="flex items-center justify-center">
-              {showBulkSelect ? (
-                <input
-                  type="checkbox"
-                  checked={isSelected}
-                  onChange={(e) => {
+              {showAddButton ? (
+                <button
+                  onClick={(e) => {
                     e.stopPropagation();
-                    if (onBulkSelectChange) {
-                      onBulkSelectChange(token, e.target.checked);
+                    if (onAddButtonClick && !isLocked) {
+                      onAddButtonClick(token);
                     }
                   }}
-                  className="w-4 h-4 cursor-pointer"
-                />
+                  disabled={isLocked}
+                  className={`w-5 h-5 cursor-pointer rounded-full appearance-none border-2 transition-all flex items-center justify-center text-sm font-bold leading-none disabled:opacity-50 disabled:cursor-not-allowed ${
+                    selectedTokenId === token.id
+                      ? 'border-yellow-500 bg-yellow-500 text-white hover:border-yellow-400 hover:bg-yellow-400'
+                      : 'border-primary-black-600 bg-primary-black-800 hover:border-primary-green-500 hover:bg-primary-green-500/20 text-primary-black-400 hover:text-primary-green-400'
+                  }`}
+                  title={selectedTokenId === token.id ? "Selected for application" : "Apply to player"}
+                >
+                  +
+                </button>
+              ) : showBulkSelect ? (
+                <div className="relative flex items-center justify-center">
+                  <input
+                    type="checkbox"
+                    checked={isSelected}
+                    onChange={(e) => {
+                      e.stopPropagation();
+                      if (onBulkSelectChange) {
+                        onBulkSelectChange(token, e.target.checked);
+                      }
+                    }}
+                    className="w-5 h-5 cursor-pointer rounded-full appearance-none border-2 border-primary-black-600 bg-primary-black-800 checked:bg-primary-black-700 checked:border-primary-black-500 hover:border-primary-black-500"
+                  />
+                  {isSelected && (
+                    <svg className="absolute w-3 h-3 text-primary-black-200 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                </div>
               ) : (
                 <span className="text-primary-black-600 text-sm">⋮⋮</span>
               )}
