@@ -237,20 +237,6 @@ export default function InventoryPanel({
       {/* Players Section */}
       {(activeTab === 'all' || activeTab === 'players') && filteredPlayers.length > 0 && (
         <div className="mb-6">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-lg font-bold text-primary-black-50">
-              Players {filters.search && `(${filteredPlayers.length})`}
-            </h3>
-            {filteredPlayers.some(p => !p.is_locked) && (
-              <button
-                onClick={handleSelectAllPlayers}
-                className="text-sm text-primary-green-400 hover:underline"
-              >
-                Select All Unlocked
-              </button>
-            )}
-          </div>
-
           <PlayerTable
             players={filteredPlayers}
             showBulkSelect={true}
@@ -267,10 +253,6 @@ export default function InventoryPanel({
       {/* Tokens Section */}
       {(activeTab === 'all' || activeTab === 'tokens') && filteredTokens.length > 0 && (
         <div>
-          <h3 className="text-lg font-bold text-primary-black-50 mb-3">
-            Tokens {filters.search && `(${filteredTokens.length})`}
-          </h3>
-          
           <TokenTable
             tokens={filteredTokens}
             showBulkSelect={true}

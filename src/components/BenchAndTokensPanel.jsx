@@ -30,7 +30,9 @@ export default function BenchAndTokensPanel({
   onClearFilter,
   lineup = null,
   onSelectPlayerForSlot = null,
-  onSelectTokenForPlayer = null
+  onSelectTokenForPlayer = null,
+  selectedPlayerForSlot = null,
+  selectedTokenForPlayer = null
 }) {
   const [activeTab, setActiveTab] = useState('all');
 
@@ -144,34 +146,16 @@ export default function BenchAndTokensPanel({
   const renderMoveButton = (player) => {
     if (!filterPosition || !onMoveToSlot) return null;
     
-    return (
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          onMoveToSlot(player, filterPosition);
-        }}
-        className="px-4 py-1.5 bg-primary-green-500 hover:bg-primary-green-400 text-primary-black-950 rounded text-xs font-bold transition-all hover:scale-105"
-      >
-        MOVE
-      </button>
-    );
+    // Don't render extra column - use the add button instead
+    return null;
   };
 
   // Custom render for APPLY button when selecting token
   const renderApplyButton = (token) => {
     if (!tokenFilterPlayerId || !onApplyTokenToPlayer) return null;
     
-    return (
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          onApplyTokenToPlayer(token, tokenFilterPlayerId);
-        }}
-        className="px-4 py-1.5 bg-primary-green-500 hover:bg-primary-green-400 text-primary-black-950 rounded text-xs font-bold transition-all hover:scale-105"
-      >
-        APPLY
-      </button>
-    );
+    // Don't render extra column - use the add button instead
+    return null;
   };
 
   return (
@@ -197,6 +181,18 @@ export default function BenchAndTokensPanel({
                   </p>
                 </div>
               </div>
+            ) : selectedPlayerForSlot ? (
+              <div className="flex items-center gap-3 flex-1">
+                <span className="text-2xl">🎯</span>
+                <div>
+                  <h3 className="text-xl font-bold text-primary-green-400">
+                    Select Slot for {selectedPlayerForSlot.player_card.player_name}
+                  </h3>
+                  <p className="text-xs text-primary-black-400 mt-0.5">
+                    Click a highlighted slot to swap this player in
+                  </p>
+                </div>
+              </div>
             ) : tokenFilterPlayerId && tokenFilterPlayer ? (
               <div className="flex items-center gap-3 flex-1">
                 <span className="text-2xl">💎</span>
@@ -206,6 +202,18 @@ export default function BenchAndTokensPanel({
                   </h3>
                   <p className="text-xs text-primary-black-400 mt-0.5">
                     Showing {filteredTokens.length} available token{filteredTokens.length !== 1 ? 's' : ''}
+                  </p>
+                </div>
+              </div>
+            ) : selectedTokenForPlayer ? (
+              <div className="flex items-center gap-3 flex-1">
+                <span className="text-2xl">💎</span>
+                <div>
+                  <h3 className="text-xl font-bold text-yellow-400">
+                    Select Player for {selectedTokenForPlayer.token_card.token_name}
+                  </h3>
+                  <p className="text-xs text-primary-black-400 mt-0.5">
+                    Click a highlighted player to apply this token
                   </p>
                 </div>
               </div>
@@ -222,7 +230,7 @@ export default function BenchAndTokensPanel({
             )}
 
             {/* Right side - Clear filter or tabs */}
-            {(filterPosition || tokenFilterPlayerId) ? (
+            {(filterPosition || tokenFilterPlayerId || selectedPlayerForSlot || selectedTokenForPlayer) ? (
               <button
                 onClick={onClearFilter}
                 className="px-4 py-2 bg-primary-black-700 hover:bg-primary-black-600 text-primary-black-300 rounded-lg text-sm font-semibold transition-colors"
@@ -273,12 +281,16 @@ export default function BenchAndTokensPanel({
           <PlayerTable
             players={filteredPlayers}
             showBulkSelect={false}
-            showAddButton={!filterPosition && lineup && onMoveToSlot}
+            showAddButton={lineup && onMoveToSlot}
             showTierLevel={true}
             onRowDragStart={filterPosition ? null : onPlayerDragStart}
-            onAddButtonClick={handleAddButtonClick}
+            onAddButtonClick={filterPosition ? (player) => {
+              if (onMoveToSlot) {
+                onMoveToSlot(player, filterPosition);
+              }
+            } : handleAddButtonClick}
             isRowLocked={(player) => player.is_locked || isPlayerGameLiveOrFinal(player, liveGameData)}
-            renderExtraRowColumns={filterPosition ? renderMoveButton : null}
+            renderExtraRowColumns={null}
             emptyMessage={filterPosition ? "No eligible players" : "Bench is empty"}
             emptyIcon="🪑"
             selectedPlayerId={selectedPlayerForSlot?.id}
@@ -292,11 +304,15 @@ export default function BenchAndTokensPanel({
           <TokenTable
             tokens={filteredTokens}
             showBulkSelect={false}
-            showAddButton={!tokenFilterPlayerId && lineup && onApplyTokenToPlayer}
-            onAddButtonClick={handleTokenAddButtonClick}
+            showAddButton={lineup && onApplyTokenToPlayer}
+            onAddButtonClick={tokenFilterPlayerId ? (token) => {
+              if (onApplyTokenToPlayer) {
+                onApplyTokenToPlayer(token, tokenFilterPlayerId);
+              }
+            } : handleTokenAddButtonClick}
             onRowDragStart={tokenFilterPlayerId ? null : onTokenDragStart}
             onRowDragEnd={onTokenDragEnd}
-            renderExtraRowColumns={tokenFilterPlayerId ? renderApplyButton : null}
+            renderExtraRowColumns={null}
             emptyMessage="No tokens available"
             emptyIcon="💎"
             selectedTokenId={selectedTokenForPlayer?.id}
@@ -337,5 +353,7 @@ BenchAndTokensPanel.propTypes = {
   onClearFilter: PropTypes.func,
   lineup: PropTypes.object,
   onSelectPlayerForSlot: PropTypes.func,
-  onSelectTokenForPlayer: PropTypes.func
+  onSelectTokenForPlayer: PropTypes.func,
+  selectedPlayerForSlot: PropTypes.object,
+  selectedTokenForPlayer: PropTypes.object
 };

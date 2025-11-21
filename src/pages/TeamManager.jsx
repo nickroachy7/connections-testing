@@ -1746,6 +1746,8 @@ export default function TeamManager() {
           lineup={lineup}
           onSelectPlayerForSlot={setSelectedPlayerForSlot}
           onSelectTokenForPlayer={setSelectedTokenForPlayer}
+          selectedPlayerForSlot={selectedPlayerForSlot}
+          selectedTokenForPlayer={selectedTokenForPlayer}
         />
       </section>
 
