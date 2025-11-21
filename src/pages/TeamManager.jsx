@@ -9,6 +9,7 @@ import LineupGrid from '../components/LineupGrid';
 import BenchAndTokensPanel from '../components/BenchAndTokensPanel';
 import PlayerSelectionModal from '../components/PlayerSelectionModal';
 import RosterCount from '../components/RosterCount';
+import LineupBenchList from '../components/LineupBenchList';
 
 // Helper function for baseline projections
 function getBaselineProjection(position) {
@@ -704,12 +705,9 @@ export default function TeamManager() {
     
     try {
       // Remove player from source and handle token removal
-      if (source === 'BENCH') {
-        newLineup.BENCH = [...newLineup.BENCH.filter(p => p.id !== player.id)];
-      } else if (source === 'INVENTORY') {
-        // Player is coming from inventory (not in lineup yet)
-        // Remove from bench if exists there
-        newLineup.BENCH = [...newLineup.BENCH.filter(p => p.id !== player.id)];
+      if (source === 'BENCH' || source === 'INVENTORY') {
+        // Player is coming from bench/inventory - no action needed on source
+        // Inventory state will be updated below
       } else {
         // Player is being moved from a lineup slot - remove token if moving to bench
         if (targetSlot === 'BENCH') {
@@ -721,14 +719,41 @@ export default function TeamManager() {
       // If target slot is occupied, swap to bench and remove token from swapped player
       if (newLineup[targetSlot] && targetSlot !== 'BENCH') {
         await handleTokenRemoval(newLineup[targetSlot]);
-        newLineup.BENCH = [...newLineup.BENCH, newLineup[targetSlot]];
+        const swappedPlayer = newLineup[targetSlot];
+        // Update inventory to mark swapped player as not in lineup
+        setInventory(prev => ({
+          ...prev,
+          players: prev.players.map(p => 
+            p.id === swappedPlayer.id 
+              ? { ...p, is_in_lineup: false, lineup_position: null }
+              : p
+          )
+        }));
       }
       
       // Place player in target
       if (targetSlot === 'BENCH') {
-        newLineup.BENCH = [...newLineup.BENCH, player];
+        newLineup[targetSlot] = null; // Ensure target is null if moving to bench
+        // Update inventory to mark player as not in lineup
+        setInventory(prev => ({
+          ...prev,
+          players: prev.players.map(p => 
+            p.id === player.id 
+              ? { ...p, is_in_lineup: false, lineup_position: null }
+              : p
+          )
+        }));
       } else {
         newLineup[targetSlot] = player;
+        // Update inventory to mark player as in lineup
+        setInventory(prev => ({
+          ...prev,
+          players: prev.players.map(p => 
+            p.id === player.id 
+              ? { ...p, is_in_lineup: true, lineup_position: targetSlot }
+              : p
+          )
+        }));
         // Clear filter if player was dropped into a filtered position
         if (benchFilterPosition && targetSlot === benchFilterPosition) {
           setBenchFilterPosition(null);
@@ -889,9 +914,11 @@ export default function TeamManager() {
     try {
       const updates = [];
       
-      // Update starting lineup
+      // Get all player IDs currently in starting lineup
+      const lineupPlayerIds = new Set();
       Object.entries(lineup).forEach(([position, player]) => {
         if (player && position !== 'BENCH') {
+          lineupPlayerIds.add(player.id);
           updates.push({
             id: player.id,
             is_in_lineup: true,
@@ -900,14 +927,18 @@ export default function TeamManager() {
         }
       });
       
-      // Update bench
-      lineup.BENCH.forEach(player => {
-        updates.push({
-          id: player.id,
-          is_in_lineup: false,
-          lineup_position: null
+      // Update ALL players in inventory - those not in lineup should be marked as bench
+      if (inventory?.players) {
+        inventory.players.forEach(player => {
+          if (!lineupPlayerIds.has(player.id)) {
+            updates.push({
+              id: player.id,
+              is_in_lineup: false,
+              lineup_position: null
+            });
+          }
         });
-      });
+      }
       
       // Batch update - use Promise.all for parallel execution
       await Promise.all(
@@ -1263,7 +1294,26 @@ export default function TeamManager() {
     // Place player in target position
     newLineup[targetPosition] = player;
     
+    // Update lineup state
     setLineup(newLineup);
+    
+    // Update inventory to reflect is_in_lineup changes immediately
+    setInventory(prev => ({
+      ...prev,
+      players: prev.players.map(p => {
+        if (p.id === player.id) {
+          return { ...p, is_in_lineup: true, lineup_position: targetPosition };
+        }
+        if (newLineup[targetPosition]?.id && p.id === newLineup[targetPosition].id) {
+          return { ...p, is_in_lineup: false, lineup_position: null };
+        }
+        return p;
+      })
+    }));
+    
+    // Save to database (will be triggered by auto-save via useEffect)
+    // The handleSaveLineup will run automatically after lineup state updates
+    
     setBenchFilterPosition(null); // Clear the filter after moving
   };
 
@@ -1349,9 +1399,18 @@ export default function TeamManager() {
     
     const newLineup = { ...lineup };
     newLineup[position] = null;
-    newLineup.BENCH = [...newLineup.BENCH, player];
     
     setLineup(newLineup);
+    
+    // Update inventory to mark player as not in lineup
+    setInventory(prev => ({
+      ...prev,
+      players: prev.players.map(p => 
+        p.id === player.id 
+          ? { ...p, is_in_lineup: false, lineup_position: null }
+          : p
+      )
+    }));
   };
 
   // Get available players for a position
@@ -1643,7 +1702,7 @@ export default function TeamManager() {
       <section aria-label="Bench and Tokens Inventory" className="mt-6">
         {/* Unified Bench and Tokens Panel - Full Width */}
         <BenchAndTokensPanel
-          benchPlayers={lineup.BENCH}
+          benchPlayers={inventory?.players?.filter(p => !p.is_in_lineup) || []}
           availableTokens={availableTokens}
           onPlayerDragStart={handlePlayerDragStart}
           onTokenDragStart={handleTokenDragStart}

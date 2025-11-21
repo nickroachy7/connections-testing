@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { startNewTeam, getUserInventory, supabase } from '../services/supabase';
 import LiveScoreWidget from '../components/LiveScoreWidget';
 import LineupGridReadOnly from '../components/LineupGridReadOnly';
+import TopPlayersWidget from '../components/TopPlayersWidget';
 
 export default function Dashboard() {
   const { 
@@ -1409,6 +1410,30 @@ export default function Dashboard() {
                         })
                         .slice(0, 5);
 
+                      // Use TopPlayersWidget component
+                      return (
+                        <TopPlayersWidget
+                          players={topPlayers}
+                          maxPlayers={5}
+                          showProjections={true}
+                          gameDataMap={Object.fromEntries(
+                            topPlayers.map(p => [
+                              p.id,
+                              liveGameData?.get(p.player_card.player_id)
+                            ]).filter(([_, data]) => data !== undefined)
+                          )}
+                          projectionMap={Object.fromEntries(
+                            topPlayers.map(p => [
+                              p.id,
+                              projections?.get(p.player_card.player_id)
+                            ]).filter(([_, data]) => data !== undefined)
+                          )}
+                          title=""
+                          className="bg-transparent p-0"
+                        />
+                      );
+
+                      /* OLD IMPLEMENTATION - REMOVE AFTER TESTING
                       if (topPlayers.length === 0) {
                         return (
                           <div className="text-center py-8 text-primary-black-400">
