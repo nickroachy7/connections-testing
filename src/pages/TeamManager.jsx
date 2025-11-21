@@ -9,7 +9,6 @@ import LineupGrid from '../components/LineupGrid';
 import BenchAndTokensPanel from '../components/BenchAndTokensPanel';
 import PlayerSelectionModal from '../components/PlayerSelectionModal';
 import RosterCount from '../components/RosterCount';
-import LineupBenchList from '../components/LineupBenchList';
 
 // Helper function for baseline projections
 function getBaselineProjection(position) {
