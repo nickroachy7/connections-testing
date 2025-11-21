@@ -35,32 +35,23 @@ export default function PlayerCard({
   
   // Debug logging for gameData
   if (player.player_card.player_name === 'Tua Tagovailoa') {
-    console.log('[PlayerCard] Tua gameData:', {
-      hasGameData: !!gameData,
-      gameData,
-      playerCardId: player.player_card.player_id,
-      playerId: player.id
-    });
+    console.log('🎮 Tua PlayerCard received gameData:', gameData);
   }
   
   // Debug logging for Sam Darnold
   if (player.player_card.player_name === 'Sam Darnold') {
-    console.log('[PlayerCard] Sam Darnold gameData:', {
-      hasGameData: !!gameData,
-      gameData,
-      playerCardId: player.player_card.player_id,
-      playerId: player.id
-    });
+    console.log('🎮 Darnold PlayerCard received gameData:', gameData);
+    console.log('🎮 Darnold projection:', projection);
   }
 
   // Get tier styling (replacing old rarity styling)
   const getTierStyles = (tier) => {
-    const tierStyles = {
+    const styles = {
       base: {
-        border: 'border-gray-500',
+        border: 'border-gray-600',
         bg: 'bg-gray-900/30',
         text: 'text-gray-400',
-        glow: 'shadow-lg shadow-gray-500/20',
+        glow: 'shadow-md shadow-gray-500/10',
         badge: 'bg-gray-600 text-gray-100'
       },
       role_player: {
@@ -88,11 +79,12 @@ export default function PlayerCard({
         border: 'border-yellow-500',
         bg: 'bg-yellow-900/30',
         text: 'text-yellow-400',
-        glow: 'shadow-lg shadow-yellow-500/40',
+        glow: 'shadow-xl shadow-yellow-500/40',
         badge: 'bg-yellow-600 text-yellow-100'
       }
     };
-    return tierStyles[tier] || tierStyles.base;
+    
+    return styles[tier] || styles.base;
   };
 
   // Get tier styling and display info
@@ -139,52 +131,83 @@ export default function PlayerCard({
         range: 'L9-10'
       }
     };
+
     return tierInfo[tier] || tierInfo.base;
   };
 
   // Get game status badge
   const getGameStatusBadge = () => {
     if (!gameData) return null;
-    
+
     const status = gameData.gameStatus?.toLowerCase();
     
     if (status === 'live' || status === 'halftime') {
       return (
-        <div className="absolute top-2 right-2 z-10 px-2 py-1 bg-red-500 text-white text-xs font-bold rounded animate-pulse">
-          LIVE
+        <div className="absolute top-2 right-2 z-10">
+          <div className="flex items-center gap-1 px-2 py-1 bg-red-600 rounded-md shadow-lg animate-pulse">
+            <div className="w-2 h-2 bg-white rounded-full animate-ping"></div>
+            <span className="text-white text-xs font-bold">LIVE</span>
+          </div>
         </div>
       );
     }
     
     if (status === 'final') {
       return (
-        <div className="absolute top-2 right-2 z-10 px-2 py-1 bg-green-600 text-white text-xs font-bold rounded">
-          FINAL
+        <div className="absolute top-2 right-2 z-10">
+          <div className="px-2 py-1 bg-green-600 rounded-md shadow-lg">
+            <span className="text-white text-xs font-bold">FINAL</span>
+          </div>
         </div>
       );
     }
-    
-    if (isLocked) {
+
+    if (gameData.gameStartTime) {
+      const gameTime = new Date(gameData.gameStartTime);
+      const dayOfWeek = gameTime.toLocaleDateString('en-US', { weekday: 'short' });
+      const time = gameTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+      
       return (
-        <div className="absolute top-2 right-2 z-10 px-2 py-1 bg-red-600 text-white text-xs font-bold rounded">
-          LOCKED
+        <div className="absolute top-2 right-2 z-10">
+          <div className="px-2 py-1 bg-primary-black-700 rounded-md shadow-lg">
+            <div className="text-white text-[10px] font-bold text-center">{dayOfWeek}</div>
+            <div className="text-white text-[10px] font-semibold">{time}</div>
+          </div>
         </div>
       );
     }
-    
+
     return null;
   };
 
   // Get size classes
   const getSizeClasses = () => {
-    switch(size) {
+    switch (size) {
       case 'small':
-        return 'w-40 h-52';
+        return {
+          container: 'w-32 h-40',
+          text: 'text-xs',
+          badge: 'text-[8px] px-1',
+          icon: 'w-3 h-3',
+          stats: 'text-[10px]'
+        };
       case 'large':
-        return 'w-60 h-80';
+        return {
+          container: 'w-44 h-56',
+          text: 'text-base',
+          badge: 'text-xs px-2',
+          icon: 'w-5 h-5',
+          stats: 'text-sm'
+        };
       case 'medium':
       default:
-        return 'w-48 h-64';
+        return {
+          container: 'w-36 h-48',
+          text: 'text-sm',
+          badge: 'text-[10px] px-1.5',
+          icon: 'w-4 h-4',
+          stats: 'text-xs'
+        };
     }
   };
 
@@ -193,166 +216,224 @@ export default function PlayerCard({
   const isDisabled = isLocked || !draggable;
 
   const handleDragOver = (e) => {
-    if (isDisabled) return;
+    if (isDisabled || !onTokenDrop) return;
     e.preventDefault();
     setIsTokenHovering(true);
   };
 
   const handleDragLeave = (e) => {
     if (isDisabled) return;
-    e.preventDefault();
     setIsTokenHovering(false);
   };
 
   const handleDrop = (e) => {
     if (isDisabled) return;
     e.preventDefault();
+    e.stopPropagation();
+    
     setIsTokenHovering(false);
     
     if (onTokenDrop) {
-      onTokenDrop(e, player);
+      try {
+        const tokenData = e.dataTransfer.getData('application/json');
+        if (tokenData) {
+          const token = JSON.parse(tokenData);
+          onTokenDrop(player, token);
+        }
+      } catch (err) {
+        console.error('Error handling token drop:', err);
+      }
     }
   };
 
   return (
-    <div
+    <div 
       className={`
         relative rounded-xl overflow-hidden transition-all duration-300
-        ${sizeClasses}
-        ${tierStyles.bg} ${tierStyles.border} border-2
-        ${isHovered && !isDisabled ? `${tierStyles.glow} scale-105` : ''}
-        ${isDisabled ? 'opacity-60 cursor-not-allowed' : draggable ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'}
-        ${isTokenHovering ? 'ring-4 ring-primary-green-500' : ''}
+        ${sizeClasses.container}
+        border-2 ${tierStyles.border}
+        ${tierStyles.bg} ${tierStyles.glow}
+        ${isDisabled ? 'opacity-60 cursor-not-allowed' : 'cursor-grab active:cursor-grabbing hover:scale-105'}
+        ${isTokenHovering ? 'ring-4 ring-primary-green-500 scale-105' : ''}
         ${className}
       `}
-      draggable={draggable && !isDisabled}
+      draggable={!isDisabled && draggable}
       onDragStart={onDragStart}
+      onDrop={handleDrop}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
-      onDrop={handleDrop}
+      onClick={onClick}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      onClick={onClick}
+      onMouseMove={(e) => setTooltipPosition({ x: e.clientX, y: e.clientY })}
     >
-      {/* Game Status Badge */}
-      {getGameStatusBadge()}
+      {/* Lock Badge */}
+      {isLocked && (
+        <div className="absolute top-2 left-2 z-20">
+          <div className="px-2 py-1 bg-red-600 rounded-md shadow-lg flex items-center gap-1">
+            <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+            </svg>
+            <span className="text-white text-[10px] font-bold">LOCKED</span>
+          </div>
+        </div>
+      )}
 
-      {/* Player Content */}
-      <div className="p-4 h-full flex flex-col">
-        {/* Header: Position & Team */}
-        <div className="flex items-center justify-between mb-3">
-          <span className={`px-2 py-1 ${tierStyles.badge} rounded text-xs font-bold`}>
-            {player.player_card.position === 'Quarterback' ? 'QB' :
-             player.player_card.position === 'Running Back' ? 'RB' :
-             player.player_card.position === 'Wide Receiver' ? 'WR' :
-             player.player_card.position === 'Tight End' ? 'TE' : player.player_card.position}
-          </span>
-          <span className="text-xs text-primary-black-300 font-semibold">
-            {player.player_card.team_abbreviation}
-          </span>
+      {/* Game Status Badge */}
+      {!isLocked && getGameStatusBadge()}
+
+      {/* Card Header */}
+      <div className="p-3 pb-2">
+        <div className="flex items-start justify-between mb-2">
+          <div className="flex-1 min-w-0">
+            <h3 className={`font-bold ${tierStyles.text} truncate ${sizeClasses.text}`}>
+              {player.player_card.player_name}
+            </h3>
+            <div className="flex items-center gap-1 mt-0.5">
+              <span className={`${sizeClasses.badge} ${tierStyles.badge} rounded font-semibold`}>
+                {player.player_card.team_abbreviation}
+              </span>
+              <span className={`${sizeClasses.badge} bg-primary-black-700 text-primary-black-300 rounded font-semibold`}>
+                {player.player_card.position === 'Quarterback' ? 'QB' :
+                 player.player_card.position === 'Running Back' ? 'RB' :
+                 player.player_card.position === 'Wide Receiver' ? 'WR' : 'TE'}
+              </span>
+            </div>
+          </div>
         </div>
 
-        {/* Player Name */}
-        <h3 className={`text-lg font-bold ${tierStyles.text} mb-1 truncate`}>
-          {player.player_card.player_name}
-        </h3>
-
-        {/* Tier & Level */}
-        <div className="flex items-center gap-2 mb-3">
-          <span className={`text-xs ${getTierInfo(player.card_tier, player.card_level).color} font-semibold`}>
-            {getTierInfo(player.card_tier, player.card_level).emoji} {getTierInfo(player.card_tier, player.card_level).name}
+        {/* Tier Badge */}
+        <div className="flex items-center gap-1 mb-2">
+          <span className={`text-xs ${getTierInfo(player.card_tier, player.card_level).color}`}>
+            {getTierInfo(player.card_tier, player.card_level).emoji}
           </span>
-          <span className="text-xs text-primary-black-400">
+          <span className={`text-[10px] font-semibold ${getTierInfo(player.card_tier, player.card_level).color}`}>
+            {getTierInfo(player.card_tier, player.card_level).name}
+          </span>
+          <span className="text-[10px] text-primary-black-500 font-semibold">
             Lv.{player.card_level || 1}
           </span>
         </div>
 
-        {/* Stats Section */}
+        {/* Stats */}
         {showStats && (
-          <div className="space-y-2 mt-auto">
-            {/* Projected Points */}
-            {projection && projection.projected > 0 && (
-              <div className="flex justify-between items-center text-xs">
-                <span className="text-primary-black-400">Projected:</span>
-                <span className="text-primary-green-400 font-bold">
-                  {projection.projected.toFixed(1)} pts
+          <div className="space-y-1">
+            {projection?.projected > 0 && (
+              <div className="flex justify-between items-center">
+                <span className={`${sizeClasses.stats} text-primary-black-400`}>Proj</span>
+                <span className={`${sizeClasses.stats} font-bold text-primary-black-300`}>
+                  {projection.projected.toFixed(1)}
                 </span>
               </div>
             )}
-
-            {/* Live/Final Score */}
-            {gameData && (gameData.gameStatus === 'live' || gameData.gameStatus === 'halftime' || gameData.gameStatus === 'final') && (
-              <div className="flex justify-between items-center text-xs">
-                <span className="text-primary-black-400">Score:</span>
-                <span className="text-white font-bold">
-                  {gameData.currentPoints?.toFixed(1) || '0.0'} pts
+            {gameData?.currentPoints !== undefined && (
+              <div className="flex justify-between items-center">
+                <span className={`${sizeClasses.stats} text-primary-black-400`}>Pts</span>
+                <span className={`${sizeClasses.stats} font-bold text-white`}>
+                  {gameData.currentPoints.toFixed(1)}
                 </span>
               </div>
             )}
-
-            {/* Season Average */}
-            {projection && projection.seasonAvg > 0 && (
-              <div className="flex justify-between items-center text-xs">
-                <span className="text-primary-black-400">Season Avg:</span>
-                <span className="text-primary-black-300 font-semibold">
-                  {projection.seasonAvg.toFixed(1)} pts
-                </span>
-              </div>
-            )}
-
-            {/* Total Points */}
-            {player.total_fantasy_points > 0 && (
-              <div className="flex justify-between items-center text-xs">
-                <span className="text-primary-black-400">Total:</span>
-                <span className="text-primary-black-300 font-semibold">
-                  {player.total_fantasy_points.toFixed(1)} pts
+            {projection?.seasonAvg > 0 && (
+              <div className="flex justify-between items-center">
+                <span className={`${sizeClasses.stats} text-primary-black-400`}>Avg</span>
+                <span className={`${sizeClasses.stats} font-semibold text-primary-black-300`}>
+                  {projection.seasonAvg.toFixed(1)}
                 </span>
               </div>
             )}
           </div>
         )}
+      </div>
 
-        {/* Applied Token */}
-        {appliedToken && (
-          <div className="mt-3 p-2 bg-primary-green-500/20 border border-primary-green-500 rounded flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-lg">💎</span>
-              <div>
-                <div className="text-xs font-semibold text-primary-green-400">
-                  {appliedToken.token_card.token_name}
-                </div>
-                <div className="text-[10px] text-primary-black-400">
-                  +{appliedToken.token_card.bonus_points} pts
-                </div>
-              </div>
+      {/* Applied Token */}
+      {appliedToken && (
+        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-primary-green-900/90 to-transparent p-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1 flex-1 min-w-0">
+              <span className="text-xs">💎</span>
+              <span className="text-[10px] text-primary-green-300 font-semibold truncate">
+                {appliedToken.token_card.token_name}
+              </span>
             </div>
-            {onRemoveToken && !isLocked && (
+            {onRemoveToken && (
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   onRemoveToken(player);
                 }}
-                className="text-xs text-red-400 hover:text-red-300"
+                className="ml-1 px-1.5 py-0.5 bg-red-600 hover:bg-red-500 rounded text-white text-[10px] font-bold transition-colors flex-shrink-0"
               >
                 ✕
               </button>
             )}
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Add Token Button (when no token applied) */}
-        {!appliedToken && onAddToken && !isLocked && (
+      {/* Add Token Button (if no token applied) */}
+      {!appliedToken && onAddToken && !isLocked && (
+        <div className="absolute bottom-2 right-2">
           <button
             onClick={(e) => {
               e.stopPropagation();
               onAddToken(player);
             }}
-            className="mt-3 w-full py-2 bg-primary-green-500/20 border border-primary-green-500/50 rounded text-xs font-semibold text-primary-green-400 hover:bg-primary-green-500/30 transition-colors"
+            className="w-6 h-6 bg-primary-green-600 hover:bg-primary-green-500 rounded-full flex items-center justify-center text-white text-xs font-bold transition-colors shadow-lg"
           >
-            + Add Token
+            +
           </button>
-        )}
-      </div>
+        </div>
+      )}
+
+      {/* Hover Tooltip */}
+      {isHovered && projection && (
+        <div 
+          className="fixed z-50 bg-primary-black-900 border-2 border-primary-green-500 rounded-lg p-3 shadow-xl pointer-events-none"
+          style={{
+            left: `${tooltipPosition.x + 10}px`,
+            top: `${tooltipPosition.y + 10}px`,
+            maxWidth: '200px'
+          }}
+        >
+          <div className="text-sm font-bold text-primary-black-50 mb-2">
+            {player.player_card.player_name}
+          </div>
+          <div className="space-y-1 text-xs">
+            {projection.projected > 0 && (
+              <div className="flex justify-between">
+                <span className="text-primary-black-400">Projected:</span>
+                <span className="text-primary-green-400 font-bold">{projection.projected.toFixed(1)}</span>
+              </div>
+            )}
+            {projection.seasonAvg > 0 && (
+              <div className="flex justify-between">
+                <span className="text-primary-black-400">Season Avg:</span>
+                <span className="text-primary-black-300">{projection.seasonAvg.toFixed(1)}</span>
+              </div>
+            )}
+            {projection.gamesPlayed > 0 && (
+              <div className="flex justify-between">
+                <span className="text-primary-black-400">Games:</span>
+                <span className="text-primary-black-300">{projection.gamesPlayed}</span>
+              </div>
+            )}
+            {gameData?.opponent && (
+              <div className="flex justify-between">
+                <span className="text-primary-black-400">Opponent:</span>
+                <span className="text-primary-black-300">
+                  {gameData.isHome ? '' : '@'}{gameData.opponent}
+                </span>
+              </div>
+            )}
+            {projection.injuryStatus && projection.injuryStatus !== 'Active' && (
+              <div className="mt-2 pt-2 border-t border-primary-black-700">
+                <span className="text-red-400 font-semibold">⚠️ {projection.injuryStatus}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
