@@ -49,130 +49,151 @@ export default function PlayerCard({
     const styles = {
       base: {
         border: 'border-gray-600',
-        bg: 'bg-gray-900/30',
+        bg: 'bg-gray-800/50',
         text: 'text-gray-400',
-        glow: 'shadow-md shadow-gray-500/10',
+        glow: '',
         badge: 'bg-gray-600 text-gray-100'
       },
       role_player: {
-        border: 'border-green-500',
-        bg: 'bg-green-900/30',
-        text: 'text-green-400',
-        glow: 'shadow-lg shadow-green-500/20',
-        badge: 'bg-green-600 text-green-100'
-      },
-      starter: {
         border: 'border-blue-500',
         bg: 'bg-blue-900/30',
         text: 'text-blue-400',
-        glow: 'shadow-lg shadow-blue-500/30',
+        glow: 'shadow-lg shadow-blue-500/20',
         badge: 'bg-blue-600 text-blue-100'
       },
-      all_star: {
+      starter: {
         border: 'border-purple-500',
         bg: 'bg-purple-900/30',
         text: 'text-purple-400',
         glow: 'shadow-lg shadow-purple-500/30',
         badge: 'bg-purple-600 text-purple-100'
       },
+      all_star: {
+        border: 'border-orange-500',
+        bg: 'bg-orange-900/30',
+        text: 'text-orange-400',
+        glow: 'shadow-lg shadow-orange-500/30',
+        badge: 'bg-orange-600 text-orange-100'
+      },
       elite: {
         border: 'border-yellow-500',
         bg: 'bg-yellow-900/30',
         text: 'text-yellow-400',
-        glow: 'shadow-xl shadow-yellow-500/40',
-        badge: 'bg-yellow-600 text-yellow-100'
+        glow: 'shadow-xl shadow-yellow-500/40 animate-pulse',
+        badge: 'bg-gradient-to-r from-yellow-600 to-orange-600 text-yellow-100 font-bold'
       }
     };
-    
     return styles[tier] || styles.base;
   };
 
   // Get tier styling and display info
   const getTierInfo = (tier, level) => {
-    const tierInfo = {
+    const tiers = {
       base: {
         name: 'Base',
         color: 'text-gray-400',
         bgColor: 'bg-gray-700',
-        borderColor: 'border-gray-500',
+        borderColor: 'border-gray-600',
         emoji: '⚪',
         range: 'L1-2'
       },
       role_player: {
         name: 'Role Player',
-        color: 'text-green-400',
-        bgColor: 'bg-green-700',
-        borderColor: 'border-green-500',
-        emoji: '🟢',
-        range: 'L3-4'
-      },
-      starter: {
-        name: 'Starter',
         color: 'text-blue-400',
         bgColor: 'bg-blue-700',
         borderColor: 'border-blue-500',
         emoji: '🔵',
-        range: 'L5-6'
+        range: 'L3-4'
       },
-      all_star: {
-        name: 'All-Star',
+      starter: {
+        name: 'Starter',
         color: 'text-purple-400',
         bgColor: 'bg-purple-700',
         borderColor: 'border-purple-500',
         emoji: '🟣',
+        range: 'L5-6'
+      },
+      all_star: {
+        name: 'All-Star',
+        color: 'text-orange-400',
+        bgColor: 'bg-orange-700',
+        borderColor: 'border-orange-500',
+        emoji: '⭐',
         range: 'L7-8'
       },
       elite: {
         name: 'Elite',
         color: 'text-yellow-400',
-        bgColor: 'bg-yellow-700',
+        bgColor: 'bg-gradient-to-r from-yellow-600 to-orange-600',
         borderColor: 'border-yellow-500',
-        emoji: '⭐',
+        emoji: '👑',
         range: 'L9-10'
       }
     };
-
-    return tierInfo[tier] || tierInfo.base;
+    return tiers[tier] || tiers.base;
   };
 
   // Get game status badge
   const getGameStatusBadge = () => {
-    if (!gameData) return null;
-
-    const status = gameData.gameStatus?.toLowerCase();
-    
-    if (status === 'live' || status === 'halftime') {
+    // If no game data, player is on BYE
+    if (!gameData) {
       return (
-        <div className="absolute top-2 right-2 z-10">
-          <div className="flex items-center gap-1 px-2 py-1 bg-red-600 rounded-md shadow-lg animate-pulse">
-            <div className="w-2 h-2 bg-white rounded-full animate-ping"></div>
-            <span className="text-white text-xs font-bold">LIVE</span>
-          </div>
-        </div>
-      );
-    }
-    
-    if (status === 'final') {
-      return (
-        <div className="absolute top-2 right-2 z-10">
-          <div className="px-2 py-1 bg-green-600 rounded-md shadow-lg">
-            <span className="text-white text-xs font-bold">FINAL</span>
-          </div>
+        <div className="absolute top-2 right-2 bg-primary-black-700 text-primary-black-300 px-2 py-1 rounded text-xs font-bold">
+          BYE
         </div>
       );
     }
 
-    if (gameData.gameStartTime) {
-      const gameTime = new Date(gameData.gameStartTime);
-      const dayOfWeek = gameTime.toLocaleDateString('en-US', { weekday: 'short' });
-      const time = gameTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+    const { gameStatus, gameStartTime } = gameData;
+
+    // LIVE or HALFTIME
+    if (gameStatus === 'live' || gameStatus === 'halftime') {
+      return (
+        <div className="absolute top-2 right-2 flex items-center gap-1 bg-red-600 text-white px-2 py-1 rounded-full text-xs font-bold animate-pulse">
+          <span className="w-2 h-2 bg-white rounded-full animate-ping"></span>
+          <span>LIVE</span>
+        </div>
+      );
+    }
+
+    // FINAL
+    if (gameStatus === 'final') {
+      return (
+        <div className="absolute top-2 right-2 flex items-center gap-1 bg-green-600 text-white px-2 py-1 rounded-full text-xs font-bold">
+          <span>✓</span>
+          <span>FINAL</span>
+        </div>
+      );
+    }
+
+    // SCHEDULED
+    if (gameStatus === 'scheduled') {
+      const startTime = new Date(gameStartTime);
+      const now = new Date();
+      const diffMs = startTime - now;
+      const diffMins = Math.floor(diffMs / 60000);
+      
+      // Starts soon (within 1 hour)
+      if (diffMins > 0 && diffMins <= 60) {
+        return (
+          <div className="absolute top-2 right-2 flex items-center gap-1 bg-yellow-600 text-white px-2 py-1 rounded-full text-xs font-bold">
+            <span>⏱</span>
+            <span>{diffMins}m</span>
+          </div>
+        );
+      }
+
+      // Upcoming
+      const dayStr = startTime.toLocaleDateString('en-US', { weekday: 'short' });
+      const timeStr = startTime.toLocaleTimeString('en-US', { 
+        hour: 'numeric', 
+        minute: '2-digit',
+        hour12: true 
+      });
       
       return (
-        <div className="absolute top-2 right-2 z-10">
-          <div className="px-2 py-1 bg-primary-black-700 rounded-md shadow-lg">
-            <div className="text-white text-[10px] font-bold text-center">{dayOfWeek}</div>
-            <div className="text-white text-[10px] font-semibold">{time}</div>
-          </div>
+        <div className="absolute top-2 right-2 bg-primary-black-700 text-primary-black-300 px-2 py-1 rounded text-xs">
+          {dayStr} {timeStr}
         </div>
       );
     }
@@ -182,33 +203,30 @@ export default function PlayerCard({
 
   // Get size classes
   const getSizeClasses = () => {
-    switch (size) {
-      case 'small':
-        return {
-          container: 'w-32 h-40',
-          text: 'text-xs',
-          badge: 'text-[8px] px-1',
-          icon: 'w-3 h-3',
-          stats: 'text-[10px]'
-        };
-      case 'large':
-        return {
-          container: 'w-44 h-56',
-          text: 'text-base',
-          badge: 'text-xs px-2',
-          icon: 'w-5 h-5',
-          stats: 'text-sm'
-        };
-      case 'medium':
-      default:
-        return {
-          container: 'w-36 h-48',
-          text: 'text-sm',
-          badge: 'text-[10px] px-1.5',
-          icon: 'w-4 h-4',
-          stats: 'text-xs'
-        };
-    }
+    const sizes = {
+      small: {
+        container: 'p-2 pb-2',
+        name: 'text-sm',
+        stats: 'text-xs',
+        badge: 'text-[10px] px-1 py-0.5',
+        spacing: 'space-y-1'
+      },
+      medium: {
+        container: 'p-4',
+        name: 'text-base',
+        stats: 'text-sm',
+        badge: 'text-xs px-2 py-1',
+        spacing: 'space-y-1'
+      },
+      large: {
+        container: 'p-6',
+        name: 'text-lg',
+        stats: 'text-base',
+        badge: 'text-sm px-3 py-1',
+        spacing: 'space-y-2'
+      }
+    };
+    return sizes[size] || sizes.medium;
   };
 
   const tierStyles = getTierStyles(player.card_tier || 'base');
@@ -216,48 +234,66 @@ export default function PlayerCard({
   const isDisabled = isLocked || !draggable;
 
   const handleDragOver = (e) => {
-    if (isDisabled || !onTokenDrop) return;
-    e.preventDefault();
-    setIsTokenHovering(true);
+    try {
+      // Check if there's a dragged token from the global state
+      const isTokenDrag = window.currentDraggedToken || false;
+      
+      console.log('🎯 PlayerCard dragOver - isTokenDrag:', !!isTokenDrag, 'isLocked:', isLocked, 'player:', player?.player_card?.player_name);
+      console.log('🎯 PlayerCard dragOver - onTokenDrop exists:', !!onTokenDrop);
+      
+      if (!isLocked && onTokenDrop && isTokenDrag) {
+        console.log('🎯 PlayerCard: Allowing token drop on', player?.player_card?.player_name);
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'copy';
+        setIsTokenHovering(true);
+      } else {
+        console.log('🎯 PlayerCard: Drop NOT allowed - isLocked:', isLocked, 'onTokenDrop:', !!onTokenDrop, 'isTokenDrag:', !!isTokenDrag);
+        setIsTokenHovering(false);
+      }
+    } catch (err) {
+      console.error('🎯 PlayerCard dragOver error:', err);
+      setIsTokenHovering(false);
+      // Ignore errors during drag over
+    }
   };
 
   const handleDragLeave = (e) => {
-    if (isDisabled) return;
-    setIsTokenHovering(false);
+    // Only clear hover state if actually leaving the card
+    if (!e.currentTarget.contains(e.relatedTarget)) {
+      setIsTokenHovering(false);
+    }
   };
 
   const handleDrop = (e) => {
-    if (isDisabled) return;
-    e.preventDefault();
-    e.stopPropagation();
-    
     setIsTokenHovering(false);
     
-    if (onTokenDrop) {
-      try {
-        const tokenData = e.dataTransfer.getData('application/json');
-        if (tokenData) {
-          const token = JSON.parse(tokenData);
-          onTokenDrop(player, token);
-        }
-      } catch (err) {
-        console.error('Error handling token drop:', err);
+    try {
+      const dragData = e.dataTransfer.getData('text/plain');
+      const isTokenDrop = dragData && dragData.startsWith('token:');
+      const isTokenDrag = window.currentDraggedToken || false;
+      
+      console.log('🎯 PlayerCard drop - dragData:', dragData, 'isTokenDrop:', isTokenDrop, 'isTokenDrag:', !!isTokenDrag, 'player:', player?.player_card?.player_name);
+      
+      if (!isLocked && onTokenDrop && (isTokenDrop || isTokenDrag)) {
+        console.log('🎯 PlayerCard: Calling onTokenDrop for player:', player?.player_card?.player_name);
+        e.preventDefault();
+        e.stopPropagation();
+        onTokenDrop(e, player);
+        return;
       }
+    } catch (err) {
+      console.error('🎯 PlayerCard drop error:', err);
+      // Continue with normal drop handling
+    }
+    
+    if (onDrop) {
+      onDrop(e);
     }
   };
 
   return (
-    <div 
-      className={`
-        relative rounded-xl overflow-hidden transition-all duration-300
-        ${sizeClasses.container}
-        border-2 ${tierStyles.border}
-        ${tierStyles.bg} ${tierStyles.glow}
-        ${isDisabled ? 'opacity-60 cursor-not-allowed' : 'cursor-grab active:cursor-grabbing hover:scale-105'}
-        ${isTokenHovering ? 'ring-4 ring-primary-green-500 scale-105' : ''}
-        ${className}
-      `}
-      draggable={!isDisabled && draggable}
+    <div
+      draggable={draggable && !isLocked}
       onDragStart={onDragStart}
       onDrop={handleDrop}
       onDragOver={handleDragOver}
@@ -265,175 +301,237 @@ export default function PlayerCard({
       onClick={onClick}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      onMouseMove={(e) => setTooltipPosition({ x: e.clientX, y: e.clientY })}
+      className={`
+        relative transition-all duration-200 flex flex-col
+        ${size === 'small' ? `border-2 ${tierStyles.border} rounded-lg h-full overflow-visible` : `rounded-lg border-2 ${tierStyles.border} ${tierStyles.bg} overflow-visible`}
+        ${isHovered && !isDisabled ? tierStyles.glow : ''}
+        ${!draggable ? 'cursor-not-allowed' : 'cursor-pointer hover:scale-[1.02]'}
+        ${isTokenHovering ? 'ring-4 ring-primary-green-500 ring-opacity-60 scale-105 shadow-2xl shadow-primary-green-500/50' : ''}
+        ${sizeClasses.container}
+        ${className}
+      `}
     >
-      {/* Lock Badge */}
+      {/* Lock Indicator - Bottom Left Corner */}
       {isLocked && (
-        <div className="absolute top-2 left-2 z-20">
-          <div className="px-2 py-1 bg-red-600 rounded-md shadow-lg flex items-center gap-1">
-            <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
-            </svg>
-            <span className="text-white text-[10px] font-bold">LOCKED</span>
-          </div>
+        <div className={`absolute bottom-1 left-1 ${size === 'small' ? 'text-lg' : 'text-2xl'} z-20 bg-black/60 rounded px-1`}>
+          🔒
         </div>
       )}
 
-      {/* Game Status Badge */}
-      {!isLocked && getGameStatusBadge()}
+      {/* Points Display - Top Right Corner */}
+      <div className="absolute top-2 right-2 z-10">
+        {(() => {
+          // IMPORTANT: Don't render stats until BOTH projection AND gameData are ready
+          // This prevents the flash of showing only projection before gameData loads
+          // For scheduled games (no gameData yet), wait for projection
+          // For live/final games, wait for gameData
+          const hasProjection = projection && projection.projected !== undefined;
+          const hasGameData = gameData !== null && gameData !== undefined;
+          
+          // Only render when we have at least one piece of data
+          if (!hasProjection && !hasGameData) {
+            return null;
+          }
 
-      {/* Card Header */}
-      <div className="p-3 pb-2">
-        <div className="flex items-start justify-between mb-2">
-          <div className="flex-1 min-w-0">
-            <h3 className={`font-bold ${tierStyles.text} truncate ${sizeClasses.text}`}>
-              {player.player_card.player_name}
-            </h3>
-            <div className="flex items-center gap-1 mt-0.5">
-              <span className={`${sizeClasses.badge} ${tierStyles.badge} rounded font-semibold`}>
-                {player.player_card.team_abbreviation}
-              </span>
-              <span className={`${sizeClasses.badge} bg-primary-black-700 text-primary-black-300 rounded font-semibold`}>
-                {player.player_card.position === 'Quarterback' ? 'QB' :
-                 player.player_card.position === 'Running Back' ? 'RB' :
-                 player.player_card.position === 'Wide Receiver' ? 'WR' : 'TE'}
+          const statusLower = gameData?.gameStatus?.toLowerCase() || '';
+          const isFinal = statusLower === 'final';
+          const isLive = statusLower === 'live' || statusLower === 'halftime';
+          const isLiveOrFinal = isLive || isFinal;
+          
+          // For live/final games, wait until we have gameData
+          // This prevents showing projection-only before currentPoints loads
+          if (isLiveOrFinal && !hasGameData) {
+            return null;
+          }
+          
+          // Debug for Darnold
+          if (player.player_card.player_name === 'Sam Darnold') {
+            console.log('🎮 Darnold render - isFinal:', isFinal, 'currentPoints:', gameData?.currentPoints, 'projection:', projection?.projected);
+          }
+          
+          // If game is FINAL, show final points on top, projection below
+          if (isFinal && gameData) {
+            const finalPoints = gameData.currentPoints !== undefined ? gameData.currentPoints : 0;
+            return (
+              <div className="text-center">
+                <div className={`${size === 'small' ? 'text-lg' : 'text-2xl'} text-white font-bold leading-none mb-0.5`}>
+                  {finalPoints.toFixed(1)}
+                </div>
+                {projection && projection.projected !== undefined && (
+                  <div className={`${size === 'small' ? 'text-xs' : 'text-sm'} text-primary-black-400 font-semibold opacity-60`}>
+                    {projection.projected.toFixed(1)}
+                  </div>
+                )}
+              </div>
+            );
+          }
+          
+          // If game is LIVE, show current points on top, projection below
+          if (isLive && gameData && gameData.currentPoints !== undefined) {
+            return (
+              <div className="text-center">
+                <div className={`${size === 'small' ? 'text-lg' : 'text-2xl'} text-white font-bold leading-none mb-0.5`}>
+                  {gameData.currentPoints.toFixed(1)}
+                </div>
+                {projection && projection.projected !== undefined && (
+                  <div className={`${size === 'small' ? 'text-xs' : 'text-sm'} text-primary-green-400 font-semibold`}>
+                    {projection.projected.toFixed(1)}
+                  </div>
+                )}
+              </div>
+            );
+          }
+          
+          // Game is SCHEDULED, show projection only
+          if (projection && projection.projected !== undefined) {
+            return (
+              <div className="text-center">
+                <div className={`${size === 'small' ? 'text-lg' : 'text-2xl'} text-primary-black-500 font-bold leading-none mb-0.5`}>
+                  -
+                </div>
+                <div className={`${size === 'small' ? 'text-xs' : 'text-sm'} text-primary-green-400 font-semibold`}>
+                  {projection.projected.toFixed(1)}
+                </div>
+              </div>
+            );
+          }
+          
+          return null;
+        })()}
+      </div>
+
+      {/* Game Status Badge - Compact (small size only) */}
+      {size === 'small' && (
+        <>
+          {gameData && gameData.gameStatus === 'live' && (
+            <div className="absolute top-1 right-1 w-2 h-2 bg-red-600 rounded-full animate-pulse"></div>
+          )}
+        </>
+      )}
+
+      {/* Spacer to push content to bottom */}
+      <div className="flex-grow min-h-0"></div>
+
+      {/* Token Badge - Above Player Name (Centered) */}
+      <div className="flex-shrink-0 flex justify-center mb-2 pointer-events-none">
+        {appliedToken ? (
+          <div className="relative group pointer-events-auto">
+            {/* Circular Token Badge with Emoji */}
+            <div 
+              className={`${size === 'small' ? 'w-10 h-10' : 'w-12 h-12'} flex items-center justify-center bg-primary-green-500/20 border-2 border-primary-green-500/50 rounded-full transition-all duration-200 cursor-pointer hover:scale-110 hover:border-primary-green-400 relative shadow-lg`}
+            >
+              <span className={`${size === 'small' ? 'text-xl' : 'text-2xl'}`}>
+                {appliedToken.token_card.emoji || '💎'}
               </span>
             </div>
+            
+            {/* Tooltip Popup - Directly below token using absolute positioning */}
+            <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-[9999]">
+              <div className="bg-primary-black-900 border-2 border-primary-green-500 rounded-lg px-3 py-2 shadow-2xl min-w-max max-w-xs">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-base">{appliedToken.token_card.emoji || '💎'}</span>
+                  <span className="text-sm text-primary-green-400 font-bold">
+                    {appliedToken.token_card.token_name}
+                  </span>
+                </div>
+                <div className="text-xs text-primary-green-300 mb-1">
+                  +{appliedToken.token_card.bonus_points} Fantasy Points
+                </div>
+                {appliedToken.token_card.description && (
+                  <div className="text-xs text-primary-black-300 mb-1 leading-tight whitespace-normal">
+                    {appliedToken.token_card.description}
+                  </div>
+                )}
+                {onRemoveToken && !isLocked && (
+                  <div className="text-[10px] text-primary-black-400 mt-1 border-t border-primary-black-700 pt-1">
+                    Click to remove
+                  </div>
+                )}
+              </div>
+              {/* Tooltip Arrow - pointing up */}
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-[1px] w-0 h-0 border-l-4 border-l-transparent border-r-4 border-r-transparent border-b-4 border-b-primary-green-500"></div>
+            </div>
+            
+            {/* Invisible click target for removal */}
+            {onRemoveToken && !isLocked && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRemoveToken(appliedToken.id);
+                }}
+                className="absolute inset-0 z-[50]"
+                aria-label="Remove token"
+              />
+            )}
           </div>
-        </div>
+        ) : (
+          /* Empty Token Slot with + Button */
+          !isLocked && onAddToken && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onAddToken(player);
+              }}
+              className={`${size === 'small' ? 'w-10 h-10' : 'w-12 h-12'} flex items-center justify-center border-2 border-dashed border-primary-black-600 hover:border-primary-green-500 rounded-full transition-all duration-200 cursor-pointer hover:scale-110 bg-primary-black-800/30 hover:bg-primary-green-500/10 group pointer-events-auto`}
+              title="Add token"
+            >
+              <span className={`${size === 'small' ? 'text-xl' : 'text-2xl'} text-primary-black-600 group-hover:text-primary-green-400 font-bold`}>
+                +
+              </span>
+            </button>
+          )
+        )}
+      </div>
 
-        {/* Tier Badge */}
-        <div className="flex items-center gap-1 mb-2">
-          <span className={`text-xs ${getTierInfo(player.card_tier, player.card_level).color}`}>
-            {getTierInfo(player.card_tier, player.card_level).emoji}
-          </span>
-          <span className={`text-[10px] font-semibold ${getTierInfo(player.card_tier, player.card_level).color}`}>
-            {getTierInfo(player.card_tier, player.card_level).name}
-          </span>
-          <span className="text-[10px] text-primary-black-500 font-semibold">
-            Lv.{player.card_level || 1}
-          </span>
+      {/* Bottom Stack - Player Name */}
+      <div className={`flex-shrink-0 ${size === 'small' ? 'mt-1 mb-1 px-1' : 'mt-2 mb-2 px-1'}`}>
+        <div className={`${sizeClasses.name} font-bold text-primary-black-50 text-center leading-tight`}>
+          {(() => {
+            const name = player.player_card.player_name;
+            const parts = name.split(' ');
+            
+            // Always abbreviate first name to initial
+            if (parts.length >= 2) {
+              return `${parts[0][0]}. ${parts.slice(1).join(' ')}`;
+            }
+            return name;
+          })()}
         </div>
-
-        {/* Stats */}
-        {showStats && (
-          <div className="space-y-1">
-            {projection?.projected > 0 && (
-              <div className="flex justify-between items-center">
-                <span className={`${sizeClasses.stats} text-primary-black-400`}>Proj</span>
-                <span className={`${sizeClasses.stats} font-bold text-primary-black-300`}>
-                  {projection.projected.toFixed(1)}
-                </span>
-              </div>
-            )}
-            {gameData?.currentPoints !== undefined && (
-              <div className="flex justify-between items-center">
-                <span className={`${sizeClasses.stats} text-primary-black-400`}>Pts</span>
-                <span className={`${sizeClasses.stats} font-bold text-white`}>
-                  {gameData.currentPoints.toFixed(1)}
-                </span>
-              </div>
-            )}
-            {projection?.seasonAvg > 0 && (
-              <div className="flex justify-between items-center">
-                <span className={`${sizeClasses.stats} text-primary-black-400`}>Avg</span>
-                <span className={`${sizeClasses.stats} font-semibold text-primary-black-300`}>
-                  {projection.seasonAvg.toFixed(1)}
-                </span>
-              </div>
-            )}
+        
+        {/* Tier & Level Badge - Below Name */}
+        {player.card_tier && player.card_level && (
+          <div className="flex items-center justify-center gap-1 mt-1">
+            <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase ${getTierInfo(player.card_tier, player.card_level).bgColor} text-white`}>
+              {getTierInfo(player.card_tier, player.card_level).name.charAt(0)}
+            </span>
+            <span className="text-[10px] text-primary-black-400 font-medium">
+              Level {player.card_level}
+            </span>
           </div>
         )}
       </div>
 
-      {/* Applied Token */}
-      {appliedToken && (
-        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-primary-green-900/90 to-transparent p-2">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1 flex-1 min-w-0">
-              <span className="text-xs">💎</span>
-              <span className="text-[10px] text-primary-green-300 font-semibold truncate">
-                {appliedToken.token_card.token_name}
-              </span>
+      {/* Next Game - Shows game matchup, bye week, or nothing for completed games */}
+      {gameData && gameData.gameStatus === 'scheduled' && gameData.opponent ? (
+        <div className={`${size === 'small' ? 'mb-1' : 'mb-2'} text-center flex-shrink-0`}>
+          {gameData.gameStartTime && (
+            <div className={`${sizeClasses.stats} text-primary-black-400 font-semibold`}>
+              {gameData.isHome ? 'vs' : '@'} {gameData.opponent} · {new Date(gameData.gameStartTime).toLocaleDateString('en-US', { 
+                weekday: 'short'
+              }).toUpperCase()} {new Date(gameData.gameStartTime).toLocaleTimeString('en-US', { 
+                hour: 'numeric',
+                hour12: true 
+              }).replace(' ', '')}
             </div>
-            {onRemoveToken && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onRemoveToken(player);
-                }}
-                className="ml-1 px-1.5 py-0.5 bg-red-600 hover:bg-red-500 rounded text-white text-[10px] font-bold transition-colors flex-shrink-0"
-              >
-                ✕
-              </button>
-            )}
+          )}
+        </div>
+      ) : !gameData ? (
+        <div className={`${size === 'small' ? 'mb-1' : 'mb-2'} text-center flex-shrink-0`}>
+          <div className={`${sizeClasses.stats} text-primary-black-500 font-semibold`}>
+            On Bye Week
           </div>
         </div>
-      )}
-
-      {/* Add Token Button (if no token applied) */}
-      {!appliedToken && onAddToken && !isLocked && (
-        <div className="absolute bottom-2 right-2">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onAddToken(player);
-            }}
-            className="w-6 h-6 bg-primary-green-600 hover:bg-primary-green-500 rounded-full flex items-center justify-center text-white text-xs font-bold transition-colors shadow-lg"
-          >
-            +
-          </button>
-        </div>
-      )}
-
-      {/* Hover Tooltip */}
-      {isHovered && projection && (
-        <div 
-          className="fixed z-50 bg-primary-black-900 border-2 border-primary-green-500 rounded-lg p-3 shadow-xl pointer-events-none"
-          style={{
-            left: `${tooltipPosition.x + 10}px`,
-            top: `${tooltipPosition.y + 10}px`,
-            maxWidth: '200px'
-          }}
-        >
-          <div className="text-sm font-bold text-primary-black-50 mb-2">
-            {player.player_card.player_name}
-          </div>
-          <div className="space-y-1 text-xs">
-            {projection.projected > 0 && (
-              <div className="flex justify-between">
-                <span className="text-primary-black-400">Projected:</span>
-                <span className="text-primary-green-400 font-bold">{projection.projected.toFixed(1)}</span>
-              </div>
-            )}
-            {projection.seasonAvg > 0 && (
-              <div className="flex justify-between">
-                <span className="text-primary-black-400">Season Avg:</span>
-                <span className="text-primary-black-300">{projection.seasonAvg.toFixed(1)}</span>
-              </div>
-            )}
-            {projection.gamesPlayed > 0 && (
-              <div className="flex justify-between">
-                <span className="text-primary-black-400">Games:</span>
-                <span className="text-primary-black-300">{projection.gamesPlayed}</span>
-              </div>
-            )}
-            {gameData?.opponent && (
-              <div className="flex justify-between">
-                <span className="text-primary-black-400">Opponent:</span>
-                <span className="text-primary-black-300">
-                  {gameData.isHome ? '' : '@'}{gameData.opponent}
-                </span>
-              </div>
-            )}
-            {projection.injuryStatus && projection.injuryStatus !== 'Active' && (
-              <div className="mt-2 pt-2 border-t border-primary-black-700">
-                <span className="text-red-400 font-semibold">⚠️ {projection.injuryStatus}</span>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+      ) : null}
     </div>
   );
 }
