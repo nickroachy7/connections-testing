@@ -82,6 +82,79 @@ export async function teamManagerLoader({ params }) {
   }
 }
 
+// View Team loader - for viewing any team (not just owned teams)
+export async function viewTeamLoader({ params }) {
+  try {
+    const user = await requireAuth();
+    
+    const [profile, teams] = await Promise.all([
+      loadUserProfile(user.id),
+      getUserTeams(user.id)
+    ]);
+    
+    // Get the team being viewed (might not belong to current user)
+    let viewedTeam = null;
+    if (params.teamId) {
+      const { data: teamData, error: teamError } = await supabase
+        .from('teams')
+        .select(`
+          *,
+          user:users(
+            id,
+            username,
+            avatar_url
+          )
+        `)
+        .eq('id', params.teamId)
+        .single();
+      
+      if (teamError) {
+        console.error('Error loading team:', teamError);
+        throw redirect('/fantasy');
+      }
+      
+      viewedTeam = teamData;
+    }
+    
+    if (!viewedTeam) {
+      throw redirect('/fantasy');
+    }
+    
+    // Load inventory for the viewed team
+    const { data: inventoryData, error: inventoryError } = await supabase
+      .from('user_player_inventory')
+      .select(`
+        *,
+        player_card:player_cards(*)
+      `)
+      .eq('team_id', params.teamId);
+    
+    console.log('🔍 viewTeamLoader - Inventory query result:', {
+      teamId: params.teamId,
+      inventoryCount: inventoryData?.length,
+      hasError: !!inventoryError,
+      error: inventoryError,
+      firstPlayer: inventoryData?.[0]
+    });
+    
+    if (inventoryError) {
+      console.error('Error loading inventory:', inventoryError);
+    }
+    
+    const inventory = {
+      players: inventoryData || [],
+      tokens: [] // Can add token loading if needed
+    };
+    
+    return { user, profile, teams, activeTeam: viewedTeam, inventory };
+  } catch (error) {
+    // If it's already a redirect, re-throw it
+    if (error instanceof Response) throw error;
+    console.error('ViewTeam loader error:', error);
+    return { user: null, profile: null, teams: [], activeTeam: null, inventory: { players: [], tokens: [] } };
+  }
+}
+
 // Players loader
 export async function playersLoader({ request }) {
   const url = new URL(request.url);

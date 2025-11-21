@@ -227,14 +227,11 @@ export default function InventoryPanel({
             <div className="flex items-center justify-between gap-6">
               {/* Title */}
               <div className="flex-shrink-0">
-                <h3 className="text-xl font-bold text-primary-black-50">
+                <h1 className="text-xl font-bold text-primary-black-50">
                   Inventory
-                </h3>
+                </h1>
                 <p className="text-xs text-primary-black-400 mt-0.5">
-                  <span className="font-medium text-primary-black-500">Roster:</span>{' '}
-                  <span className="font-bold text-primary-black-400">
-                    {inventory ? getRosterCount(inventory) : (players.length + tokens.length)}/{ROSTER_LIMIT}
-                  </span>
+                  Roster: {inventory ? getRosterCount(inventory) : (players.length + tokens.length)}/{ROSTER_LIMIT}
                 </p>
               </div>
 

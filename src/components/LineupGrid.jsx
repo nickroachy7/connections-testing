@@ -240,11 +240,13 @@ export default function LineupGrid({
              ${!player ? 'pointer-events-auto' : ''}
            `}
         >
-          {/* Position Label */}
+          {/* Position Label - Only show when player is added */}
           <div className="absolute top-2 left-2 right-2 flex items-center justify-center">
-            <span className="text-xs font-bold text-primary-black-400 uppercase tracking-wide absolute left-0">
-              {posAbbr}
-            </span>
+            {player && (
+              <span className="text-xs font-bold text-primary-black-400 uppercase tracking-wide absolute left-0">
+                {posAbbr}
+              </span>
+            )}
             {/* Remove button - centered at top */}
             {player && !isLocked && (
               <button
@@ -254,11 +256,6 @@ export default function LineupGrid({
               >
                 ×
               </button>
-            )}
-            {!player && availableCount > 0 && (
-              <span className="text-xs text-primary-green-400 font-semibold absolute right-0">
-                {availableCount}
-              </span>
             )}
           </div>
 
@@ -284,21 +281,20 @@ export default function LineupGrid({
               </div>
              ) : (
                <>
-                 <div className="flex flex-col items-center justify-center h-full text-center p-3">
-                   <div className={`text-3xl mb-2 transition-opacity ${isFilteredSlot ? 'opacity-70 animate-pulse' : 'opacity-40'}`}>
-                     {slot.key === 'QB' ? '🏈' : slot.key.startsWith('RB') ? '🏃' : slot.key.startsWith('WR') ? '🙌' : slot.key === 'TE' ? '💪' : '⭐'}
-                   </div>
-                   <p className={`text-xs mb-3 px-2 font-semibold ${isFilteredSlot ? 'text-primary-green-400' : 'text-primary-black-500'}`}>
-                     {slot.label}
+                 <div className="flex flex-col items-center justify-center h-full text-center gap-2">
+                   {/* Position Label */}
+                   <p className={`text-base font-bold ${isFilteredSlot ? 'text-primary-green-400 animate-pulse' : 'text-primary-black-400'}`}>
+                     {slot.key}
                    </p>
                    
-                   {/* Click to add button - Hidden when this slot is being filtered */}
+                   {/* Add Button - Hidden when this slot is being filtered */}
                    {onClickToAdd && !isFilteredSlot && (
                      <button
                        onClick={() => onClickToAdd(slot.key)}
-                       className="px-3 py-1.5 bg-primary-green-500/20 hover:bg-primary-green-500/30 border border-primary-green-500/50 text-primary-green-400 rounded-lg text-xs font-semibold transition-all hover:scale-105"
+                       className="w-6 h-6 bg-primary-black-700 hover:bg-primary-black-600 border border-primary-black-500 text-primary-black-300 hover:text-primary-black-100 rounded-full text-base font-light transition-all hover:scale-110 flex items-center justify-center"
+                       title={`Add ${slot.label}`}
                      >
-                       + Add
+                       +
                      </button>
                    )}
                    

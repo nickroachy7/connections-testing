@@ -161,6 +161,11 @@ export default function PackShop() {
     <>
       {/* Main Content Section */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
+        {/* Page Header */}
+        <div className="bg-primary-black-900 border-2 border-primary-black-700 rounded-xl mb-4 px-4 py-4 mt-6">
+          <h1 className="text-xl font-bold text-primary-black-50">Pack Shop</h1>
+          <p className="text-xs text-primary-black-400 mt-0.5">Purchase packs to expand your roster</p>
+        </div>
 
         {/* Team Selector Section - Removed */}
 

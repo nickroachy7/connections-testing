@@ -1226,12 +1226,13 @@ export default function Dashboard() {
                         return (
                           <div
                             key={entry.team?.id || `team-${index}`}
+                            onClick={() => !entry.isEmpty && entry.team?.id && navigate(`/teams/${entry.team.id}/view`)}
                             className={`
                               flex items-center gap-3 px-3 py-3 transition-all cursor-pointer
                               hover:bg-primary-green-500/10 border-l-4 border-transparent hover:border-primary-green-500
                               ${index % 2 === 0 ? 'bg-primary-black-900' : 'bg-primary-black-800/50'}
                               ${isCurrentUser ? 'bg-green-900/20 !border-green-500' : ''}
-                              ${entry.isEmpty ? 'opacity-30' : ''}
+                              ${entry.isEmpty ? 'opacity-30 !cursor-default' : ''}
                               ${isEliminated ? 'opacity-40 grayscale' : ''}
                             `}
                           >

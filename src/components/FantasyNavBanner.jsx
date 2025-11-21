@@ -45,14 +45,21 @@ export default function FantasyNavBanner({
   const [bannerTheme, setBannerTheme] = useState('default');
   const colorPickerRef = useRef(null);
 
-  const navItems = [
-    { path: `/teams/${teamId}/dashboard`, label: 'DASHBOARD' },
+  // Check if we're on the view page (read-only mode)
+  const isViewMode = location.pathname.includes('/view');
+
+  const allNavItems = [
     { path: `/teams/${teamId}/starting-lineup`, label: 'STARTING LINEUP' },
-    { path: `/teams/${teamId}/manage-team`, label: 'MANAGE TEAM' },
-    { path: `/teams/${teamId}/leaderboard`, label: 'LEADERBOARD' },
+    { path: `/teams/${teamId}/inventory`, label: 'INVENTORY' },
     { path: `/teams/${teamId}/pack-shop`, label: 'PACK SHOP' },
+    { path: `/teams/${teamId}/leaderboard`, label: 'LEADERBOARD' },
     { path: `/teams/${teamId}/activity`, label: 'ACTIVITY' }
   ];
+
+  // Filter nav items based on view mode
+  const navItems = isViewMode 
+    ? allNavItems.filter(item => item.label === 'STARTING LINEUP' || item.label === 'INVENTORY')
+    : allNavItems;
 
   // Banner theme options
   const themeOptions = [

@@ -8,9 +8,7 @@ import PlayerCard from '../components/PlayerCard';
 import LineupGrid from '../components/LineupGrid';
 import BenchAndTokensPanel from '../components/BenchAndTokensPanel';
 import PlayerSelectionModal from '../components/PlayerSelectionModal';
-import RosterLimitBanner from '../components/RosterLimitBanner';
 import RosterCount from '../components/RosterCount';
-import ContestInfoBanner from '../components/ContestInfoBanner';
 
 // Helper function for baseline projections
 function getBaselineProjection(position) {
@@ -150,6 +148,19 @@ export default function TeamManager() {
   
   // Token filter state - when user clicks + on a player card
   const [tokenFilterPlayerId, setTokenFilterPlayerId] = useState(null);
+  
+  // No players modal state
+  const [noPlayersModal, setNoPlayersModal] = useState({
+    isOpen: false,
+    positionName: ''
+  });
+  
+  // Roster limit modal state
+  const [rosterLimitModal, setRosterLimitModal] = useState({
+    isOpen: false,
+    currentCount: 0,
+    overBy: 0
+  });
   
   // Projections state
   const [projections, setProjections] = useState(new Map());
@@ -579,8 +590,7 @@ export default function TeamManager() {
         limit: 20,
         overBy: totalCount - 20
       });
-      setError(getRosterLimitErrorMessage());
-      setTimeout(() => setError(''), 5000);
+      setRosterLimitModal({ isOpen: true, currentCount: totalCount, overBy: totalCount - 20 });
       setDraggedPlayer(null);
       return;
     }
@@ -1126,6 +1136,37 @@ export default function TeamManager() {
 
   // Handle click-to-add player - now filters bench instead of opening modal
   const handleClickToAdd = (position) => {
+    // Check roster limit first - if over limit, show modal and don't apply filter
+    if (shouldBlockLineupChanges(inventory)) {
+      const playerCount = inventory?.players?.length || 0;
+      const tokenCount = inventory?.tokens?.length || 0;
+      const totalCount = playerCount + tokenCount;
+      setRosterLimitModal({ isOpen: true, currentCount: totalCount, overBy: totalCount - 20 });
+      return;
+    }
+    
+    // Get available players for this position
+    const availablePlayers = getAvailablePlayersForPosition(position);
+    
+    console.log('🎯 handleClickToAdd:', { 
+      position, 
+      availableCount: availablePlayers.length,
+      inventoryPlayerCount: inventory?.players?.length || 0
+    });
+    
+    // If no players available, show notification and suggest pack shop
+    if (!availablePlayers || availablePlayers.length === 0) {
+      const positionName = position === 'QB' ? 'Quarterback' 
+        : position.startsWith('RB') ? 'Running Back'
+        : position.startsWith('WR') ? 'Wide Receiver'
+        : position === 'TE' ? 'Tight End'
+        : 'Flex';
+      
+      console.log('⚠️ No players available for', positionName, '- showing modal');
+      setNoPlayersModal({ isOpen: true, positionName });
+      return;
+    }
+    
     setBenchFilterPosition(position);
     // Scroll to bench section smoothly with centered positioning
     setTimeout(() => {
@@ -1175,8 +1216,10 @@ export default function TeamManager() {
     
     // Check roster limit
     if (shouldBlockLineupChanges(inventory)) {
-      setError(getRosterLimitErrorMessage());
-      setTimeout(() => setError(''), 5000);
+      const playerCount = inventory?.players?.length || 0;
+      const tokenCount = inventory?.tokens?.length || 0;
+      const totalCount = playerCount + tokenCount;
+      setRosterLimitModal({ isOpen: true, currentCount: totalCount, overBy: totalCount - 20 });
       return;
     }
     
@@ -1244,8 +1287,10 @@ export default function TeamManager() {
     
     // Check roster limit
     if (shouldBlockLineupChanges(inventory)) {
-      setError(getRosterLimitErrorMessage());
-      setTimeout(() => setError(''), 5000);
+      const playerCount = inventory?.players?.length || 0;
+      const tokenCount = inventory?.tokens?.length || 0;
+      const totalCount = playerCount + tokenCount;
+      setRosterLimitModal({ isOpen: true, currentCount: totalCount, overBy: totalCount - 20 });
       setPlayerSelectionModal({ isOpen: false, position: null });
       return;
     }
@@ -1549,29 +1594,30 @@ export default function TeamManager() {
 
         {/* Starting Lineup Display Section */}
         <section className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-0 ${error ? 'mt-0' : 'mt-6'}`} aria-label="Starting Lineup">
-          {/* Contest Info Banner */}
-          {activeTeam && (
-            <div className="mb-6">
-              <ContestInfoBanner key={activeTeam.id} team={activeTeam} />
+          {/* Page Header */}
+          <div className="bg-primary-black-900 border-2 border-primary-black-700 rounded-xl mb-4 px-4 py-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-xl font-bold text-primary-black-50">Starting Lineup</h1>
+                <p className="text-xs text-primary-black-400 mt-0.5">Set your Starting Lineup</p>
+              </div>
+              <div className="flex items-center gap-2 text-xs text-primary-black-400">
+                {autoSaving && (
+                  <div className="flex items-center gap-1.5">
+                    <div className="animate-spin h-3 w-3 border-2 border-primary-green-500 border-t-transparent rounded-full"></div>
+                    <span>Saving...</span>
+                  </div>
+                )}
+                {!autoSaving && lastSaved && (
+                  <div className="flex items-center gap-1.5">
+                    <svg className="w-3 h-3 text-primary-green-500" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    <span>All changes saved</span>
+                  </div>
+                )}
+              </div>
             </div>
-          )}
-          
-          {/* Auto-save indicator - subtle and non-intrusive */}
-          <div className="mb-3 flex items-center justify-end gap-2 text-xs text-primary-black-400">
-            {autoSaving && (
-              <div className="flex items-center gap-1.5">
-                <div className="animate-spin h-3 w-3 border-2 border-primary-green-500 border-t-transparent rounded-full"></div>
-                <span>Saving...</span>
-              </div>
-            )}
-            {!autoSaving && lastSaved && (
-              <div className="flex items-center gap-1.5">
-                <svg className="w-3 h-3 text-primary-green-500" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                </svg>
-                <span>All changes saved</span>
-              </div>
-            )}
           </div>
           
           <LineupGrid
@@ -1595,11 +1641,6 @@ export default function TeamManager() {
 
       {/* Bench and Inventory Section - Separate section for reserves */}
       <section aria-label="Bench and Tokens Inventory" className="mt-6">
-        {/* Roster Limit Warning - Above Bench/Tokens */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-6">
-          <RosterLimitBanner inventory={inventory} showDetails={true} />
-        </div>
-        
         {/* Unified Bench and Tokens Panel - Full Width */}
         <BenchAndTokensPanel
           benchPlayers={lineup.BENCH}
@@ -1635,6 +1676,86 @@ export default function TeamManager() {
         projections={projections}
         inventory={inventory}
       />
+
+      {/* No Players Available Modal */}
+      {noPlayersModal.isOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+          <div className="bg-primary-black-800 rounded-2xl max-w-md w-full p-6 border-2 border-primary-black-700 shadow-2xl">
+            {/* Header */}
+            <div className="text-center mb-6">
+              <div className="text-5xl mb-3">📦</div>
+              <h2 className="text-2xl font-bold text-primary-black-50 mb-2">
+                No {noPlayersModal.positionName}s Available
+              </h2>
+              <p className="text-primary-black-400">
+                You don't have any {noPlayersModal.positionName}s in your collection. Visit the Pack Shop to get more players!
+              </p>
+            </div>
+
+            {/* Buttons */}
+            <div className="flex gap-3">
+              <button
+                onClick={() => setNoPlayersModal({ isOpen: false, positionName: '' })}
+                className="flex-1 px-4 py-3 bg-primary-black-700 hover:bg-primary-black-600 text-primary-black-300 rounded-lg font-semibold transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  setNoPlayersModal({ isOpen: false, positionName: '' });
+                  navigate(`/teams/${activeTeam.id}/pack-shop`);
+                }}
+                className="flex-1 px-4 py-3 bg-primary-green-500 hover:bg-primary-green-400 text-primary-black-950 rounded-lg font-semibold transition-colors"
+              >
+                Go to Pack Shop
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Roster Limit Modal */}
+      {rosterLimitModal.isOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+          <div className="bg-primary-black-800 rounded-2xl max-w-md w-full p-6 border-2 border-red-700 shadow-2xl">
+            {/* Header */}
+            <div className="text-center mb-6">
+              <div className="text-5xl mb-3">⚠️</div>
+              <h2 className="text-2xl font-bold text-red-400 mb-2">
+                Roster Over Limit
+              </h2>
+              <p className="text-primary-black-300 mb-4">
+                Your roster is currently <span className="font-bold text-red-400">{rosterLimitModal.currentCount}/20</span> cards
+                {rosterLimitModal.overBy > 0 && (
+                  <span className="text-red-400"> ({rosterLimitModal.overBy} over limit)</span>
+                )}
+              </p>
+              <p className="text-primary-black-400">
+                You must sell cards to get back to 20 or fewer before making lineup changes or applying tokens.
+              </p>
+            </div>
+
+            {/* Buttons */}
+            <div className="flex gap-3">
+              <button
+                onClick={() => setRosterLimitModal({ isOpen: false, currentCount: 0, overBy: 0 })}
+                className="flex-1 px-4 py-3 bg-primary-black-700 hover:bg-primary-black-600 text-primary-black-300 rounded-lg font-semibold transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  setRosterLimitModal({ isOpen: false, currentCount: 0, overBy: 0 });
+                  navigate(`/teams/${activeTeam.id}/inventory`);
+                }}
+                className="flex-1 px-4 py-3 bg-red-600 hover:bg-red-500 text-white rounded-lg font-semibold transition-colors"
+              >
+                Go to Inventory
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

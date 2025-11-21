@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../services/supabase';
+import { useNavigate } from 'react-router-dom';
 import PropTypes from 'prop-types';
 
 /**
@@ -14,6 +15,7 @@ export default function LeaderboardWidget({
   limit = 50,
   defaultSort = 'season'
 }) {
+  const navigate = useNavigate();
   const [leaderboardData, setLeaderboardData] = useState([]);
   const [globalStats, setGlobalStats] = useState(null);
   const [currentWeek, setCurrentWeek] = useState(null);
@@ -240,6 +242,11 @@ export default function LeaderboardWidget({
   const sortedLeaderboard = getSortedLeaderboard();
   const displayedLeaderboard = sortedLeaderboard.slice(0, limit);
 
+  // Handle clicking on a team row to view their dashboard
+  const handleTeamClick = (teamId) => {
+    navigate(`/teams/${teamId}/view`);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-8">
@@ -361,8 +368,9 @@ export default function LeaderboardWidget({
                 return (
                   <div
                     key={entry.team_id}
+                    onClick={() => handleTeamClick(entry.team_id)}
                     className={`
-                      flex items-center gap-4 px-4 py-4 transition-all
+                      flex items-center gap-4 px-4 py-4 transition-all cursor-pointer
                       hover:bg-primary-green-500/10 border-l-4 
                       ${isCurrentUser ? 'border-primary-green-500 bg-primary-green-500/5' : 'border-transparent'}
                       hover:border-primary-green-500

@@ -171,7 +171,7 @@ export default function TeamSelection() {
         .update({ is_active: true })
         .eq('id', teamId)
 
-      navigate(`/teams/${teamId}/dashboard`)
+      navigate(`/teams/${teamId}/starting-lineup`)
     } catch (error) {
       console.error('Error selecting team:', error)
       showError('Failed to select team')

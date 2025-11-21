@@ -10,7 +10,8 @@ import {
   teamManagerLoader,
   playersLoader,
   leaderboardLoader,
-  inventoryLoader
+  inventoryLoader,
+  viewTeamLoader
 } from './utils/loaders'
 
 // Lazy load pages for better performance
@@ -35,6 +36,7 @@ const TeamSelection = lazy(() => import('./pages/TeamSelection'))
 const PackOpening = lazy(() => import('./pages/PackOpening'))
 const SimulatedSeason = lazy(() => import('./pages/SimulatedSeason'))
 const Activity = lazy(() => import('./pages/Activity'))
+const ViewTeam = lazy(() => import('./pages/ViewTeam'))
 
 // Loading fallback component
 function PageLoader() {
@@ -103,6 +105,18 @@ const router = createBrowserRouter([
         path: '/teams/:teamId/open-pack/:packId',
         element: <PackOpening />
       },
+      // View Team Page - Read-only view wrapped in FantasyLayout
+      {
+        path: '/teams/:teamId/view',
+        element: <FantasyLayout />,
+        loader: viewTeamLoader,
+        children: [
+          {
+            index: true,
+            element: <ViewTeam />
+          }
+        ]
+      },
       // Fantasy routes - wrapped in FantasyLayout for persistent banner
       // Now team-specific with :teamId parameter
       {
@@ -111,11 +125,15 @@ const router = createBrowserRouter([
         loader: teamManagerLoader,
         children: [
           {
-            path: 'dashboard',
-            element: <Dashboard />
+            index: true,
+            element: <TeamManager />
           },
           {
-            path: 'manage-team',
+            path: 'starting-lineup',
+            element: <TeamManager />
+          },
+          {
+            path: 'inventory',
             element: <Inventory />
           },
           {
@@ -127,12 +145,20 @@ const router = createBrowserRouter([
             element: <Activity />
           },
           {
-            path: 'starting-lineup',
-            element: <TeamManager />
-          },
-          {
             path: 'leaderboard',
             element: <Leaderboard />
+          },
+          {
+            path: 'dashboard',
+            loader: async () => {
+              return redirect('starting-lineup');
+            }
+          },
+          {
+            path: 'manage-team',
+            loader: async () => {
+              return redirect('inventory');
+            }
           }
         ]
       },

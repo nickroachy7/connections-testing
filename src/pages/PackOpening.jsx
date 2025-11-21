@@ -62,7 +62,7 @@ export default function PackOpening() {
       if (packError) throw packError
       if (!userPack) {
         showError('Pack not found or already opened')
-        navigate(`/teams/${teamId}/dashboard`)
+        navigate(`/teams/${teamId}/starting-lineup`)
         return
       }
 
@@ -78,7 +78,7 @@ export default function PackOpening() {
     } catch (error) {
       console.error('Error loading pack:', error)
       showError('Failed to load pack')
-      navigate(`/teams/${teamId}/dashboard`)
+      navigate(`/teams/${teamId}/starting-lineup`)
     } finally {
       setLoading(false)
     }
@@ -296,8 +296,8 @@ export default function PackOpening() {
       success('Cards added to your collection!')
       revalidator.revalidate()
       
-      // Navigate to dashboard
-      navigate(`/teams/${teamId}/dashboard`)
+      // Navigate to starting lineup
+      navigate(`/teams/${teamId}/starting-lineup`)
     } catch (error) {
       console.error('Error processing tier assignments:', error)
       showError(error.message || 'Failed to save cards')
@@ -327,7 +327,7 @@ export default function PackOpening() {
       }
     } else {
       // Regular pack - just navigate
-      navigate(`/teams/${teamId}/dashboard`);
+      navigate(`/teams/${teamId}/starting-lineup`);
     }
   };
 
@@ -337,7 +337,7 @@ export default function PackOpening() {
   }
 
   const goToDashboard = () => {
-    navigate(`/teams/${teamId}/dashboard`)
+    navigate(`/teams/${teamId}/starting-lineup`)
   }
 
   if (loading) {

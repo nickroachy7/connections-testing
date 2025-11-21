@@ -45,7 +45,7 @@ const Header = () => {
   return (
     <>
       {/* Desktop Sidebar */}
-      <aside className="hidden md:flex fixed left-0 top-0 h-screen w-64 bg-primary-black-900/95 backdrop-blur-md border-r border-primary-black-700 flex-col z-50">
+      <aside className="hidden md:flex fixed left-0 top-0 h-screen w-64 bg-primary-black-900/95 backdrop-blur-md border-r-2 border-primary-black-700 flex-col z-50 shadow-[4px_0_24px_rgba(0,0,0,0.5)]">
         {/* Logo Section */}
         <div className="p-6 border-b border-primary-black-700">
           <Link 
@@ -83,7 +83,7 @@ const Header = () => {
               {teams.map((team) => (
                 <Link
                   key={team.id}
-                  to={`/teams/${team.id}/dashboard`}
+                  to={`/teams/${team.id}/starting-lineup`}
                   className={`block px-3 py-2.5 rounded-lg transition-all duration-200 ${
                     location.pathname.includes(`/teams/${team.id}`)
                       ? 'bg-primary-green-500 text-primary-black-950 font-semibold'
@@ -220,7 +220,7 @@ const Header = () => {
                   {teams.map((team) => (
                     <Link
                       key={team.id}
-                      to={`/teams/${team.id}/dashboard`}
+                      to={`/teams/${team.id}/starting-lineup`}
                       className={`block px-3 py-2.5 rounded-lg ${
                         location.pathname.includes(`/teams/${team.id}`)
                           ? 'bg-primary-green-500 text-primary-black-950'

@@ -18,13 +18,9 @@ export default function Activity() {
     <div className="min-h-screen bg-primary-black-950">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Page Header */}
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-primary-black-50 mb-2">
-            Recent Activity
-          </h1>
-          <p className="text-primary-black-400">
-            Track all your transactions and team activities
-          </p>
+        <div className="bg-primary-black-900 border-2 border-primary-black-700 rounded-xl mb-4 px-4 py-4">
+          <h1 className="text-xl font-bold text-primary-black-50">Activity</h1>
+          <p className="text-xs text-primary-black-400 mt-0.5">Track your recent transactions</p>
         </div>
 
         {/* Recent Activity Feed */}
