@@ -32,6 +32,7 @@ export default function TeamInfoBanner({
       <WeekStatusBar 
         teamId={teamId}
         team={team}
+        losses={losses}
         previewMode={previewMode}
       />
     </>
