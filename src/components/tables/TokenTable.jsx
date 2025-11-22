@@ -55,18 +55,20 @@ const TokenTable = ({
       columns.push('24px'); // Empty/drag handle
     }
     
-    // Core columns - Better left space utilization, middle section unchanged
+    // THREE SECTIONS:
+    // 1. LEFT SECTION (always visible): Icon + Token Info
+    // 2. MIDDLE SECTION (hidden md, shown lg+): Pull% + Sell (with borders as dividers)
+    // 3. RIGHT SECTION (always visible): Bonus
+    
     columns.push(
-      '60px',   // Type badge
-      '60px',   // Icon
-      '220px',  // Token name (reduced to shift middle section left)
-      '20px',   // Divider 1 (spacer)
-      '80px',   // Pull %
-      '80px',   // Sell
-      '80px',   // Tier
-      '20px',   // Divider 2 (spacer)
-      '1fr',    // Description (flexible, takes remaining space)
-      '100px'   // Bonus (aligned)
+      '40px',   // Rarity badge (LEFT SECTION)
+      '50px',   // Token icon (LEFT SECTION)
+      '400px', // Token info (LEFT SECTION) - fixed width for perfect alignment
+      // MIDDLE SECTION (borders serve as dividers)
+      '90px',   // Pull % (fixed width for alignment)
+      '90px',   // Sell (fixed width for alignment)
+      // RIGHT SECTION (always visible)
+      '80px'    // Bonus
     );
     
     return columns.join(' ');
@@ -83,11 +85,11 @@ const TokenTable = ({
       columns.push('20px'); // Empty/drag handle
     }
     
-    // Mobile columns - optimized for information density
+    // Mobile columns - hide Sell, Tier, Pull % - only show essential info
     columns.push(
-      '32px',   // Icon (compact)
+      '32px',   // TK badge (compact)
+      '40px',   // Token icon
       '1fr',    // Token name & description (takes most space)
-      '45px',   // Sell value (compact)
       '50px'    // Bonus (compact)
     );
     
@@ -110,37 +112,33 @@ const TokenTable = ({
 
   return (
     <div className="bg-primary-black-900 border-2 border-primary-black-700 rounded-xl overflow-hidden relative w-full">
-      {/* Vertical Divider Lines - Continuous from top to bottom - ALIGNED WITH PLAYER TABLE */}
-      <div className="absolute top-0 bottom-0 pointer-events-none" style={{ left: 'calc(24px + 60px + 60px + 220px + 8px * 3 + 20px)' }}>
-        <div className="h-full border-r border-primary-black-600"></div>
-      </div>
-      <div className="absolute top-0 bottom-0 pointer-events-none" style={{ left: 'calc(24px + 60px + 60px + 220px + 20px + 80px + 80px + 80px + 8px * 6 + 20px)' }}>
-        <div className="h-full border-r border-primary-black-600"></div>
-      </div>
+      {/* Continuous vertical divider lines - absolute positioned to span full height - SAME position as PlayerTable */}
+      <div className="absolute top-0 bottom-0 hidden lg:block pointer-events-none" style={{ left: 'calc(24px + 8px + 40px + 8px + 50px + 8px + 400px + 8px - 1px)', width: '1px', backgroundColor: 'rgb(64, 64, 64)' }}></div>
+      <div className="absolute top-0 bottom-0 hidden lg:block pointer-events-none" style={{ left: 'calc(24px + 8px + 40px + 8px + 50px + 8px + 400px + 8px + 90px + 8px + 90px + 8px)', width: '1px', backgroundColor: 'rgb(64, 64, 64)' }}></div>
 
-      {/* Header Row - Desktop (compact) */}
+      {/* Header Row - Desktop */}
       <div 
         className="hidden md:grid bg-primary-black-800 border-b border-primary-black-700 py-2 px-2"
         style={{ 
           gridTemplateColumns: gridTemplate,
-          gap: '6px'
+          gap: '8px'
         }}
       >
         {/* Checkbox or Empty column */}
         <span className="text-[10px] font-bold text-primary-black-500 uppercase tracking-wider text-center">
-          {/* Empty - no checkbox symbol in header */}
+          {/* Empty */}
         </span>
         
-        {/* Core headers */}
-        <span className="text-[10px] font-bold text-primary-black-500 uppercase tracking-wider text-center">TYPE</span>
+        {/* LEFT SECTION - always visible */}
+        <span className="text-[10px] font-bold text-primary-black-500 uppercase tracking-wider text-center">TK</span>
         <span className="text-[10px] font-bold text-primary-black-500 uppercase tracking-wider text-center"></span>
         <span className="text-[10px] font-bold text-primary-black-500 uppercase tracking-wider">TOKEN</span>
-        <span className="text-[10px] font-bold text-primary-black-500 uppercase tracking-wider invisible"></span>
-        <span className="text-[10px] font-bold text-primary-black-500 uppercase tracking-wider text-center">PULL %</span>
-        <span className="text-[10px] font-bold text-primary-black-500 uppercase tracking-wider text-center">SELL</span>
-        <span className="text-[10px] font-bold text-primary-black-500 uppercase tracking-wider text-center">TIER</span>
-        <span className="text-[10px] font-bold text-primary-black-500 uppercase tracking-wider invisible"></span>
-        <span className="text-[10px] font-bold text-primary-black-500 uppercase tracking-wider">DESCRIPTION</span>
+        
+        {/* MIDDLE SECTION - hidden on md, shown on lg (continuous borders via absolute divs) */}
+        <span className="hidden lg:flex items-center justify-center text-[10px] font-bold text-primary-black-500 uppercase tracking-wider">PULL %</span>
+        <span className="hidden lg:flex items-center justify-center text-[10px] font-bold text-primary-black-500 uppercase tracking-wider">SELL</span>
+        
+        {/* RIGHT SECTION - always visible */}
         <span className="text-[10px] font-bold text-primary-black-500 uppercase tracking-wider text-center">BONUS</span>
         
         {/* Custom headers */}
@@ -157,8 +155,8 @@ const TokenTable = ({
       >
         <span className="text-[9px] font-bold text-primary-black-500 uppercase tracking-wide text-center"></span>
         <span className="text-[9px] font-bold text-primary-black-500 uppercase tracking-wide text-center"></span>
+        <span className="text-[9px] font-bold text-primary-black-500 uppercase tracking-wide text-center"></span>
         <span className="text-[9px] font-bold text-primary-black-500 uppercase tracking-wide">TOKEN</span>
-        <span className="text-[9px] font-bold text-primary-black-500 uppercase tracking-wide text-center">SELL</span>
         <span className="text-[9px] font-bold text-primary-black-500 uppercase tracking-wide text-center">BONUS</span>
         {renderExtraHeaderColumns && renderExtraHeaderColumns()}
       </div>
@@ -167,7 +165,7 @@ const TokenTable = ({
       {tokens.map((token, index) => {
         const isLocked = isRowLocked ? isRowLocked(token) : false;
         const defaultClassName = `
-          grid py-3 px-2 transition-all border-l-4 border-transparent
+          grid transition-all border-l-4 border-transparent min-h-[32px] md:min-h-[48px]
           ${
             isLocked
               ? 'cursor-not-allowed opacity-60'
@@ -204,12 +202,10 @@ const TokenTable = ({
               onDragStart={handleDragStart}
               onDragEnd={onRowDragEnd}
               onClick={handleClick}
-              className={`hidden md:grid ${customClassName}`}
+              className={`hidden md:grid items-center ${customClassName} py-2 px-2`}
               style={{
                 gridTemplateColumns: gridTemplate,
-                gap: '6px',
-                alignItems: 'center',
-                padding: '0.5rem 0.5rem'
+                gap: '8px'
               }}
             >
             {/* COLUMN 1: Add Button, Checkbox, or Drag Handle */}
@@ -256,65 +252,58 @@ const TokenTable = ({
               )}
             </div>
             
-            {/* COLUMN 2: Type Badge */}
+            {/* COLUMN 2: Rarity Badge */}
             <div className="flex items-center justify-center">
-              <span className="px-1.5 py-0.5 bg-primary-black-700 text-primary-black-300 rounded text-[10px] font-semibold text-center">
+              <span className="px-2 py-1 bg-primary-black-700 text-primary-black-400 rounded text-xs font-bold">
                 TK
               </span>
             </div>
-
+            
             {/* COLUMN 3: Token Icon */}
-            <div className={`rounded-md flex items-center justify-center text-xl bg-gradient-to-br ${getTokenRarityColor(token.token_card.rarity)} w-8 h-8`}>
+            <div className={`rounded flex items-center justify-center text-2xl bg-gradient-to-br ${getTokenRarityColor(token.token_card.rarity)} w-12 h-12`}>
               💎
             </div>
 
-            {/* COLUMN 4: Token Name & Type */}
-            <div className="min-w-0">
-              <h4 className="font-bold text-primary-black-50 truncate text-xs">
-                {token.token_card.token_name}
-              </h4>
-              <div className="text-[10px] text-primary-black-500 font-medium uppercase">
-                {token.token_card.token_type}
+            {/* COLUMN 4: Token Info - Name + Type on top, Description below */}
+            <div className="min-w-0 overflow-hidden">
+              {/* Top line: Token Name + Type */}
+              <div className="flex items-center gap-2 mb-1">
+                <h4 className="font-bold text-primary-black-50 truncate text-sm leading-tight">
+                  {token.token_card.token_name}
+                </h4>
+                <span className="px-1.5 py-0.5 bg-primary-black-700 text-primary-black-400 rounded text-[9px] font-semibold uppercase flex-shrink-0">
+                  TK
+                </span>
+              </div>
+              {/* Bottom line: Description */}
+              <div className="text-[11px] text-primary-black-400 leading-tight truncate">
+                {token.token_card.description}
               </div>
             </div>
 
-            {/* COLUMN 5: Spacer (divider 1 is absolute positioned) */}
-            <div></div>
+            {/* COLUMN 4: Divider Left (MIDDLE SECTION - hidden on md, shown on lg) */}
+            {/* Border on Pull% column serves as left divider */}
 
-            {/* COLUMN 6: Pull Percentage */}
-            <div className="text-center">
+            {/* COLUMN 5: Pull % (MIDDLE SECTION - hidden on md, shown on lg) */}
+            <div className="hidden lg:flex items-center justify-center">
               <span className="text-xs font-semibold text-primary-black-400">
                 {token.token_card.pull_percentage ? `${token.token_card.pull_percentage.toFixed(1)}%` : '--'}
               </span>
             </div>
 
-            {/* COLUMN 7: Sell Value */}
-            <div className="text-center">
+            {/* COLUMN 6: Sell Value (MIDDLE SECTION - hidden on md, shown on lg) */}
+            <div className="hidden lg:flex items-center justify-center">
               <span className="text-xs text-primary-black-300 font-semibold">
                 💰 {token.sellValue || 0}
               </span>
             </div>
 
-            {/* COLUMN 8: Tier */}
+            {/* COLUMN 7: Divider Right (MIDDLE SECTION - hidden on md, shown on lg) */}
+            {/* Border on Sell column serves as right divider */}
+
+            {/* COLUMN 8: Bonus (RIGHT SECTION - always visible) */}
             <div className="flex items-center justify-center">
-              <span className="text-xs text-primary-black-600">
-                --
-              </span>
-            </div>
-
-            {/* COLUMN 9: Spacer (divider 2 is absolute positioned) */}
-            <div></div>
-            
-            {/* COLUMN 10: Description (280px - matches OPP+STATUS+PROJ width) */}
-            <div className="min-w-0">
-              <p className="text-xs text-primary-black-400">
-                {token.token_card.description}
-              </p>
-            </div>
-
-            {/* COLUMN 11: Bonus (120px - aligns with PlayerTable SCORE column) */}
-            <div className="text-center">
-              <span className="text-xs font-bold text-primary-green-400">
+              <span className="text-base font-bold text-primary-green-400 leading-tight">
                 +{token.token_card.bonus_points}
               </span>
             </div>
@@ -329,12 +318,12 @@ const TokenTable = ({
               onDragStart={handleDragStart}
               onDragEnd={onRowDragEnd}
               onClick={handleClick}
-              className={`grid md:hidden ${customClassName}`}
+              className={`grid md:hidden ${customClassName} py-2 px-1`}
               style={{ 
                 gridTemplateColumns: mobileGridTemplate,
                 gap: '4px',
                 alignItems: 'center',
-                padding: '0.5rem 0.25rem'
+                minHeight: '56px'
               }}
             >
               {/* COLUMN 1: Add Button or Checkbox */}
@@ -380,28 +369,28 @@ const TokenTable = ({
                 )}
               </div>
 
-              {/* COLUMN 2: Token Icon */}
-              <div className={`rounded flex items-center justify-center text-base bg-gradient-to-br ${getTokenRarityColor(token.token_card.rarity)} w-7 h-7`}>
+              {/* COLUMN 2: TK Badge */}
+              <div className="flex items-center justify-center">
+                <span className="px-1 py-0.5 bg-primary-black-700 text-primary-black-400 rounded text-[9px] font-semibold text-center">
+                  TK
+                </span>
+              </div>
+
+              {/* COLUMN 3: Token Icon */}
+              <div className={`rounded flex items-center justify-center text-lg bg-gradient-to-br ${getTokenRarityColor(token.token_card.rarity)} w-10 h-10`}>
                 💎
               </div>
 
-              {/* COLUMN 3: Token Name with Description */}
+              {/* COLUMN 4: Token Name with Description */}
               <div className="min-w-0">
                 <div className="flex items-center gap-0.5 mb-0.5">
-                  <h4 className="font-bold text-primary-black-50 truncate text-[10px]">
+                  <h4 className="font-bold text-primary-black-50 truncate text-[10px] leading-tight">
                     {token.token_card.token_name}
                   </h4>
                 </div>
                 <p className="text-[8px] text-primary-black-400 truncate leading-tight">
                   {token.token_card.description}
                 </p>
-              </div>
-
-              {/* COLUMN 4: Sell Value */}
-              <div className="text-center">
-                <span className="text-[9px] text-primary-black-300 font-semibold">
-                  {token.sellValue || 0}
-                </span>
               </div>
 
               {/* COLUMN 5: Bonus */}

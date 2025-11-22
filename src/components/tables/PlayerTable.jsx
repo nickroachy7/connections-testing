@@ -60,18 +60,20 @@ const PlayerTable = ({
       columns.push('24px'); // Empty/drag handle
     }
     
-    // Core columns - Better left space utilization, middle section unchanged
+    // THREE SECTIONS:
+    // 1. LEFT SECTION (always visible): Icon + Player Info
+    // 2. MIDDLE SECTION (hidden md, shown lg+): Pull% + Sell (with borders as dividers)
+    // 3. RIGHT SECTION (always visible): Projected + Score
+    
     columns.push(
-      '60px',   // Position badge
-      '60px',   // Icon
-      '220px',  // Player name (reduced to shift middle section left)
-      '20px',   // Divider 1 (spacer)
-      '80px',   // Pull %
-      '80px',   // Sell
-      '80px',   // Tier
-      '20px',   // Divider 2 (spacer)
-      '1fr',    // Game info container (flexible, takes remaining space)
-      '100px'   // Score (aligns with BONUS)
+      '40px',   // Position badge (LEFT SECTION)
+      '50px',   // Player icon (LEFT SECTION)
+      '400px', // Player info (LEFT SECTION) - fixed width for perfect alignment
+      // MIDDLE SECTION (borders serve as dividers)
+      '90px',   // Pull % (fixed width for alignment)
+      '90px',   // Sell (fixed width for alignment)
+      // RIGHT SECTION (always visible)
+      '80px'    // FPTS (combined score/projected)
     );
     
     return columns.join(' ');
@@ -88,12 +90,12 @@ const PlayerTable = ({
       columns.push('20px'); // Empty/drag handle
     }
     
-    // Mobile columns - optimized for information density
+    // Mobile columns - hide Sell, Tier, Pull % - only show essential info
     columns.push(
       '32px',   // Position badge (compact)
-      '1fr',    // Player name + game info (takes most space)
-      '50px',   // Sell value (compact)
-      '55px'    // Score with projected (compact)
+      '40px',   // Player icon
+      '1fr',    // Player name + team + opponent + game time (takes most space)
+      '60px'    // FPTS (combined score/projected)
     );
     
     return columns.join(' ');
@@ -115,46 +117,34 @@ const PlayerTable = ({
 
   return (
     <div className="bg-primary-black-900 border-2 border-primary-black-700 rounded-xl overflow-hidden relative w-full">
-      {/* Vertical Divider Lines - Continuous from top to bottom */}
-      <div className="absolute top-0 bottom-0 pointer-events-none" style={{ left: 'calc(24px + 60px + 60px + 220px + 8px * 3 + 20px)' }}>
-        <div className="h-full border-r border-primary-black-600"></div>
-      </div>
-      <div className="absolute top-0 bottom-0 pointer-events-none" style={{ left: 'calc(24px + 60px + 60px + 220px + 20px + 80px + 80px + 80px + 8px * 6 + 20px)' }}>
-        <div className="h-full border-r border-primary-black-600"></div>
-      </div>
+      {/* Continuous vertical divider lines - absolute positioned to span full height */}
+      <div className="absolute top-0 bottom-0 hidden lg:block pointer-events-none" style={{ left: 'calc(24px + 8px + 40px + 8px + 50px + 8px + 400px + 8px - 1px)', width: '1px', backgroundColor: 'rgb(64, 64, 64)' }}></div>
+      <div className="absolute top-0 bottom-0 hidden lg:block pointer-events-none" style={{ left: 'calc(24px + 8px + 40px + 8px + 50px + 8px + 400px + 8px + 90px + 8px + 90px + 8px)', width: '1px', backgroundColor: 'rgb(64, 64, 64)' }}></div>
 
       {/* Header Row */}
       <div 
-        className="hidden md:grid bg-primary-black-800 border-b border-primary-black-700 py-3 px-2"
+        className="hidden md:grid bg-primary-black-800 border-b border-primary-black-700 py-2 px-2"
         style={{ 
           gridTemplateColumns: gridTemplate,
           gap: '8px'
         }}
       >
-        {/* Desktop headers */}
         {/* Checkbox or Empty column */}
         <span className="text-[10px] font-bold text-primary-black-500 uppercase tracking-wider text-center">
-          {/* Empty - no checkbox symbol in header */}
+          {/* Empty */}
         </span>
         
-        {/* Core headers */}
-        <span className="text-[10px] font-bold text-primary-black-500 uppercase tracking-wider text-center">SLOT</span>
+        {/* LEFT SECTION - always visible */}
+        <span className="text-[10px] font-bold text-primary-black-500 uppercase tracking-wider text-center">POS</span>
         <span className="text-[10px] font-bold text-primary-black-500 uppercase tracking-wider text-center"></span>
         <span className="text-[10px] font-bold text-primary-black-500 uppercase tracking-wider">PLAYER</span>
-        <span className="text-[10px] font-bold text-primary-black-500 uppercase tracking-wider invisible"></span>
-        <span className="text-[10px] font-bold text-primary-black-500 uppercase tracking-wider text-center">PULL %</span>
-        <span className="text-[10px] font-bold text-primary-black-500 uppercase tracking-wider text-center">SELL</span>
-        <span className="text-[10px] font-bold text-primary-black-500 uppercase tracking-wider text-center">TIER</span>
-        <span className="text-[10px] font-bold text-primary-black-500 uppercase tracking-wider invisible"></span>
         
-        {/* Game Info Headers (nested grid matching row structure) */}
-        <div className="grid grid-cols-[90px_1fr_90px] gap-2">
-          <span className="text-[10px] font-bold text-primary-black-500 uppercase tracking-wider">OPP</span>
-          <span className="text-[10px] font-bold text-primary-black-500 uppercase tracking-wider text-center">STATUS</span>
-          <span className="text-[10px] font-bold text-primary-black-500 uppercase tracking-wider text-center">PROJ</span>
-        </div>
+        {/* MIDDLE SECTION - hidden on md, shown on lg (continuous borders via absolute divs) */}
+        <span className="hidden lg:flex items-center justify-center text-[10px] font-bold text-primary-black-500 uppercase tracking-wider">PULL %</span>
+        <span className="hidden lg:flex items-center justify-center text-[10px] font-bold text-primary-black-500 uppercase tracking-wider">SELL</span>
         
-        <span className="text-[10px] font-bold text-primary-black-500 uppercase tracking-wider text-center">SCORE</span>
+        {/* RIGHT SECTION - always visible */}
+        <span className="text-[10px] font-bold text-primary-black-500 uppercase tracking-wider text-center">FPTS</span>
         
         {/* Custom headers */}
         {renderExtraHeaderColumns && renderExtraHeaderColumns()}
@@ -165,14 +155,14 @@ const PlayerTable = ({
         className="grid md:hidden bg-primary-black-800 border-b border-primary-black-700 py-1 px-1"
         style={{ 
           gridTemplateColumns: mobileGridTemplate,
-          gap: '3px'
+          gap: '4px'
         }}
       >
         <span className="text-[9px] font-bold text-primary-black-500 uppercase tracking-wide text-center"></span>
         <span className="text-[9px] font-bold text-primary-black-500 uppercase tracking-wide text-center"></span>
+        <span className="text-[9px] font-bold text-primary-black-500 uppercase tracking-wide text-center"></span>
         <span className="text-[9px] font-bold text-primary-black-500 uppercase tracking-wide">PLAYER</span>
-        <span className="text-[9px] font-bold text-primary-black-500 uppercase tracking-wide text-center">SELL</span>
-        <span className="text-[9px] font-bold text-primary-black-500 uppercase tracking-wide text-center">SCORE</span>
+        <span className="text-[9px] font-bold text-primary-black-500 uppercase tracking-wide text-center">FPTS</span>
         {renderExtraHeaderColumns && renderExtraHeaderColumns()}
       </div>
 
@@ -227,13 +217,11 @@ const PlayerTableRow = ({
   isSelectedForAction
 }) => {
   const defaultClassName = `
-    grid py-3 px-2 md:py-3 md:px-2 transition-all border-l-4
+    grid py-0.5 px-1 md:py-2 md:px-2 transition-all border-l-4 min-h-[32px] md:min-h-[48px]
     ${isLocked ? 'cursor-not-allowed opacity-60 bg-red-900/20 border-red-500/50' : 'cursor-move hover:bg-primary-green-500/10 hover:border-primary-green-500 border-transparent'}
     ${index % 2 === 0 && !isLocked ? 'bg-primary-black-900' : !isLocked ? 'bg-primary-black-800/50' : ''}
   `;
-  
-  // Mobile-specific row styling - tighter spacing like Sleeper
-  const mobileRowClassName = `py-1 px-1`;
+
 
   const customClassName = getRowClassName ? getRowClassName(player, index, isLocked) : defaultClassName;
 
@@ -263,11 +251,10 @@ const PlayerTableRow = ({
         onDragStart={handleDragStart}
         onDragEnd={onDragEnd}
         onClick={handleClick}
-        className={`hidden md:grid ${customClassName}`}
+        className={`hidden md:grid items-center ${customClassName}`}
         style={{ 
           gridTemplateColumns: gridTemplate,
-          gap: '8px',
-          alignItems: 'center'
+          gap: '8px'
         }}
       >
       {/* COLUMN 1: Add Button, Checkbox, or Drag Handle */}
@@ -319,42 +306,68 @@ const PlayerTableRow = ({
 
       {/* COLUMN 2: Position Badge */}
       <div className="flex items-center justify-center">
-        <span className="px-1.5 py-0.5 bg-primary-black-700 text-primary-black-300 rounded text-[10px] font-semibold text-center">
+        <span className="px-2 py-1 bg-primary-black-700 text-primary-black-300 rounded text-xs font-bold">
           {getPositionAbbr(player.player_card.position)}
         </span>
       </div>
 
-      {/* COLUMN 3: Person Icon */}
-      <div className="rounded-md bg-primary-black-700 flex items-center justify-center w-10 h-10">
-        <svg className="w-6 h-6 text-primary-black-300" fill="currentColor" viewBox="0 0 24 24">
+      {/* COLUMN 3: Player Icon */}
+      <div className="rounded bg-primary-black-700 flex items-center justify-center w-12 h-12">
+        <svg className="w-7 h-7 text-primary-black-300" fill="currentColor" viewBox="0 0 24 24">
           <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
         </svg>
       </div>
 
-      {/* COLUMN 4: Player Name & Team */}
-      <div className="min-w-0">
+      {/* COLUMN 4: Player Info - Name + Position + Tier on top, Team + Matchup below */}
+      <div className="min-w-0 overflow-hidden">
+        {/* Top line: Player Name + Position Badge + Tier Badge */}
         <div className="flex items-center gap-2 mb-1">
-          <h4 className="font-bold text-primary-black-50 truncate text-sm">
+          <h4 className="font-bold text-primary-black-50 truncate text-sm leading-tight">
             {player.player_card.player_name}
           </h4>
-          {/* Tier Badge next to name */}
+          <span className="px-1.5 py-0.5 bg-primary-black-700 text-primary-black-400 rounded text-[9px] font-semibold flex-shrink-0">
+            {getPositionAbbr(player.player_card.position)}
+          </span>
           {player.card_tier && (
-            <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase ${getTierBadgeInfo(player.card_tier).color} flex-shrink-0`}>
+            <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${getTierBadgeInfo(player.card_tier).color} flex-shrink-0 leading-tight`}>
               {getTierBadgeInfo(player.card_tier).initial}
             </span>
           )}
         </div>
-        {/* Team Badge */}
-        <span className="px-1.5 py-0.5 bg-primary-black-700 text-primary-black-300 rounded text-[10px] font-semibold">
-          {player.player_card.team_abbreviation}
-        </span>
+        {/* Bottom line: Team + Matchup info */}
+        <div className="flex items-center gap-1.5 text-[11px] leading-tight">
+          <span className="px-1.5 py-0.5 bg-primary-black-700 text-primary-black-300 rounded font-semibold">
+            {player.player_card.team_abbreviation}
+          </span>
+          {player.isBye ? (
+            <span className="text-primary-black-500 font-semibold">BYE</span>
+          ) : player.opponent ? (
+            <>
+              <span className="text-primary-black-300 font-semibold">
+                {player.isHome ? 'vs' : '@'}{player.opponent}
+              </span>
+              {player.gameStartTime && player.gameStatus === 'scheduled' && (
+                <span className="text-primary-black-400">
+                  {new Date(player.gameStartTime).toLocaleDateString('en-US', { weekday: 'short' })}{' '}
+                  {new Date(player.gameStartTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+                </span>
+              )}
+            </>
+          ) : null}
+          {!player.isBye && (player.gameStatus === 'live' || player.gameStatus === 'halftime') && (
+            <span className="text-red-400 font-bold">🔴 LIVE</span>
+          )}
+          {!player.isBye && player.gameStatus === 'final' && (
+            <span className="text-green-400 font-bold">✓ FINAL</span>
+          )}
+        </div>
       </div>
 
-      {/* COLUMN 5: Spacer (divider 1 is absolute positioned) */}
-      <div></div>
+      {/* COLUMN 4: Divider Left (MIDDLE SECTION - hidden on md, shown on lg) */}
+      {/* Border on Pull% column serves as left divider */}
 
-      {/* COLUMN 6: Pull % */}
-      <div className="text-center">
+      {/* COLUMN 5: Pull % (MIDDLE SECTION - hidden on md, shown on lg) */}
+      <div className="hidden lg:flex items-center justify-center">
         {player.player_card.pull_percentage ? (
           <span className={`text-xs font-semibold ${getPullPercentageColor(player.player_card.pull_percentage)}`}>
             {player.player_card.pull_percentage.toFixed(1)}%
@@ -364,74 +377,32 @@ const PlayerTableRow = ({
         )}
       </div>
 
-      {/* COLUMN 9: Sell Value */}
-      <div className="text-center">
+      {/* COLUMN 6: Sell Value (MIDDLE SECTION - hidden on md, shown on lg) */}
+      <div className="hidden lg:flex items-center justify-center">
         <span className="text-xs text-primary-black-300 font-semibold">
           💰 {player.sellValue || 0}
         </span>
       </div>
 
-      {/* COLUMN 10: Tier */}
-      <div className="text-center">
-        <span className={`px-2 py-0.5 rounded text-xs font-bold uppercase ${getTierBadgeInfo(player.card_tier).color}`}>
-          {getTierBadgeInfo(player.card_tier).initial}
-        </span>
-      </div>
+      {/* COLUMN 7: Divider Right (MIDDLE SECTION - hidden on md, shown on lg) */}
+      {/* Border on Sell column serves as right divider */}
 
-      {/* COLUMN 9: Spacer (divider 2 is absolute positioned) */}
-      <div></div>
-      
-      {/* COLUMN 10: Game Info Container (OPP + STATUS + PROJ in nested grid) */}
-      <div className="grid grid-cols-[90px_1fr_90px] gap-2">
-        {/* Opponent */}
-        <div>
-          {player.isBye ? (
-            <span className="text-xs text-primary-black-500 font-semibold">BYE</span>
-          ) : player.opponent ? (
-            <span className="text-xs text-primary-black-300 font-semibold">
-              {player.isHome ? '' : '@'}{player.opponent}
-            </span>
-          ) : (
-            <span className="text-xs text-primary-black-600">--</span>
-          )}
-        </div>
-
-        {/* Game Status/Time */}
-        <div className="text-center">
-          {player.isBye ? (
-            <span className="text-[10px] text-primary-black-600">--</span>
-          ) : player.gameStatus === 'live' || player.gameStatus === 'halftime' ? (
-            <span className="text-xs text-red-400 font-bold">Live</span>
-          ) : player.gameStatus === 'final' ? (
-            <span className="text-xs text-green-400 font-bold">Final</span>
-          ) : player.gameStartTime ? (
-            <span className="text-[10px] text-primary-black-400">
-              {new Date(player.gameStartTime).toLocaleDateString('en-US', { weekday: 'short' })}{' '}
-              {new Date(player.gameStartTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
-            </span>
-          ) : (
-            <span className="text-[10px] text-primary-black-600">--</span>
-          )}
-        </div>
-
-        {/* Projected Points */}
-        <div className="text-center">
-          {player.projected && player.projected > 0 ? (
-            <div className="text-primary-black-400 text-xs">
-              {player.projected.toFixed(1)}
-            </div>
-          ) : (
-            <span className="text-xs text-primary-black-600">--</span>
-          )}
-        </div>
-      </div>
-
-      {/* COLUMN 11: Score (100px, aligns with BONUS) */}
-      <div className="text-center">
+      {/* COLUMN 8: FPTS (RIGHT SECTION - always visible) */}
+      <div className="flex flex-col items-center justify-center">
         {player.isLiveOrFinal && player.score !== undefined ? (
-          <span className="text-sm text-white font-bold">{player.score.toFixed(1)}</span>
+          <>
+            <span className="text-base text-white font-bold leading-tight">{player.score.toFixed(1)}</span>
+            {player.projected && player.projected > 0 && (
+              <span className="text-[10px] text-primary-black-500 leading-tight">{player.projected.toFixed(1)}</span>
+            )}
+          </>
+        ) : player.projected && player.projected > 0 ? (
+          <>
+            <span className="text-sm text-primary-black-500 leading-tight">--</span>
+            <span className="text-[10px] text-primary-black-500 leading-tight">{player.projected.toFixed(1)}</span>
+          </>
         ) : (
-          <span className="text-xs text-primary-black-600">--</span>
+          <span className="text-xs text-primary-black-600 leading-tight">--</span>
         )}
       </div>
 
@@ -445,11 +416,12 @@ const PlayerTableRow = ({
         onDragStart={handleDragStart}
         onDragEnd={onDragEnd}
         onClick={handleClick}
-        className={`grid md:hidden ${customClassName} ${mobileRowClassName}`}
+        className={`grid md:hidden ${customClassName} py-2 px-1`}
         style={{ 
           gridTemplateColumns: mobileGridTemplate,
-          gap: '3px',
-          alignItems: 'center'
+          gap: '4px',
+          alignItems: 'center',
+          minHeight: '56px'
         }}
       >
         {/* COLUMN 1: Add Button, Checkbox, or Drag Handle */}
@@ -506,20 +478,21 @@ const PlayerTableRow = ({
           </span>
         </div>
 
-        {/* COLUMN 3: Player Name & Info (stacked for mobile) - No person icon to save space */}
+        {/* COLUMN 3: Player Icon */}
+        <div className="rounded bg-primary-black-700 flex items-center justify-center w-10 h-10">
+          <svg className="w-6 h-6 text-primary-black-300" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+          </svg>
+        </div>
+
+        {/* COLUMN 4: Player Name & Info (stacked for mobile) */}
         <div className="min-w-0">
           <div className="flex items-center gap-1 mb-0.5">
-            <h4 className="font-bold text-primary-black-50 truncate text-[11px]">
+            <h4 className="font-bold text-primary-black-50 truncate text-[11px] leading-tight">
               {player.player_card.player_name}
             </h4>
-            {/* Tier Badge next to name */}
-            {player.card_tier && (
-              <span className={`px-1 py-0 rounded text-[8px] font-bold uppercase ${getTierBadgeInfo(player.card_tier).color} flex-shrink-0`}>
-                {getTierBadgeInfo(player.card_tier).initial}
-              </span>
-            )}
           </div>
-          <div className="flex items-center gap-1 text-[9px] flex-wrap">
+          <div className="flex items-center gap-1 text-[9px] flex-wrap leading-tight">
             {/* Team Badge */}
             <span className="px-1 py-0 bg-primary-black-700 text-primary-black-300 rounded font-semibold">
               {player.player_card.team_abbreviation}
@@ -551,14 +524,7 @@ const PlayerTableRow = ({
           </div>
         </div>
 
-        {/* COLUMN 4: Sell Value */}
-        <div className="text-center">
-          <span className="text-[9px] text-primary-black-300 font-semibold">
-            {player.sellValue || 0}
-          </span>
-        </div>
-
-        {/* COLUMN 5: Score with Projected below */}
+        {/* COLUMN 5: FPTS (score on top, projected below) */}
         <div className="text-center">
           {player.isLiveOrFinal && player.score !== undefined ? (
             <div className="flex flex-col items-center">
@@ -570,7 +536,10 @@ const PlayerTableRow = ({
           ) : (
             <div className="flex flex-col items-center">
               {player.projected && player.projected > 0 ? (
-                <span className="text-[10px] text-primary-green-400 font-bold">{player.projected.toFixed(1)}</span>
+                <>
+                  <span className="text-[10px] text-primary-black-500">--</span>
+                  <span className="text-[7px] text-primary-black-500 leading-tight">{player.projected.toFixed(1)}</span>
+                </>
               ) : (
                 <span className="text-[9px] text-primary-black-600">--</span>
               )}

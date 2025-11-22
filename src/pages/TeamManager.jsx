@@ -1720,35 +1720,36 @@ export default function TeamManager() {
 
       {/* Bench and Inventory Section - Separate section for reserves */}
       <section aria-label="Bench and Tokens Inventory" className="mt-6">
-        {/* Unified Bench and Tokens Panel - Full Width */}
-        <BenchAndTokensPanel
-          benchPlayers={inventory?.players?.filter(p => !p.is_in_lineup) || []}
-          availableTokens={availableTokens}
-          onPlayerDragStart={handlePlayerDragStart}
-          onTokenDragStart={handleTokenDragStart}
-          onTokenDragEnd={handleTokenDragEnd}
-          onPlayerDrop={(e) => handlePlayerDrop(e, 'BENCH')}
-          liveGameData={isPreviewMode ? new Map() : liveGameData}
-          projections={projections}
-          inventory={inventory}
-          onRemoveToken={handleRemoveToken}
-          filterPosition={benchFilterPosition}
-          tokenFilterPlayerId={tokenFilterPlayerId}
-          tokenFilterPlayer={getTokenFilterPlayer()}
-          onApplyTokenToPlayer={handleApplyTokenToPlayer}
-          onMoveToSlot={handleMoveToSlot}
-          onClearFilter={() => {
-            setBenchFilterPosition(null);
-            setTokenFilterPlayerId(null);
-            setSelectedPlayerForSlot(null);
-            setSelectedTokenForPlayer(null);
-          }}
-          lineup={lineup}
-          onSelectPlayerForSlot={setSelectedPlayerForSlot}
-          onSelectTokenForPlayer={setSelectedTokenForPlayer}
-          selectedPlayerForSlot={selectedPlayerForSlot}
-          selectedTokenForPlayer={selectedTokenForPlayer}
-        />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <BenchAndTokensPanel
+            benchPlayers={inventory?.players?.filter(p => !p.is_in_lineup) || []}
+            availableTokens={availableTokens}
+            onPlayerDragStart={handlePlayerDragStart}
+            onTokenDragStart={handleTokenDragStart}
+            onTokenDragEnd={handleTokenDragEnd}
+            onPlayerDrop={(e) => handlePlayerDrop(e, 'BENCH')}
+            liveGameData={isPreviewMode ? new Map() : liveGameData}
+            projections={projections}
+            inventory={inventory}
+            onRemoveToken={handleRemoveToken}
+            filterPosition={benchFilterPosition}
+            tokenFilterPlayerId={tokenFilterPlayerId}
+            tokenFilterPlayer={getTokenFilterPlayer()}
+            onApplyTokenToPlayer={handleApplyTokenToPlayer}
+            onMoveToSlot={handleMoveToSlot}
+            onClearFilter={() => {
+              setBenchFilterPosition(null);
+              setTokenFilterPlayerId(null);
+              setSelectedPlayerForSlot(null);
+              setSelectedTokenForPlayer(null);
+            }}
+            lineup={lineup}
+            onSelectPlayerForSlot={setSelectedPlayerForSlot}
+            onSelectTokenForPlayer={setSelectedTokenForPlayer}
+            selectedPlayerForSlot={selectedPlayerForSlot}
+            selectedTokenForPlayer={selectedTokenForPlayer}
+          />
+        </div>
       </section>
 
       {/* Player Selection Modal */}
