@@ -54,19 +54,22 @@ export default function BenchAndTokensPanel({
       'FLEX': ['Running Back', 'Wide Receiver', 'Tight End']
     };
     
-    const allowedPositions = positionMap[posAbbr] || [];
-    return allowedPositions.includes(playerPos);
+    const allowedPositions = positionMap[posAbbr];
+    if (!allowedPositions) return false;
+    
+    return Array.isArray(allowedPositions) 
+      ? allowedPositions.includes(playerPos)
+      : playerPos === allowedPositions;
   };
 
   const getPositionLabel = (position) => {
-    if (!position) return '';
     const labels = {
       'QB': 'Quarterback',
-      'RB1': 'Running Back',
-      'RB2': 'Running Back',
-      'WR1': 'Wide Receiver',
-      'WR2': 'Wide Receiver',
-      'WR3': 'Wide Receiver',
+      'RB1': 'Running Back 1',
+      'RB2': 'Running Back 2',
+      'WR1': 'Wide Receiver 1',
+      'WR2': 'Wide Receiver 2',
+      'WR3': 'Wide Receiver 3',
       'TE': 'Tight End',
       'FLEX': 'Flex (RB/WR/TE)'
     };
@@ -75,7 +78,12 @@ export default function BenchAndTokensPanel({
 
   // Sort players by position
   const getPositionOrder = (position) => {
-    const order = { 'Quarterback': 1, 'Running Back': 2, 'Wide Receiver': 3, 'Tight End': 4 };
+    const order = {
+      'Quarterback': 1,
+      'Running Back': 2,
+      'Wide Receiver': 3,
+      'Tight End': 4
+    };
     return order[position] || 999;
   };
 
@@ -84,13 +92,10 @@ export default function BenchAndTokensPanel({
   );
 
   // Enrich player data
-  const enrichedPlayers = sortedBenchPlayers.map(player => {
-    const enriched = enrichPlayerData(player, liveGameData, projections);
-    return {
-      ...enriched,
-      sellValue: calculatePlayerSellValue(player)
-    };
-  });
+  const enrichedPlayers = sortedBenchPlayers.map(player => ({
+    ...enrichPlayerData(player, liveGameData, projections),
+    sellValue: calculatePlayerSellValue(player)
+  }));
 
   // Enrich token data
   const enrichedTokens = availableTokens.map(token => ({
@@ -159,89 +164,79 @@ export default function BenchAndTokensPanel({
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="max-w-7xl mx-auto px-2 sm:px-4 md:px-6 lg:px-8">
       {/* Header */}
-      <div className={`sticky top-0 z-20 border-2 border-primary-black-700 rounded-xl mb-4 transition-colors ${
+      <div className={`sticky top-0 z-20 border-2 border-primary-black-700 rounded-xl mb-3 md:mb-4 transition-colors ${
         filterPosition || tokenFilterPlayerId
           ? 'bg-primary-green-500/10 border-primary-green-500/30'
           : 'bg-primary-black-900'
       }`}>
-        <div className="px-4 py-4">
-          <div className="flex items-center justify-between gap-6">
+        <div className="px-3 md:px-4 py-3 md:py-4">
+          <div className="flex items-center justify-between gap-3 md:gap-6">
             {/* Title changes based on mode */}
             {filterPosition ? (
-              <div className="flex items-center gap-3 flex-1">
-                <span className="text-2xl">🎯</span>
+              <div className="flex items-center gap-2 md:gap-3 flex-1">
+                <span className="text-xl md:text-2xl">🎯</span>
                 <div>
-                  <h3 className="text-xl font-bold text-primary-green-400">
+                  <h3 className="text-base md:text-xl font-bold text-primary-green-400">
                     Select Player for {getPositionLabel(filterPosition)}
                   </h3>
-                  <p className="text-xs text-primary-black-400 mt-0.5">
+                  <p className="text-[10px] md:text-xs text-primary-black-400 mt-0.5">
                     Showing {filteredPlayers.length} eligible player{filteredPlayers.length !== 1 ? 's' : ''}
                   </p>
                 </div>
               </div>
             ) : selectedPlayerForSlot ? (
-              <div className="flex items-center gap-3 flex-1">
-                <span className="text-2xl">🎯</span>
+              <div className="flex items-center gap-2 md:gap-3 flex-1">
+                <span className="text-xl md:text-2xl">🎯</span>
                 <div>
-                  <h3 className="text-xl font-bold text-primary-green-400">
+                  <h3 className="text-base md:text-xl font-bold text-primary-green-400">
                     Select Slot for {selectedPlayerForSlot.player_card.player_name}
                   </h3>
-                  <p className="text-xs text-primary-black-400 mt-0.5">
+                  <p className="text-[10px] md:text-xs text-primary-black-400 mt-0.5">
                     Click a highlighted slot to swap this player in
                   </p>
                 </div>
               </div>
             ) : tokenFilterPlayerId && tokenFilterPlayer ? (
-              <div className="flex items-center gap-3 flex-1">
-                <span className="text-2xl">💎</span>
+              <div className="flex items-center gap-2 md:gap-3 flex-1">
+                <span className="text-xl md:text-2xl">💎</span>
                 <div>
-                  <h3 className="text-xl font-bold text-primary-green-400">
+                  <h3 className="text-base md:text-xl font-bold text-primary-green-400">
                     Select Token for {tokenFilterPlayer.player_card.player_name}
                   </h3>
-                  <p className="text-xs text-primary-black-400 mt-0.5">
+                  <p className="text-[10px] md:text-xs text-primary-black-400 mt-0.5">
                     Showing {filteredTokens.length} available token{filteredTokens.length !== 1 ? 's' : ''}
                   </p>
                 </div>
               </div>
             ) : selectedTokenForPlayer ? (
-              <div className="flex items-center gap-3 flex-1">
-                <span className="text-2xl">💎</span>
+              <div className="flex items-center gap-2 md:gap-3 flex-1">
+                <span className="text-xl md:text-2xl">💎</span>
                 <div>
-                  <h3 className="text-xl font-bold text-yellow-400">
+                  <h3 className="text-base md:text-xl font-bold text-yellow-400">
                     Select Player for {selectedTokenForPlayer.token_card.token_name}
                   </h3>
-                  <p className="text-xs text-primary-black-400 mt-0.5">
+                  <p className="text-[10px] md:text-xs text-primary-black-400 mt-0.5">
                     Click a highlighted player to apply this token
                   </p>
                 </div>
               </div>
-            ) : (
-              <div className="flex-shrink-0">
-                <h3 className="text-xl font-bold text-primary-black-50">Bench</h3>
-                <p className="text-xs text-primary-black-400 mt-0.5">
-                  <span className="font-medium text-primary-black-500">Roster:</span>{' '}
-                  <span className="font-bold text-primary-black-400">
-                    {inventory ? getRosterCount(inventory) : (sortedBenchPlayers.length + availableTokens.length)}/{ROSTER_LIMIT}
-                  </span>
-                </p>
-              </div>
-            )}
+            ) : null}
 
             {/* Right side - Clear filter or tabs */}
             {(filterPosition || tokenFilterPlayerId || selectedPlayerForSlot || selectedTokenForPlayer) ? (
               <button
                 onClick={onClearFilter}
-                className="px-4 py-2 bg-primary-black-700 hover:bg-primary-black-600 text-primary-black-300 rounded-lg text-sm font-semibold transition-colors"
+                className="px-3 md:px-4 py-1.5 md:py-2 bg-primary-black-700 hover:bg-primary-black-600 text-primary-black-300 rounded-lg text-xs md:text-sm font-semibold transition-colors whitespace-nowrap"
               >
-                Clear Filter
+                Clear
               </button>
             ) : (
-              <div className="flex gap-2">
+              <div className="flex gap-1 md:gap-2">
                 <button
                   onClick={() => setActiveTab('all')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                  className={`px-1.5 md:px-3 py-0.5 md:py-1.5 rounded-lg text-[9px] md:text-xs font-semibold transition-all ${
                     activeTab === 'all'
                       ? 'bg-primary-green-500 text-primary-black-950'
                       : 'bg-primary-black-800 text-primary-black-400 hover:bg-primary-black-700'
@@ -251,7 +246,7 @@ export default function BenchAndTokensPanel({
                 </button>
                 <button
                   onClick={() => setActiveTab('players')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                  className={`px-1.5 md:px-3 py-0.5 md:py-1.5 rounded-lg text-[9px] md:text-xs font-semibold transition-all ${
                     activeTab === 'players'
                       ? 'bg-primary-green-500 text-primary-black-950'
                       : 'bg-primary-black-800 text-primary-black-400 hover:bg-primary-black-700'
@@ -261,7 +256,7 @@ export default function BenchAndTokensPanel({
                 </button>
                 <button
                   onClick={() => setActiveTab('tokens')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                  className={`px-1.5 md:px-3 py-0.5 md:py-1.5 rounded-lg text-[9px] md:text-xs font-semibold transition-all ${
                     activeTab === 'tokens'
                       ? 'bg-primary-green-500 text-primary-black-950'
                       : 'bg-primary-black-800 text-primary-black-400 hover:bg-primary-black-700'
@@ -279,20 +274,12 @@ export default function BenchAndTokensPanel({
       {(effectiveTab === 'all' || effectiveTab === 'players' || filterPosition) && (
         <div className="mb-6">
           <PlayerTable
-            players={filteredPlayers}
-            showBulkSelect={false}
-            showAddButton={lineup && onMoveToSlot}
-            showTierLevel={true}
-            onRowDragStart={filterPosition ? null : onPlayerDragStart}
-            onAddButtonClick={filterPosition ? (player) => {
-              if (onMoveToSlot) {
-                onMoveToSlot(player, filterPosition);
-              }
-            } : handleAddButtonClick}
-            isRowLocked={(player) => player.is_locked || isPlayerGameLiveOrFinal(player, liveGameData)}
-            renderExtraRowColumns={null}
-            emptyMessage={filterPosition ? "No eligible players" : "Bench is empty"}
-            emptyIcon="🪑"
+            players={filterPosition ? filteredPlayers : enrichedPlayers}
+            showAddButton={!!filterPosition || !!selectedPlayerForSlot}
+            onAddButtonClick={handleAddButtonClick}
+            onRowDragStart={onPlayerDragStart}
+            emptyMessage={filterPosition ? "No eligible players for this position" : "No players in inventory"}
+            emptyIcon="🏈"
             selectedPlayerId={selectedPlayerForSlot?.id}
           />
         </div>
@@ -302,33 +289,15 @@ export default function BenchAndTokensPanel({
       {(effectiveTab === 'all' || effectiveTab === 'tokens' || tokenFilterPlayerId) && (
         <div>
           <TokenTable
-            tokens={filteredTokens}
-            showBulkSelect={false}
-            showAddButton={lineup && onApplyTokenToPlayer}
-            onAddButtonClick={tokenFilterPlayerId ? (token) => {
-              if (onApplyTokenToPlayer) {
-                onApplyTokenToPlayer(token, tokenFilterPlayerId);
-              }
-            } : handleTokenAddButtonClick}
-            onRowDragStart={tokenFilterPlayerId ? null : onTokenDragStart}
+            tokens={tokenFilterPlayerId ? filteredTokens : enrichedTokens}
+            showAddButton={!!tokenFilterPlayerId || !!selectedTokenForPlayer}
+            onAddButtonClick={handleTokenAddButtonClick}
+            onRowDragStart={onTokenDragStart}
             onRowDragEnd={onTokenDragEnd}
-            renderExtraRowColumns={null}
-            emptyMessage="No tokens available"
+            emptyMessage={tokenFilterPlayerId ? "No available tokens for this player" : "No tokens in inventory"}
             emptyIcon="💎"
             selectedTokenId={selectedTokenForPlayer?.id}
           />
-        </div>
-      )}
-
-      {/* Empty State */}
-      {filteredPlayers.length === 0 && filteredTokens.length === 0 && !filterPosition && !tokenFilterPlayerId && (
-        <div className="flex items-center justify-center py-12 text-center">
-          <div>
-            <div className="text-4xl mb-2 opacity-30">🏈</div>
-            <p className="text-primary-black-400 font-semibold mb-1">No items available</p>
-            <p className="text-primary-black-500 text-sm">Add players to your lineup or purchase tokens</p>
-            <p className="text-primary-black-600 text-xs mt-2">💡 Drag lineup players anywhere to bench them</p>
-          </div>
         </div>
       )}
     </div>
