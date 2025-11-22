@@ -98,25 +98,70 @@ export default function LineupGrid({
       
       console.log('🎯 LineupGrid drop - isTokenDrop:', isTokenDrop, 'isTokenDrag:', !!isTokenDrag);
       
+      // For token drops, don't prevent default and let it bubble to PlayerCard
       if (isTokenDrop || isTokenDrag) {
-        // This is a token drop, don't handle here - let PlayerCard handle it
-        console.log('⚠️ Token drop detected in LineupGrid - ignoring');
+        console.log('🎯 LineupGrid: Token drop detected - letting event bubble to PlayerCard');
         setDragOverSlot(null);
-        return;
+        return; // Don't preventDefault() - let it bubble
+      } else {
+        console.log('🎯 LineupGrid: Player drop detected - handling at slot level');
+        e.preventDefault();
+        setDragOverSlot(null);
       }
-      
-      // This is a player drop
-      e.preventDefault();
-      console.log('🎯 Calling onPlayerDrop for slot:', slotKey);
-      onPlayerDrop(e, slotKey);
     } catch (err) {
       console.error('🎯 LineupGrid drop error:', err);
-      // Fallback to player drop
       e.preventDefault();
-      onPlayerDrop(e, slotKey);
+      setDragOverSlot(null);
     }
     
-    setDragOverSlot(null);
+    try {
+      // Check what type of drop this is
+      const dragData = e.dataTransfer.getData('text/plain');
+      
+      console.log('🎯 LineupGrid drop - slotKey:', slotKey, 'dragData:', dragData);
+      
+      const isTokenDrop = dragData && dragData.startsWith('token:');
+      const isPlayerDrop = dragData && dragData.startsWith('player:');
+      const isTokenDrag = window.currentDraggedToken || false;
+      
+      console.log('🎯 LineupGrid - isTokenDrop:', isTokenDrop, 'isPlayerDrop:', isPlayerDrop, 'isTokenDrag:', !!isTokenDrag);
+      
+      if ((isTokenDrop || isTokenDrag) && onTokenDrop) {
+        // This is a token drop - get the player in this slot
+        const player = lineup[slotKey];
+        console.log('🎯 LineupGrid token drop - slotKey:', slotKey);
+        console.log('🎯 LineupGrid token drop - player in slot:', player?.player_card?.player_name);
+        console.log('🎯 LineupGrid token drop - player locked:', player?.is_locked);
+        console.log('🎯 LineupGrid token drop - lineup keys:', Object.keys(lineup));
+        console.log('🎯 LineupGrid token drop - full lineup:', lineup);
+        
+        if (player && !player.is_locked) {
+          console.log('🎯 LineupGrid: Calling onTokenDrop for player:', player.player_card.player_name);
+          onTokenDrop(e, player);
+          return;
+        } else {
+          console.log('❌ LineupGrid: Token drop blocked - no player or locked');
+          if (!player) {
+            console.log('❌ No player in slot:', slotKey);
+          }
+          if (player?.is_locked) {
+            console.log('❌ Player is locked:', player.player_card.player_name);
+          }
+        }
+      }
+      
+      if (isPlayerDrop) {
+        // This is a player drop
+        onPlayerDrop(e, slotKey);
+        return;
+      }
+    } catch (err) {
+      console.error('🎯 LineupGrid drop error:', err);
+      // Continue with player drop if token detection fails
+    }
+    
+    // This is a player drop (fallback)
+    onPlayerDrop(e, slotKey);
   };
 
   const getPositionAbbreviation = (slotKey) => {
@@ -128,28 +173,97 @@ export default function LineupGrid({
     return slotKey;
   };
 
+  const getAvailablePlayersCount = (slotKey) => {
+    if (!inventory?.players) return 0;
+    
+    const posAbbr = getPositionAbbreviation(slotKey);
+    
+    // Map position abbreviations to full names
+    const positionMap = {
+      'QB': 'Quarterback',
+      'RB': 'Running Back',
+      'WR': 'Wide Receiver',
+      'TE': 'Tight End',
+      'FLEX': ['Running Back', 'Wide Receiver', 'Tight End']
+    };
+    
+    const allowedPositions = positionMap[posAbbr];
+    
+    return inventory.players.filter(p => {
+      if (p.is_in_lineup) return false;
+      if (Array.isArray(allowedPositions)) {
+        return allowedPositions.includes(p.player_card.position);
+      }
+      return p.player_card.position === allowedPositions;
+    }).length;
+  };
+
+  // Check if a slot is eligible for the selected player
+  const isSlotEligibleForSelectedPlayer = (slotKey) => {
+    if (!selectedPlayerForSlot) return false;
+    
+    const posAbbr = getPositionAbbreviation(slotKey);
+    const playerPos = selectedPlayerForSlot.player_card.position;
+    
+    const positionMap = {
+      'QB': ['Quarterback'],
+      'RB': ['Running Back'],
+      'WR': ['Wide Receiver'],
+      'TE': ['Tight End'],
+      'FLEX': ['Running Back', 'Wide Receiver', 'Tight End']
+    };
+    
+    const allowedPositions = positionMap[posAbbr] || [];
+    return allowedPositions.includes(playerPos);
+  };
+
+  // Check if a player is eligible for the selected token
+  const isPlayerEligibleForSelectedToken = (player) => {
+    if (!selectedTokenForPlayer || !player) return false;
+    
+    // Check if player is locked
+    if (player.is_locked) return false;
+    
+    // Check if player already has an active token
+    const hasActiveToken = inventory?.tokens?.some(t => 
+      t.applied_to_player_id === player.id && t.is_active
+    );
+    
+    return !hasActiveToken;
+  };
+
   const renderPositionSlot = (slot) => {
     const player = lineup[slot.key];
-    const isLocked = isPreviewMode ? false : player?.is_locked; // Ignore locks in preview mode
+    
+    // Check if player's game is live or final
+    const gameData = player ? liveGameData?.get(player.player_card.player_id) : null;
+    const gameStatus = gameData?.gameStatus?.toLowerCase();
+    const isGameLiveOrFinal = gameStatus === 'live' || gameStatus === 'halftime' || gameStatus === 'final';
+    
+    // Determine if player is locked
+    // In preview mode, ignore database locks (we're setting next week's lineup)
+    const isLocked = isPreviewMode ? false : (player?.is_locked || isGameLiveOrFinal);
     const isDragOver = dragOverSlot === slot.key;
     const isHovered = hoveredSlot === slot.key;
     const appliedToken = inventory?.tokens?.find(t => t.applied_to_player_id === player?.id && t.is_active);
+    const availableCount = getAvailablePlayersCount(slot.key);
     const posAbbr = getPositionAbbreviation(slot.key);
-
-    // Check if this slot matches the filter (highlight it)
-    const isFilteredSlot = filterPosition === slot.key;
-
-    // Check if this slot is eligible for the selected player from bench
-    const isEligibleForSelectedPlayer = selectedPlayerForSlot && (
-      (slot.key === 'FLEX' && ['Running Back', 'Wide Receiver', 'Tight End'].includes(selectedPlayerForSlot.player_card.position)) ||
-      (slot.key.startsWith('QB') && selectedPlayerForSlot.player_card.position === 'Quarterback') ||
-      (slot.key.startsWith('RB') && selectedPlayerForSlot.player_card.position === 'Running Back') ||
-      (slot.key.startsWith('WR') && selectedPlayerForSlot.player_card.position === 'Wide Receiver') ||
-      (slot.key.startsWith('TE') && selectedPlayerForSlot.player_card.position === 'Tight End')
-    );
-
-    // Check if this player is eligible for the selected token
-    const isEligibleForSelectedToken = selectedTokenForPlayer && player && !appliedToken;
+    const isFilteredSlot = filterPosition === slot.key; // Check if this is the slot being filtered
+    
+    // Check if this slot is eligible for selected player
+    const isEligibleForSelectedPlayer = isSlotEligibleForSelectedPlayer(slot.key);
+    
+    // Check if this player is eligible for selected token
+    const isEligibleForSelectedToken = player && isPlayerEligibleForSelectedToken(player);
+    
+    // Handle click when player/token is selected
+    const handleSlotClick = () => {
+      if (selectedPlayerForSlot && isEligibleForSelectedPlayer && onSlotClickWithSelection) {
+        onSlotClickWithSelection(slot.key);
+      } else if (selectedTokenForPlayer && isEligibleForSelectedToken && onPlayerClickWithTokenSelection) {
+        onPlayerClickWithTokenSelection(player);
+      }
+    };
 
     return (
       <div
@@ -157,69 +271,48 @@ export default function LineupGrid({
         className="relative w-full aspect-[3.2/5]"
         onMouseEnter={() => setHoveredSlot(slot.key)}
         onMouseLeave={() => setHoveredSlot(null)}
-        onClick={() => {
-          if (isEligibleForSelectedPlayer) {
-            onSlotClickWithSelection?.(slot.key);
-          } else if (isEligibleForSelectedToken) {
-            onPlayerClickWithTokenSelection?.(player);
-          }
-        }}
+        data-lineup-slot={slot.key}
+        onClick={handleSlotClick}
       >
         <div
-          onDragOver={(e) => handleDragOver(e, slot.key)}
+          onDragEnter={(e) => !isLocked && handleDragOver(e, slot.key)}
+          onDragOver={(e) => !isLocked && handleDragOver(e, slot.key)}
           onDragLeave={handleDragLeave}
-          onDrop={(e) => handleDrop(e, slot.key)}
-          data-lineup-slot={slot.key}
-          className={`
-            relative rounded-xl border-2 transition-all duration-200 w-full h-full
-            ${
-              player 
-                ? 'border-primary-black-600 bg-primary-black-800/50' 
-                : 'border-dashed border-primary-black-600 bg-primary-black-800/30'
-            }
-            ${
-              isFilteredSlot 
-                ? 'border-primary-green-500 bg-primary-green-500/10 animate-pulse shadow-lg shadow-primary-green-500/30' 
-                : ''
-            }
-            ${
-              isEligibleForSelectedPlayer 
-                ? 'border-primary-green-500 bg-primary-green-500/20 cursor-pointer hover:bg-primary-green-500/30 ring-2 ring-primary-green-500' 
-                : ''
-            }
-            ${
-              isEligibleForSelectedToken 
-                ? 'border-yellow-500 bg-yellow-500/20 cursor-pointer hover:bg-yellow-500/30 ring-2 ring-yellow-500' 
-                : ''
-            }
-            ${
-              isDragOver && !isFilteredSlot && !isEligibleForSelectedPlayer && !isEligibleForSelectedToken
-                ? 'border-primary-green-500 bg-primary-green-500/20 scale-105 shadow-lg shadow-primary-green-500/30' 
-                : ''
-            }
-            ${
-              isHovered && !player && !isFilteredSlot && !isEligibleForSelectedPlayer && !isEligibleForSelectedToken
-                ? 'border-primary-green-500/50 bg-primary-black-700/50' 
-                : ''
-            }
-            ${
-              isLocked ? 'opacity-60' : ''
-            }
-          `}
+          onDrop={(e) => !isLocked && handleDrop(e, slot.key)}
+           className={`
+             relative rounded-xl border-2 transition-all duration-200 w-full h-full
+             ${isDragOver 
+               ? 'border-primary-green-500 bg-primary-green-500/20 scale-105 shadow-lg shadow-primary-green-500/50' 
+               : isFilteredSlot && !player
+                 ? 'border-primary-green-500/50 bg-primary-green-500/10 shadow-md shadow-primary-green-500/30'
+                 : (selectedPlayerForSlot || selectedTokenForPlayer) && !isEligibleForSelectedPlayer && !isEligibleForSelectedToken
+                   ? 'opacity-30 pointer-events-none'
+                   : isEligibleForSelectedPlayer
+                     ? 'border-primary-green-500/70 bg-primary-green-500/10 cursor-pointer hover:border-primary-green-500 hover:bg-primary-green-500/20'
+                     : isEligibleForSelectedToken
+                       ? 'border-yellow-500/70 bg-yellow-500/10 cursor-pointer hover:border-yellow-500 hover:bg-yellow-500/20'
+                       : player 
+                         ? 'border-primary-black-600 bg-primary-black-800/50' 
+                         : 'border-dashed border-primary-black-600 bg-primary-black-800/30'
+             }
+             ${isHovered && !player && !isLocked && !selectedPlayerForSlot && !selectedTokenForPlayer ? 'border-primary-green-500/50 bg-primary-black-700/50' : ''}
+             ${isLocked ? 'opacity-60' : ''}
+             ${!player ? 'pointer-events-auto' : ''}
+           `}
         >
-          {/* Position Label + Remove Button */}
-          <div className="absolute top-2 left-2 right-2 flex items-center justify-between z-10">
-            <span className="text-xs font-bold text-primary-black-400 uppercase tracking-wide">
-              {posAbbr}
-            </span>
-            {player && onRemovePlayer && (
+          {/* Position Label - Only show when player is added */}
+          <div className="absolute top-2 left-2 right-2 flex items-center justify-center">
+            {player && (
+              <span className="text-xs font-bold text-primary-black-400 uppercase tracking-wide absolute left-0">
+                {posAbbr}
+              </span>
+            )}
+            {/* Remove button - centered at top */}
+            {player && !isLocked && (
               <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onRemovePlayer(slot.key);
-                }}
-                className="text-primary-black-600 hover:text-red-500 transition-colors"
-                title="Remove player"
+                onClick={() => onRemovePlayer(slot.key)}
+                className="w-5 h-5 bg-red-600 hover:bg-red-700 text-white rounded-full flex items-center justify-center transition-colors shadow-lg z-20 text-xs font-bold"
+                title="Remove from lineup"
               >
                 ×
               </button>
@@ -240,7 +333,6 @@ export default function LineupGrid({
                   onRemoveToken={onRemoveToken}
                   onAddToken={onClickToAddToken}
                   gameData={liveGameData?.get(player.player_card.player_id)}
-                  liveGameData={liveGameData}
                   projection={projections?.get(player.player_card.player_id)}
                   size="small"
                   showStats={true}
@@ -307,7 +399,7 @@ export default function LineupGrid({
 
   return (
     <div className={paddingClass}>
-      {/* Lineup Grid - Responsive 2x4 layout */}
+      {/* Lineup Grid */}
       <div className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-8 ${gapClass}`}>
         {positionSlots.map(renderPositionSlot)}
       </div>
@@ -317,8 +409,8 @@ export default function LineupGrid({
 
 LineupGrid.propTypes = {
   lineup: PropTypes.object.isRequired,
-  onPlayerDrop: PropTypes.func,
-  onPlayerDragStart: PropTypes.func,
+  onPlayerDrop: PropTypes.func.isRequired,
+  onPlayerDragStart: PropTypes.func.isRequired,
   onTokenDrop: PropTypes.func,
   onClickToAdd: PropTypes.func,
   onClickToAddToken: PropTypes.func,
