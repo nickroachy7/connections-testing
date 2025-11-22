@@ -240,8 +240,8 @@ export default function TeamHeader({
           </div>
 
           {/* Team Identity Row */}
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center gap-2 md:gap-3">
               {/* Team Image */}
               <button onClick={handleImageClick} disabled={uploading} className="relative group flex-shrink-0" title="Click to change team image">
                 {teamImage ? (
@@ -249,7 +249,7 @@ export default function TeamHeader({
                     <img
                       src={teamImage}
                       alt={localTeamName || 'Team'}
-                      className="w-16 h-16 rounded-md object-cover border-2 border-black/40 shadow-xl group-hover:border-white/60 transition-all"
+                      className="w-12 h-12 md:w-16 md:h-16 rounded-md object-cover border-2 border-black/40 shadow-xl group-hover:border-white/60 transition-all"
                     />
                     {uploading && (
                       <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-lg">
@@ -267,8 +267,8 @@ export default function TeamHeader({
                     </div>
                   </div>
                 ) : (
-                  <div className="w-16 h-16 rounded-md bg-black/40 backdrop-blur-sm border-2 border-white/20 shadow-lg flex items-center justify-center transition-all group-hover:border-white/50 group-hover:bg-black/60">
-                    <svg className="w-8 h-8 text-dk-white-muted group-hover:text-dk-green-primary transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="w-12 h-12 md:w-16 md:h-16 rounded-md bg-black/40 backdrop-blur-sm border-2 border-white/20 shadow-lg flex items-center justify-center transition-all group-hover:border-white/50 group-hover:bg-black/60">
+                    <svg className="w-6 h-6 md:w-8 md:h-8 text-dk-white-muted group-hover:text-dk-green-primary transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
                     </svg>
@@ -277,7 +277,7 @@ export default function TeamHeader({
               </button>
               
               {/* Team Name and Username */}
-              <div className="flex flex-col">
+              <div className="flex flex-col min-w-0 flex-1">
                 {isEditingName ? (
                   <input
                     ref={nameInputRef}
@@ -287,58 +287,58 @@ export default function TeamHeader({
                     onBlur={handleNameBlur}
                     onKeyDown={handleNameKeyDown}
                     maxLength={30}
-                    className="text-2xl md:text-3xl font-dk-display font-black text-dk-white-primary tracking-tight bg-dk-black-tertiary border-2 border-dk-green-primary rounded px-2 py-1 focus:outline-none"
+                    className="text-base md:text-3xl font-dk-display font-black text-dk-white-primary tracking-tight bg-dk-black-tertiary border-2 border-dk-green-primary rounded px-2 py-1 focus:outline-none"
                   />
                 ) : (
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1 md:gap-2">
                     <button
                       onClick={handleNameClick}
-                      className="text-2xl md:text-3xl font-dk-display font-black text-white drop-shadow-lg tracking-tight hover:scale-[1.02] transition-all text-left group"
+                      className="text-base md:text-3xl font-dk-display font-black text-white drop-shadow-lg tracking-tight hover:scale-[1.02] transition-all text-left group truncate"
                       title="Click to edit team name"
                     >
                       {localTeamName || 'Your Team'}
-                      <svg className="inline-block ml-2 w-5 h-5 text-dk-white-muted group-hover:text-dk-green-primary transition-colors opacity-0 group-hover:opacity-100" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="hidden md:inline-block ml-2 w-4 h-4 md:w-5 md:h-5 text-dk-white-muted group-hover:text-dk-green-primary transition-colors opacity-0 group-hover:opacity-100" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                       </svg>
                     </button>
                   </div>
                 )}
-                {username && <span className="text-sm text-white/90 font-dk drop-shadow">{username}</span>}
+                {username && <span className="text-[10px] md:text-sm text-white/90 font-dk drop-shadow truncate">{username}</span>}
               </div>
             </div>
 
-            {/* Coins and Wins - Right Side */}
-            <div className="flex items-center gap-4">
+            {/* Coins, Wins, Losses - Below team info on mobile, right side on desktop */}
+            <div className="flex items-center gap-1.5 md:gap-4 flex-wrap">
               {/* Coins */}
-              <div className="flex items-center gap-2">
-                <svg className="w-5 h-5 text-yellow-400 drop-shadow-md" fill="currentColor" viewBox="0 0 20 20">
+              <div className="flex items-center gap-1 md:gap-2">
+                <svg className="w-3.5 h-3.5 md:w-5 md:h-5 text-yellow-400 drop-shadow-md flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z" />
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clipRule="evenodd" />
                 </svg>
-                <span className="text-lg font-dk-display font-bold text-white drop-shadow-sm">{coins?.toLocaleString() || '0'}</span>
-                <span className="text-xs text-white/70 font-dk uppercase tracking-wide drop-shadow-sm">Coins</span>
+                <span className="text-sm md:text-lg font-dk-display font-bold text-white drop-shadow-sm whitespace-nowrap">{coins?.toLocaleString() || '0'}</span>
+                <span className="hidden sm:inline text-[10px] md:text-xs text-white/70 font-dk uppercase tracking-wide drop-shadow-sm">Coins</span>
               </div>
 
-              <div className="h-5 w-px bg-white/20"></div>
+              <div className="h-3 md:h-5 w-px bg-white/20"></div>
 
               {/* Wins */}
-              <div className="flex items-center gap-2">
-                <svg className="w-4 h-4 text-green-400 drop-shadow-md" fill="currentColor" viewBox="0 0 20 20">
+              <div className="flex items-center gap-1 md:gap-2">
+                <svg className="w-3 h-3 md:w-4 md:h-4 text-green-400 drop-shadow-md flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                 </svg>
-                <span className="text-lg font-dk-display font-bold text-white drop-shadow-sm">{wins || 0}</span>
-                <span className="text-xs text-white/70 font-dk uppercase tracking-wide drop-shadow-sm">Wins</span>
+                <span className="text-sm md:text-lg font-dk-display font-bold text-white drop-shadow-sm whitespace-nowrap">{wins || 0}</span>
+                <span className="hidden sm:inline text-[10px] md:text-xs text-white/70 font-dk uppercase tracking-wide drop-shadow-sm">Wins</span>
               </div>
 
-              <div className="h-5 w-px bg-white/20"></div>
+              <div className="h-3 md:h-5 w-px bg-white/20"></div>
 
               {/* Losses Until Elimination */}
-              <div className="flex items-center gap-2">
-                <svg className="w-4 h-4 text-red-400 drop-shadow-md" fill="currentColor" viewBox="0 0 20 20">
+              <div className="flex items-center gap-1 md:gap-2">
+                <svg className="w-3 h-3 md:w-4 md:h-4 text-red-400 drop-shadow-md flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
                 </svg>
-                <span className="text-lg font-dk-display font-bold text-white drop-shadow-sm">{(team?.contest_type?.max_losses || 3) - (losses || 0)}</span>
-                <span className="text-xs text-white/70 font-dk uppercase tracking-wide drop-shadow-sm">Until Elimination</span>
+                <span className="text-sm md:text-lg font-dk-display font-bold text-white drop-shadow-sm whitespace-nowrap">{(team?.contest_type?.max_losses || 3) - (losses || 0)}</span>
+                <span className="hidden sm:inline text-[10px] md:text-xs text-white/70 font-dk uppercase tracking-wide drop-shadow-sm">Until Elim</span>
               </div>
             </div>
           </div>
