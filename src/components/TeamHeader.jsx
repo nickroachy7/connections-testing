@@ -34,14 +34,15 @@ export default function TeamHeader({
 
   const themeOptions = [
     { id: 'default', name: 'Classic Dark', bg: 'bg-dk-black-secondary', preview: 'linear-gradient(to right, #1a1a1a, #1a1a1a)' },
-    { id: 'ocean', name: 'Ocean Blue', bg: 'bg-gradient-to-r from-blue-900 to-blue-800', preview: 'linear-gradient(to right, #1e3a8a, #1e40af)' },
-    { id: 'forest', name: 'Forest Green', bg: 'bg-gradient-to-r from-emerald-900 to-green-800', preview: 'linear-gradient(to right, #064e3b, #166534)' },
-    { id: 'sunset', name: 'Sunset Orange', bg: 'bg-gradient-to-r from-orange-900 to-red-900', preview: 'linear-gradient(to right, #7c2d12, #7f1d1d)' },
-    { id: 'purple', name: 'Royal Purple', bg: 'bg-gradient-to-r from-purple-900 to-indigo-900', preview: 'linear-gradient(to right, #581c87, #312e81)' },
-    { id: 'crimson', name: 'Crimson Red', bg: 'bg-gradient-to-r from-red-950 to-rose-900', preview: 'linear-gradient(to right, #450a0a, #881337)' },
-    { id: 'cow', name: 'Moo Cow', bg: 'bg-gradient-to-br from-zinc-100 via-zinc-900 to-zinc-100', preview: 'linear-gradient(135deg, #f4f4f5, #18181b, #f4f4f5)' },
-    { id: 'matrix', name: 'Matrix Code', bg: 'bg-gradient-to-b from-black via-green-950 to-black', preview: 'linear-gradient(to bottom, #000000, #052e16, #000000)' },
-    { id: 'lava', name: 'Molten Lava', bg: 'bg-gradient-to-r from-red-600 via-orange-600 to-yellow-500', preview: 'linear-gradient(to right, #dc2626, #ea580c, #eab308)' }
+    { id: 'ocean', name: 'Ocean Blue', bg: 'bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-500', preview: 'linear-gradient(to right, rgb(37, 99, 235), rgb(59, 130, 246), rgb(6, 182, 212))' },
+    { id: 'forest', name: 'Forest Green', bg: 'bg-gradient-to-r from-green-600 via-emerald-500 to-teal-500', preview: 'linear-gradient(to right, rgb(22, 163, 74), rgb(16, 185, 129), rgb(20, 184, 166))' },
+    { id: 'sunset', name: 'Sunset Orange', bg: 'bg-gradient-to-r from-orange-500 via-red-500 to-pink-500', preview: 'linear-gradient(to right, rgb(249, 115, 22), rgb(239, 68, 68), rgb(236, 72, 153))' },
+    { id: 'purple', name: 'Royal Purple', bg: 'bg-gradient-to-r from-purple-600 via-purple-500 to-indigo-500', preview: 'linear-gradient(to right, rgb(147, 51, 234), rgb(168, 85, 247), rgb(99, 102, 241))' },
+    { id: 'crimson', name: 'Fire Red', bg: 'bg-gradient-to-r from-red-600 via-orange-500 to-yellow-500', preview: 'linear-gradient(to right, rgb(220, 38, 38), rgb(249, 115, 22), rgb(234, 179, 8))' },
+    { id: 'midnight', name: 'Midnight Blue', bg: 'bg-gradient-to-r from-slate-800 via-blue-900 to-indigo-900', preview: 'linear-gradient(to right, rgb(30, 41, 59), rgb(30, 58, 138), rgb(49, 46, 129))' },
+    { id: 'emerald', name: 'Emerald Dream', bg: 'bg-gradient-to-r from-emerald-600 via-green-500 to-lime-500', preview: 'linear-gradient(to right, rgb(5, 150, 105), rgb(34, 197, 94), rgb(132, 204, 22))' },
+    { id: 'rose', name: 'Rose Gold', bg: 'bg-gradient-to-r from-pink-500 via-rose-400 to-red-400', preview: 'linear-gradient(to right, rgb(236, 72, 153), rgb(251, 113, 133), rgb(248, 113, 113))' },
+    { id: 'arctic', name: 'Arctic Ice', bg: 'bg-gradient-to-r from-cyan-500 via-blue-400 to-indigo-400', preview: 'linear-gradient(to right, rgb(6, 182, 212), rgb(96, 165, 250), rgb(129, 140, 248))' }
   ];
 
   useEffect(() => {
