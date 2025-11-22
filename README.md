@@ -1,214 +1,150 @@
-# NFL Fantasy Connections 🏈
+# NFL Connections Fantasy Game
 
-A fantasy football game where you collect player cards, build lineups, and compete weekly against a global average. Survive the season by avoiding elimination!
+A next-generation NFL fantasy game where players build rosters through pack openings, set weekly lineups, and compete to beat the median score. Features multiple contest types with varying durations, PPR scoring systems, and loss limits.
 
----
+## 🎮 Core Gameplay
 
-## 🎮 What is This?
+- **Pack-Based Roster Building**: Acquire players through a dynamic pack opening system
+- **Median Scoring System**: Win by scoring at or above the median, not just the average
+- **Multiple Contest Types**: Choose from 1-week, 3-week, or 18-week contests with different rules
+- **PPR Scoring Variations**: Standard (0 PPR), Half PPR (0.5), and Full PPR (1.0) options
+- **Loss Elimination**: Each contest type has a max loss limit before elimination
 
-NFL Fantasy Connections is a unique take on fantasy football:
-- **Collect player cards** through packs (with varying rarities/tiers)
-- **Build lineups** each week with strategic decisions
-- **Apply token bonuses** for extra points (2x multipliers, yardage boosts, etc.)
-- **Beat the average** to earn wins (fall below = loss)
-- **Survive to the end** - 3 losses and you're eliminated!
-- **Multiple contest types** - Choose 3, 8, 12, or 18-week contests with different PPR scoring
+## 🏗️ Tech Stack
 
----
+- **Frontend**: React 18 + Vite + Tailwind CSS
+- **Backend**: Supabase (PostgreSQL + Edge Functions + Auth + Storage)
+- **External API**: BallDontLie NFL API (via SDK)
+- **Deployment**: Vercel (Frontend) + Supabase (Backend)
 
-## 🚀 Quick Start
-
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/nickroachy7/connections-testing.git
-   cd connections-testing
-   ```
-
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
-
-3. **Set up environment variables**
-   - Copy `.env.example` to `.env`
-   - Add your Supabase credentials
-
-4. **Run the development server**
-   ```bash
-   npm run dev
-   ```
-
-5. **Access the app**
-   - Open http://localhost:5173
-
-For detailed setup instructions, see **[QUICK_START.md](./QUICK_START.md)**
-
----
-
-## 📖 Documentation
-
-### Essential Reading
-- **[GAMEPLAY_FLOW.md](./GAMEPLAY_FLOW.md)** ⭐ - How the game works (user perspective)
-- **[QUICK_START.md](./QUICK_START.md)** - Developer setup guide
-- **[docs/](./docs/)** - All technical documentation
-
-### Key Documentation
-- **[Development Status](./docs/DEVELOPMENT_STATUS.md)** - Current progress, roadmap, known issues
-- **[Weekly Automation](./docs/WEEKLY_AUTOMATION.md)** - How automated processes work
-- **[System Architecture](./docs/SYSTEM_ARCHITECTURE.md)** - Database schema and technical details
-- **[Edge Functions Guide](./docs/EDGE_FUNCTIONS_GUIDE.md)** - Backend function documentation
-
-See **[docs/README.md](./docs/README.md)** for complete documentation index.
-
----
-
-## 🛠️ Tech Stack
-
-- **Frontend:** React 18 + Vite + Tailwind CSS
-- **Backend:** Supabase (PostgreSQL + Edge Functions + Auth + Storage)
-- **NFL Data:** BallDontLie API
-- **Deployment:** Vercel (frontend) + Supabase (backend)
-- **Language:** JavaScript/JSX
-
----
-
-## 🎯 Key Features
-
-### ✅ Implemented
-- ✅ User authentication and profiles
-- ✅ Pack opening system with card rarities
-- ✅ Player inventory management
-- ✅ Lineup building with drag-and-drop
-- ✅ Token system for strategic bonuses
-- ✅ Automated weekly workflow (lock, stats, finalize, advance)
-- ✅ Live stats integration with real NFL games
-- ✅ Contest types (8 different modes)
-- ✅ Win/loss tracking and elimination system
-- ✅ Card progression (XP, leveling, tier upgrades)
-- ✅ Real-time updates via Supabase subscriptions
-
-### 🚧 In Progress
-- 🚧 Security hardening (RLS policies)
-- 🚧 Enhanced error handling
-- 🚧 UI/UX polish
-- 🚧 Multi-user testing
-
-### 📋 Planned
-- Leaderboards (contest-specific)
-- Pack shop with multiple pack types
-- Trading/marketplace
-- Mobile app
-- Advanced analytics
-
----
-
-## 📂 Project Structure
+## 📁 Project Structure
 
 ```
 connections-testing/
 ├── src/
 │   ├── components/        # React components
-│   ├── contexts/          # React contexts (Auth, Fantasy, Toast)
-│   ├── hooks/             # Custom React hooks
-│   ├── pages/             # Page components
-│   ├── services/          # API services (Supabase, NFL API)
-│   └── utils/             # Utility functions
+│   ├── pages/            # Page components (routing)
+│   ├── contexts/         # React contexts (Auth, Fantasy, Toast)
+│   ├── hooks/            # Custom React hooks
+│   ├── services/         # API services (Supabase, NFL API)
+│   ├── utils/            # Utility functions
+│   └── constants/        # App constants
 ├── supabase/
-│   ├── functions/         # Edge functions (Deno/TypeScript)
-│   └── migrations/        # Database migrations
-├── docs/                  # Documentation
-├── public/                # Static assets
-└── .github/               # GitHub config & Copilot instructions
+│   ├── functions/        # Edge Functions (TypeScript/Deno)
+│   └── migrations/       # Database migrations (SQL)
+├── docs/                 # Documentation
+└── public/              # Static assets
 ```
 
----
+## 🚀 Quick Start
 
-## 🔄 Weekly Automation
+### Prerequisites
 
-The game runs on automated weekly cycles:
+- Node.js 18+
+- Supabase CLI
+- BallDontLie NFL API key
 
-1. **Thursday-Monday:** Games are played, stats update live
-2. **Tuesday 12:01 AM:** Week finalizes, wins/losses determined
-3. **Tuesday 8:00 PM:** Advance to next week, unlock all players
-4. **Wednesday+:** Users set lineups for upcoming week
+### Installation
 
-All processes are automated via Supabase cron jobs and edge functions.
-
-See **[docs/WEEKLY_AUTOMATION.md](./docs/WEEKLY_AUTOMATION.md)** for details.
-
----
-
-## 🧪 Development Workflow
-
-### Running Locally
+1. Clone the repository
 ```bash
-npm run dev          # Start Vite dev server
+git clone https://github.com/nickroachy7/connections-testing.git
+cd connections-testing
 ```
 
-### Supabase Development
+2. Install dependencies
 ```bash
-# Work with edge functions
-cd supabase/functions/[function-name]
-deno run --allow-all index.ts
+npm install
+```
 
-# Deploy edge function
-supabase functions deploy [function-name]
+3. Set up environment variables
+```bash
+cp .env.example .env
+# Add your Supabase and BallDontLie API credentials
+```
 
-# Run migrations
+4. Run development server
+```bash
+npm run dev
+```
+
+### Environment Variables
+
+```env
+VITE_SUPABASE_URL=your_supabase_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+VITE_BALLDONTLIE_API_KEY=your_balldontlie_api_key
+```
+
+## 📖 Key Features
+
+### Contest Types
+- **1 Week Contests**: Fast-paced weekly challenges
+- **3 Week Contests**: Quick tournaments with 1-loss elimination
+- **18 Week Contests**: Full season experience with 7-loss limit
+
+### Scoring System
+- Uses **median scoring** (not average) for win/loss determination
+- Real-time scoring during NFL games
+- Automatic weekly finalization and advancement
+
+### Pack System
+- Dynamic pull rates based on player performance
+- Tier-based card system (Role Player, Starter, All-Star, Elite)
+- Starter pack tier boosts based on contest type
+
+### Automation
+- Weekly projections update (Tuesday 8:05 PM, Sunday 6:00 PM)
+- Live stats tracking during games (every 2 minutes on game days)
+- Week finalization (Tuesday 12:01 AM)
+- Week advancement (Tuesday 8:00 PM)
+
+## 🗄️ Database Schema
+
+Key tables:
+- `users` - User profiles and stats
+- `teams` - User teams with contest types
+- `contest_types` - Contest configuration
+- `player_cards` - NFL player data and projections
+- `token_cards` - Bonus tokens for lineup boosts
+- `user_player_inventory` - Player card ownership
+- `weekly_lineups` - Team lineups per week
+- `weekly_global_stats` - Weekly median/average calculations
+
+## 🔧 Development
+
+### Running Supabase Functions Locally
+```bash
+supabase functions serve
+```
+
+### Deploying Edge Functions
+```bash
+supabase functions deploy <function-name>
+```
+
+### Database Migrations
+```bash
 supabase db push
 ```
 
-### Code Quality
-- Follow existing code patterns
-- Use ESLint configuration
-- Check `.github/copilot-instructions.md` for guidelines
-- Test before pushing to main
+## 📚 Documentation
 
----
+- **Architecture**: See `docs/ARCHITECTURE.md` for system design details
+- **Gameplay Flow**: See `docs/GAMEPLAY.md` for user journey and mechanics
+- **API Guide**: See `docs/API.md` for BallDontLie API integration
 
 ## 🤝 Contributing
 
-This is currently a private project, but we welcome contributions:
-
-1. Check **[docs/DEVELOPMENT_STATUS.md](./docs/DEVELOPMENT_STATUS.md)** for current priorities
-2. Review **[GAMEPLAY_FLOW.md](./GAMEPLAY_FLOW.md)** to understand intended behavior
-3. Follow the code style and patterns in the codebase
-4. See `.github/copilot-instructions.md` for detailed guidelines
-5. Test your changes thoroughly before submitting
-
----
-
-## 📊 Project Status
-
-**Current Phase:** Pre-Production - Security & Quality Hardening  
-**Target Launch:** Late November 2025  
-**Production Readiness:** 6.2/10 → Improving to 9+/10
-
-See **[docs/DEVELOPMENT_STATUS.md](./docs/DEVELOPMENT_STATUS.md)** for detailed status.
-
----
-
-## 📞 Support & Contact
-
-- **Issues:** Use GitHub Issues
-- **Documentation:** See `/docs` folder
-- **Project Owner:** @nickroachy7
-
----
+1. Create a feature branch
+2. Make your changes
+3. Test thoroughly
+4. Submit a pull request
 
 ## 📄 License
 
-See [LICENSE](./LICENSE) file for details.
+See LICENSE file for details.
 
----
+## 🏆 Credits
 
-## 🙏 Acknowledgments
-
-- **BallDontLie API** for NFL data
-- **Supabase** for backend infrastructure
-- **React** and **Vite** for frontend framework
-- **Tailwind CSS** for styling
-
----
-
-**Built with ❤️ for fantasy football fans**
+Built by the YapSports team.

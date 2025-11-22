@@ -1,12 +1,16 @@
 import { useAuth } from '../hooks/useAuth';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { supabase } from '../services/supabase';
 import LeaderboardWidget from '../components/LeaderboardWidget';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 export default function Leaderboard() {
   const { user, profile, loading } = useAuth();
   const navigate = useNavigate();
   const { teamId } = useParams();
+  const [activeTeam, setActiveTeam] = useState(null);
+  const [teamLoading, setTeamLoading] = useState(true);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -15,10 +19,35 @@ export default function Leaderboard() {
     }
   }, [user, loading, navigate]);
 
-  if (loading) {
+  useEffect(() => {
+    if (teamId && user) {
+      fetchTeam();
+    } else {
+      setTeamLoading(false);
+    }
+  }, [teamId, user]);
+
+  const fetchTeam = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('teams')
+        .select('id, team_name, contest_type_id, user_id')
+        .eq('id', teamId)
+        .single();
+
+      if (error) throw error;
+      setActiveTeam(data);
+    } catch (err) {
+      console.error('Error fetching team:', err);
+    } finally {
+      setTeamLoading(false);
+    }
+  };
+
+  if (loading || teamLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-primary-black-50 text-xl">Loading...</div>
+        <LoadingSpinner size="lg" message="Loading..." />
       </div>
     );
   }
@@ -27,7 +56,6 @@ export default function Leaderboard() {
     return null;
   }
 
-  // activeTeam will be loaded by the widget from teamId if needed
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
       {/* Page Header */}
@@ -37,7 +65,7 @@ export default function Leaderboard() {
       </div>
       
       <LeaderboardWidget 
-        activeTeam={{ id: teamId }}
+        activeTeam={activeTeam}
         userId={user.id}
         compact={false}
         showFilters={true}

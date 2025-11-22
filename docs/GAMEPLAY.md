@@ -1,0 +1,505 @@
+# Gameplay Flow & User Journey
+
+This document defines how the game works from the user's perspective. All features should align with this specification.
+
+## 🎯 Core Concept
+
+**Build your roster. Set your lineup. Beat the median. Climb the leaderboard.**
+
+Players acquire NFL player cards through pack openings, build weekly lineups, and compete to score at or above the median to earn wins. Different contest types offer varying durations, PPR scoring, and loss limits.
+
+---
+
+## 📋 User Journey
+
+### 1. Onboarding (First-Time User)
+
+**Sign Up**
+1. User lands on home page
+2. Clicks "Get Started" or "Sign Up"
+3. Enters email, password, and username
+4. Account created → Auto-redirected to team creation
+
+**Create First Team**
+1. Select contest type (1-week, 3-week, or 18-week)
+2. Name your team
+3. Click "Start My Team"
+4. Automatically opens starter pack with tier boosts
+5. Tier assignment mini-game:
+   - Drag players into tier slots (Role Player, Starter, All-Star, Elite)
+   - Higher tiers get better card levels and bonuses
+   - Must fill all required slots before continuing
+6. Players added to inventory
+7. Redirected to "Starting Lineup" page
+
+---
+
+### 2. Core Gameplay Loop
+
+#### Week Cycle
+
+**Phase 1: Preparation (Tuesday 8 PM - Sunday 1 PM)**
+- Status: **Upcoming Week**
+- Actions Available:
+  - ✅ Open packs (purchase with coins)
+  - ✅ Set/modify lineup
+  - ✅ View projections
+  - ✅ Browse inventory
+  - ✅ Check leaderboard
+
+**Phase 2: Games In Progress (Sunday 1 PM - Tuesday 12:01 AM)**
+- Status: **Live Week**
+- Actions Available:
+  - ❌ Cannot change lineup (players locked at Sunday 1:05 PM)
+  - ❌ Cannot open packs (roster locked)
+  - ✅ View live scores updating in real-time
+  - ✅ Check leaderboard
+  - ✅ Track opponent scores
+
+**Phase 3: Week Finalized (Tuesday 12:01 AM - Tuesday 8 PM)**
+- Status: **Finalized Week**
+- Actions Available:
+  - ✅ View final scores
+  - ✅ See win/loss result (beat median or not)
+  - ✅ Check updated record
+  - ✅ View leaderboard changes
+  - ❌ Cannot open packs yet (waiting for advancement)
+  - ✅ Can preview next week's lineup
+
+**Phase 4: Week Advancement (Tuesday 8 PM)**
+- System automatically advances to next week
+- Players unlocked
+- Cycle repeats
+
+---
+
+### 3. Building Your Roster
+
+#### Pack Shop
+
+**Available Packs**
+- Standard Pack: 500 coins
+- Premium Pack: 1000 coins (coming soon)
+
+**Pack Opening Flow**
+1. User navigates to Pack Shop
+2. Checks roster limits (warning if near capacity)
+3. Clicks "Buy Pack" → Confirms purchase
+4. Redirected to pack opening page
+5. Animated pack reveal
+6. Card reveal sequence showing pulled players
+7. Tier assignment if applicable
+8. Players added to inventory
+9. Return to inventory or shop
+
+**Pull Rates**
+- Bell curve distribution favoring solid starters
+- Elite players: ~2-5% pull rate
+- Starters: ~55% pull rate (most common)
+- Role players: ~30% pull rate
+- Trash/injured: ~10-13% pull rate
+
+---
+
+### 4. Setting Your Lineup
+
+#### Lineup Builder (Starting Lineup Page)
+
+**Required Positions**
+- 1 QB (Quarterback)
+- 2 RB (Running Backs)
+- 2 WR (Wide Receivers)
+- 1 TE (Tight End)
+- 1 FLEX (RB/WR/TE)
+- 1 K (Kicker)
+- 1 DEF (Defense/Special Teams)
+
+**Lineup Management**
+1. View current lineup grid (3x3 layout)
+2. Click empty slot or existing player
+3. Player selection modal opens:
+   - Filter by position
+   - Sort by projections, name, team
+   - View player stats and projections
+4. Select player → Auto-assigns to correct position
+5. Repeat until all 9 slots filled
+6. Lineup auto-saves on changes
+
+**Lineup Status Indicators**
+- 🔓 Unlocked: Can freely edit (before Sunday 1:05 PM)
+- 🔒 Locked: Cannot edit (games in progress)
+- ⚡ Live: Real-time scoring updates
+- ✅ Final: Week complete, scores finalized
+
+**Projected Points**
+- Each player shows weekly projection
+- Total lineup projection calculated and displayed
+- Projections update Tuesday 8:05 PM and Sunday 6:00 PM
+
+---
+
+### 5. Scoring System
+
+#### Median-Based Scoring (Critical!)
+
+**How It Works**
+1. All teams submit lineups before Sunday 1:05 PM
+2. Games play out Sunday/Monday/Thursday
+3. Each team's lineup score is calculated
+4. System calculates the **median** score of all active teams
+5. Win/Loss determined:
+   - **Score >= Median** = Win ✅
+   - **Score < Median** = Loss ❌
+
+**Why Median, Not Average?**
+- More fair - not skewed by extreme outliers
+- Eliminates advantage of "lucky" high scorers
+- Truly represents the middle of the pack
+- Consistent with "beat half the field" concept
+
+**Example**
+```
+10 teams with scores: 85, 92, 98, 105, 110, 115, 120, 125, 130, 145
+Median = 112.5 (average of 110 and 115)
+
+Results:
+- 85, 92, 98, 105, 110 → LOSS (below median)
+- 115, 120, 125, 130, 145 → WIN (at or above median)
+```
+
+#### PPR Scoring
+
+Varies by contest type:
+- **Standard (0 PPR)**: No bonus for receptions
+- **Half PPR (0.5)**: 0.5 points per reception
+- **Full PPR (1.0)**: 1 point per reception
+
+Base scoring:
+- Passing yards: 0.04 pts/yd (1 pt per 25 yds)
+- Passing TD: 4 pts
+- Passing INT: -2 pts
+- Rushing yards: 0.1 pts/yd (1 pt per 10 yds)
+- Rushing TD: 6 pts
+- Receiving yards: 0.1 pts/yd
+- Receiving TD: 6 pts
+- Field Goal: 3 pts
+- Extra Point: 1 pt
+- Defensive sack: 1 pt
+- Defensive INT: 2 pt
+
+---
+
+### 6. Contest Types
+
+#### Available Contests
+
+**1-Week Contests (Lightning Round)**
+- Duration: 1 week
+- Max Losses: 1
+- Starter Pack Boosts: 1 Role Player
+- Use Case: Quick one-off challenge
+
+**3-Week Contests (Tournament)**
+- Duration: 3 weeks
+- Max Losses: 1
+- Starter Pack Boosts: 3 Role Players, 2 Starters, 1 All-Star
+- Use Case: Short tournament experience
+
+**18-Week Contests (Full Season)**
+- Duration: 18 weeks
+- Max Losses: 7
+- Starter Pack Boosts: 1 Role Player
+- Use Case: Full NFL season grind
+
+Each contest type offers Standard, Half PPR, and Full PPR variants.
+
+#### Contest Progression
+
+**Active Team**
+- Team is competing each week
+- Can manage lineup and roster
+- Earns wins/losses
+
+**Eliminated Team**
+- Team exceeded max losses
+- Cannot compete further
+- Stats frozen
+- Can still view team/history
+
+**Completed Team**
+- Finished all weeks (win or lose)
+- Final record recorded
+- Appears on leaderboards
+
+---
+
+### 7. Economy & Rewards
+
+#### Coin System
+
+**Earning Coins**
+- Starting balance: 1000 coins
+- Weekly pack reward: 500 coins (for active teams)
+- Win bonuses: Coming soon
+- Achievement rewards: Coming soon
+
+**Spending Coins**
+- Standard Pack: 500 coins
+- Premium Pack: 1000 coins
+- Future: Team customization, cosmetics
+
+#### Inventory Management
+
+**Roster Limits**
+- Soft Cap: 50 players (warning shown)
+- Hard Cap: 75 players (cannot buy packs)
+
+**Inventory Actions**
+- View all owned player cards
+- Filter by position, team, tier
+- Sort by projections, value, acquisition date
+- Bench unused players
+- View detailed player stats
+
+---
+
+### 8. Leaderboards
+
+#### Contest Leaderboards
+- Ranked within same contest type (fair comparison)
+- Sort by:
+  - Total Points (season total)
+  - Win-Loss Record
+  - Win Percentage
+- Shows rank, percentile, stats
+
+#### Global Leaderboard
+- All teams across all contest types
+- Not a fair comparison (different rules)
+- Fun "overall" view
+
+#### Personal Stats
+- Lifetime wins/losses
+- Total teams created
+- Career points
+- Best season record
+
+---
+
+### 9. Team Management
+
+#### Team Selection Page
+- View all your teams
+- See contest type, record, status
+- Select active team to manage
+- Create new team (up to limit)
+
+#### Team Page Views
+- **Starting Lineup**: Build/view lineup
+- **Pack Shop**: Buy packs, manage coins
+- **Inventory**: Browse all cards, filter/sort
+- **Activity**: Transaction history
+- **Leaderboard**: See rankings
+
+#### Multiple Teams
+- Users can have multiple teams
+- Each team:
+  - Independent inventory
+  - Separate lineups
+  - Own contest type
+  - Individual record
+- Switch between teams via team selection
+
+---
+
+### 10. Live Scoring Experience
+
+#### Real-Time Updates (Game Days)
+
+**During Games**
+- Scores update every 2 minutes
+- Banner shows:
+  - Your current total
+  - Live vs Projected status
+  - Current median line
+  - Above/Below median indicator
+- Player cards show live points
+- Game status badges (LIVE, HALFTIME, FINAL)
+
+**Visual Feedback**
+- Green glow: You're above median
+- Red tint: You're below median
+- Progress bar showing score vs median
+- Trophy icon if winning
+
+**After Games Finalize**
+- Final score locked
+- Win/Loss badge appears
+- Record updates
+- Leaderboard refreshes
+
+---
+
+### 11. Player Cards & Progression
+
+#### Card Tiers
+- **Elite**: Top 1% players (highest projections)
+- **All-Star**: Top performers
+- **Starter**: Solid weekly starts
+- **Role Player**: Bench depth, streaming options
+
+#### Card Levels
+- Level 1-10 based on experience points
+- Higher levels = better performance
+- XP earned from weekly usage (coming soon)
+
+#### Player Stats Displayed
+- Weekly projected points
+- Season average (PPG)
+- Games played
+- Injury status
+- Pull percentage (rarity indicator)
+- Team abbreviation
+- Position
+
+---
+
+### 12. Navigation & UX
+
+#### Main Navigation
+
+**Unauthenticated Users**
+- Home page with CTA
+- Login/Signup pages
+
+**Authenticated Users**
+- Header with logo, user menu
+- Sidebar navigation (desktop)
+- Mobile menu (hamburger)
+
+**Team-Specific Routes**
+```
+/teams/:teamId/starting-lineup   - Build lineup
+/teams/:teamId/pack-shop          - Buy packs
+/teams/:teamId/inventory          - View cards
+/teams/:teamId/activity           - Transaction log
+/teams/:teamId/leaderboard        - Rankings
+```
+
+#### Persistent Elements
+
+**Fantasy Nav Banner** (Team Context)
+- Shows on all team pages
+- Displays:
+  - Team name & logo
+  - Username
+  - Win-Loss record
+  - Coins balance
+  - Current week score
+  - Score vs median indicator
+- Navigation tabs for team pages
+
+**Teams Page Banner** (Team Selection)
+- Shows on team selection page
+- Username
+- Total teams count
+- "Create New Team" button
+
+---
+
+### 13. User States & Flows
+
+#### New User → First Team
+```
+Sign Up → Create Team → Starter Pack → Tier Assignment → Starting Lineup
+```
+
+#### Returning User → Manage Team
+```
+Login → Team Selection → Starting Lineup → (Set Lineup | Buy Packs | Check Scores)
+```
+
+#### Weekly Routine
+```
+Tuesday: Check results → See new week → Adjust lineup
+Wednesday-Saturday: Optional pack purchases, lineup tweaks
+Sunday: Final lineup check → Watch games → Track live scores
+Monday-Tuesday: Final games → Week finalizes → Check results
+```
+
+#### Multi-Team User
+```
+Team Selection → Choose Team A → Manage
+              → Choose Team B → Manage
+              → Create Team C → Setup
+```
+
+---
+
+### 14. Notifications & Feedback
+
+#### Toast Notifications
+- Pack purchase confirmation
+- Lineup saved
+- Insufficient coins
+- Roster limit warnings
+- Errors (API failures, etc.)
+
+#### Status Badges
+- "Live" - Games in progress
+- "Locked" - Lineup locked
+- "Final" - Week complete
+- "Upcoming" - Next week preview
+- "Eliminated" - Max losses exceeded
+
+#### Empty States
+- No teams: Prompt to create first team
+- No lineup: Instruction to set lineup
+- No packs available: Coming soon message
+- No players in inventory: Buy a pack CTA
+
+---
+
+### 15. Future Features (Not Yet Implemented)
+
+- **Achievements**: Unlock badges for milestones
+- **Tournaments**: Bracket-style competitions
+- **Trading**: Player card marketplace
+- **Challenges**: Daily/weekly special objectives
+- **Social**: Friends list, head-to-head matchups
+- **Customization**: Team logos, card backs, themes
+- **Premium Packs**: Higher rarity guarantees
+- **Token Usage**: Apply boost tokens to lineups
+- **Mobile App**: Native iOS/Android experience
+
+---
+
+## 🎮 Design Principles
+
+1. **Simplicity First**: Easy to understand, hard to master
+2. **Fair Competition**: Median scoring eliminates luck-based advantages
+3. **Meaningful Choices**: Lineup decisions and pack strategy matter
+4. **Instant Feedback**: Real-time scoring, immediate visual responses
+5. **Progression**: Card levels, team records, leaderboard climbing
+6. **Flexibility**: Multiple contest types for different play styles
+7. **Accessibility**: Mobile-responsive, keyboard navigation, screen readers
+
+---
+
+## ✅ Checklist for New Features
+
+Before implementing any feature, ensure:
+- [ ] It aligns with the core "Beat the Median" concept
+- [ ] User flow is intuitive and documented here
+- [ ] Visual feedback is clear and immediate
+- [ ] Mobile experience is considered
+- [ ] Error states are handled gracefully
+- [ ] It fits within the weekly game cycle
+- [ ] Contest type variations are supported
+- [ ] Leaderboard impacts are considered
+
+---
+
+**Document Version**: 1.0  
+**Last Updated**: November 21, 2025  
+**Status**: Living Document - Update as features change
