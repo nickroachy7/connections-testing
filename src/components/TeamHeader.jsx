@@ -1,49 +1,96 @@
-import { useState, useEffect, useRef } from 'prop-types';
+import { useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
-import { useSupabase } from '../hooks';
+import { supabase } from '../services/supabase';
 
-const BANNER_THEMES = [
-  { id: 'ocean', name: 'Ocean Blue', bg: 'bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-500', preview: 'linear-gradient(to right, rgb(37, 99, 235), rgb(59, 130, 246), rgb(6, 182, 212))' },
-  { id: 'sunset', name: 'Sunset Orange', bg: 'bg-gradient-to-r from-orange-500 via-red-500 to-pink-500', preview: 'linear-gradient(to right, rgb(249, 115, 22), rgb(239, 68, 68), rgb(236, 72, 153))' },
-  { id: 'forest', name: 'Forest Green', bg: 'bg-gradient-to-r from-green-600 via-emerald-500 to-teal-500', preview: 'linear-gradient(to right, rgb(22, 163, 74), rgb(16, 185, 129), rgb(20, 184, 166))' },
-  { id: 'purple', name: 'Royal Purple', bg: 'bg-gradient-to-r from-purple-600 via-purple-500 to-indigo-500', preview: 'linear-gradient(to right, rgb(147, 51, 234), rgb(168, 85, 247), rgb(99, 102, 241))' },
-  { id: 'fire', name: 'Fire Red', bg: 'bg-gradient-to-r from-red-600 via-orange-500 to-yellow-500', preview: 'linear-gradient(to right, rgb(220, 38, 38), rgb(249, 115, 22), rgb(234, 179, 8))' },
-  { id: 'midnight', name: 'Midnight Blue', bg: 'bg-gradient-to-r from-slate-800 via-blue-900 to-indigo-900', preview: 'linear-gradient(to right, rgb(30, 41, 59), rgb(30, 58, 138), rgb(49, 46, 129))' },
-  { id: 'emerald', name: 'Emerald Dream', bg: 'bg-gradient-to-r from-emerald-600 via-green-500 to-lime-500', preview: 'linear-gradient(to right, rgb(5, 150, 105), rgb(34, 197, 94), rgb(132, 204, 22))' },
-  { id: 'rose', name: 'Rose Gold', bg: 'bg-gradient-to-r from-pink-500 via-rose-400 to-red-400', preview: 'linear-gradient(to right, rgb(236, 72, 153), rgb(251, 113, 133), rgb(248, 113, 113))' },
-  { id: 'arctic', name: 'Arctic Ice', bg: 'bg-gradient-to-r from-cyan-500 via-blue-400 to-indigo-400', preview: 'linear-gradient(to right, rgb(6, 182, 212), rgb(96, 165, 250), rgb(129, 140, 248))' }
-];
-
+/**
+ * TeamHeader Component
+ * 
+ * Displays team identity information:
+ * - Team image (clickable to upload)
+ * - Team name (editable)
+ * - Username
+ * - Coins, Wins, Losses
+ * - Theme customization
+ */
 export default function TeamHeader({ 
-  teamId,
-  team,
   username, 
   teamName, 
   wins, 
   losses, 
-  coins 
+  coins,
+  teamId,
+  team
 }) {
-  const { supabase } = useSupabase();
+  const [teamImage, setTeamImage] = useState(null);
   const [localTeamName, setLocalTeamName] = useState(teamName);
   const [isEditingName, setIsEditingName] = useState(false);
-  const [teamImage, setTeamImage] = useState(team?.team_image_url || null);
+  const [editedName, setEditedName] = useState(teamName);
   const [uploading, setUploading] = useState(false);
-  const [bannerTheme, setBannerTheme] = useState(() => {
-    return localStorage.getItem(`bannerTheme_${teamId}`) || 'forest';
-  });
   const [showColorPicker, setShowColorPicker] = useState(false);
-  
-  const fileInputRef = useRef(null);
+  const [bannerTheme, setBannerTheme] = useState('default');
   const nameInputRef = useRef(null);
+  const fileInputRef = useRef(null);
   const colorPickerRef = useRef(null);
+
+  const themeOptions = [
+    { id: 'default', name: 'Classic Dark', bg: 'bg-dk-black-secondary', preview: 'linear-gradient(to right, #1a1a1a, #1a1a1a)' },
+    { id: 'ocean', name: 'Ocean Blue', bg: 'bg-gradient-to-r from-blue-900 to-blue-800', preview: 'linear-gradient(to right, #1e3a8a, #1e40af)' },
+    { id: 'forest', name: 'Forest Green', bg: 'bg-gradient-to-r from-emerald-900 to-green-800', preview: 'linear-gradient(to right, #064e3b, #166534)' },
+    { id: 'sunset', name: 'Sunset Orange', bg: 'bg-gradient-to-r from-orange-900 to-red-900', preview: 'linear-gradient(to right, #7c2d12, #7f1d1d)' },
+    { id: 'purple', name: 'Royal Purple', bg: 'bg-gradient-to-r from-purple-900 to-indigo-900', preview: 'linear-gradient(to right, #581c87, #312e81)' },
+    { id: 'crimson', name: 'Crimson Red', bg: 'bg-gradient-to-r from-red-950 to-rose-900', preview: 'linear-gradient(to right, #450a0a, #881337)' },
+    { id: 'cow', name: 'Moo Cow', bg: 'bg-gradient-to-br from-zinc-100 via-zinc-900 to-zinc-100', preview: 'linear-gradient(135deg, #f4f4f5, #18181b, #f4f4f5)' },
+    { id: 'matrix', name: 'Matrix Code', bg: 'bg-gradient-to-b from-black via-green-950 to-black', preview: 'linear-gradient(to bottom, #000000, #052e16, #000000)' },
+    { id: 'lava', name: 'Molten Lava', bg: 'bg-gradient-to-r from-red-600 via-orange-600 to-yellow-500', preview: 'linear-gradient(to right, #dc2626, #ea580c, #eab308)' }
+  ];
+
+  useEffect(() => {
+    const savedTheme = localStorage.getItem(`bannerTheme_${teamId}`);
+    setBannerTheme(savedTheme || 'default');
+  }, [teamId]);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (colorPickerRef.current && !colorPickerRef.current.contains(event.target)) {
+        setShowColorPicker(false);
+      }
+    }
+    if (showColorPicker) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showColorPicker]);
+
+  const handleThemeChange = (themeId) => {
+    setBannerTheme(themeId);
+    localStorage.setItem(`bannerTheme_${teamId}`, themeId);
+    setShowColorPicker(false);
+  };
+
+  const getCurrentTheme = () => themeOptions.find(t => t.id === bannerTheme) || themeOptions[0];
+
+  useEffect(() => {
+    if (teamId) {
+      const fetchTeamData = async () => {
+        const { data, error } = await supabase
+          .from('teams')
+          .select('team_image_url, team_name')
+          .eq('id', teamId)
+          .single();
+
+        if (!error && data) {
+          setTeamImage(data.team_image_url);
+          setLocalTeamName(data.team_name);
+        }
+      };
+      fetchTeamData();
+    }
+  }, [teamId]);
 
   useEffect(() => {
     setLocalTeamName(teamName);
+    setEditedName(teamName);
   }, [teamName]);
-
-  useEffect(() => {
-    setTeamImage(team?.team_image_url || null);
-  }, [team?.team_image_url]);
 
   useEffect(() => {
     if (isEditingName && nameInputRef.current) {
@@ -52,76 +99,46 @@ export default function TeamHeader({
     }
   }, [isEditingName]);
 
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (colorPickerRef.current && !colorPickerRef.current.contains(event.target)) {
-        setShowColorPicker(false);
-      }
-    };
-
-    if (showColorPicker) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [showColorPicker]);
-
-  const getCurrentTheme = () => {
-    return BANNER_THEMES.find(t => t.id === bannerTheme) || BANNER_THEMES[2];
-  };
-
-  const handleThemeChange = (themeId) => {
-    setBannerTheme(themeId);
-    localStorage.setItem(`bannerTheme_${teamId}`, themeId);
-    setShowColorPicker(false);
-  };
-
   const handleNameClick = () => {
     setIsEditingName(true);
+    setEditedName(localTeamName);
   };
 
-  const handleNameChange = (e) => {
-    setLocalTeamName(e.target.value);
-  };
+  const handleNameChange = (e) => setEditedName(e.target.value);
 
   const handleNameBlur = async () => {
-    setIsEditingName(false);
-    if (localTeamName.trim() && localTeamName !== teamName) {
+    if (editedName.trim() && editedName !== localTeamName) {
       try {
         const { error } = await supabase
           .from('teams')
-          .update({ team_name: localTeamName.trim() })
+          .update({ team_name: editedName.trim() })
           .eq('id', teamId);
-
         if (error) throw error;
+        setLocalTeamName(editedName.trim());
       } catch (err) {
         console.error('Error updating team name:', err);
-        setLocalTeamName(teamName);
+        setEditedName(localTeamName);
       }
     } else {
-      setLocalTeamName(teamName);
+      setEditedName(localTeamName);
     }
+    setIsEditingName(false);
   };
 
   const handleNameKeyDown = (e) => {
     if (e.key === 'Enter') {
+      e.preventDefault();
       nameInputRef.current?.blur();
     } else if (e.key === 'Escape') {
-      setLocalTeamName(teamName);
+      setEditedName(localTeamName);
       setIsEditingName(false);
     }
   };
 
-  const handleImageClick = () => {
-    if (!uploading) {
-      fileInputRef.current?.click();
-    }
-  };
+  const handleImageClick = () => fileInputRef.current?.click();
 
-  const handleImageSelect = async (e) => {
-    const file = e.target.files?.[0];
+  const handleImageSelect = async (event) => {
+    const file = event.target.files[0];
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
@@ -129,28 +146,27 @@ export default function TeamHeader({
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) {
-      alert('Image must be less than 5MB');
+    if (file.size > 2 * 1024 * 1024) {
+      alert('Image must be less than 2MB');
       return;
     }
 
-    setUploading(true);
-
     try {
+      setUploading(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
       const fileExt = file.name.split('.').pop();
-      const filePath = `${teamId}-${Date.now()}.${fileExt}`;
+      const fileName = `${user.id}/${teamId}-${Date.now()}.${fileExt}`;
 
       if (teamImage) {
-        const oldPath = teamImage.split('/').pop();
+        const oldPath = teamImage.split('/').slice(-2).join('/');
         await supabase.storage.from('team-images').remove([oldPath]);
       }
 
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('team-images')
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: false
-        });
+        .upload(fileName, file, { cacheControl: '3600', upsert: false });
 
       if (uploadError) throw uploadError;
 
@@ -184,29 +200,28 @@ export default function TeamHeader({
           <div className="absolute top-3 right-4 z-10" ref={colorPickerRef}>
             <button
               onClick={() => setShowColorPicker(!showColorPicker)}
-              className="p-2 rounded-md bg-black/20 hover:bg-black/30 backdrop-blur-sm border border-white/20 transition-all group"
-              title="Change banner theme"
+              className="p-2 rounded-lg bg-black/30 hover:bg-black/50 border border-white/20 transition-all duration-200 group"
+              title="Customize banner color"
             >
-              <svg className="w-5 h-5 text-white group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 text-white/80 group-hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
               </svg>
             </button>
 
-            {/* Color Picker Dropdown */}
             {showColorPicker && (
-              <div className="absolute top-full right-0 mt-2 w-72 bg-dk-bg-primary border-2 border-dk-border-primary rounded-lg shadow-2xl overflow-hidden">
-                <div className="p-3 bg-dk-bg-secondary border-b border-dk-border-primary">
+              <div className="absolute top-full right-0 mt-2 w-72 bg-dk-black-tertiary border-2 border-dk-black-light rounded-lg shadow-2xl overflow-hidden">
+                <div className="p-3 bg-dk-black-secondary border-b border-dk-black-light">
                   <h3 className="text-sm font-dk-display font-bold text-dk-white-primary">Choose Banner Theme</h3>
                 </div>
                 <div className="p-2 max-h-96 overflow-y-auto">
-                  {BANNER_THEMES.map((theme) => (
+                  {themeOptions.map(theme => (
                     <button
                       key={theme.id}
                       onClick={() => handleThemeChange(theme.id)}
-                      className={`w-full flex items-center gap-3 p-2.5 rounded-md transition-all mb-1.5 last:mb-0 ${
-                        bannerTheme === theme.id
-                          ? 'bg-dk-green-primary/20 border-2 border-dk-green-primary'
-                          : 'bg-dk-bg-secondary/50 border-2 border-transparent hover:bg-dk-bg-secondary hover:border-dk-border-primary'
+                      className={`w-full flex items-center gap-3 p-2.5 rounded-lg mb-1.5 transition-all duration-200 ${
+                        bannerTheme === theme.id 
+                          ? 'bg-dk-green-primary/20 border-2 border-dk-green-primary' 
+                          : 'bg-dk-black-secondary border-2 border-transparent hover:border-dk-black-light'
                       }`}
                     >
                       <div 
@@ -234,11 +249,14 @@ export default function TeamHeader({
                     <img
                       src={teamImage}
                       alt={localTeamName || 'Team'}
-                      className="w-16 h-16 rounded-md object-cover border-2 border-black/40 shadow-xl group-hover:border-white transition-all"
+                      className="w-16 h-16 rounded-md object-cover border-2 border-black/40 shadow-xl group-hover:border-white/60 transition-all"
                     />
                     {uploading && (
-                      <div className="absolute inset-0 bg-black/60 rounded-md flex items-center justify-center">
-                        <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-lg">
+                        <svg className="animate-spin h-6 w-6 text-white" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
                       </div>
                     )}
                     <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 backdrop-blur-sm rounded-md">
@@ -264,12 +282,12 @@ export default function TeamHeader({
                   <input
                     ref={nameInputRef}
                     type="text"
-                    value={localTeamName}
+                    value={editedName}
                     onChange={handleNameChange}
                     onBlur={handleNameBlur}
                     onKeyDown={handleNameKeyDown}
-                    maxLength={50}
-                    className="text-2xl md:text-3xl font-dk-display font-black text-white bg-white/10 backdrop-blur-sm px-3 py-1 rounded border-2 border-white/30 focus:border-white focus:outline-none drop-shadow-lg tracking-tight"
+                    maxLength={30}
+                    className="text-2xl md:text-3xl font-dk-display font-black text-dk-white-primary tracking-tight bg-dk-black-tertiary border-2 border-dk-green-primary rounded px-2 py-1 focus:outline-none"
                   />
                 ) : (
                   <div className="flex items-center gap-2">
