@@ -16,11 +16,12 @@ export default function FantasyNavBanner({
   lineup,
   projections,
   team, // ADD team prop to get contest info
+  currentWeek: contextCurrentWeek, // Get current week from FantasyContext to prevent flash
   previewMode = false // If true, show next week when current week is finalized (for Starting Lineup page only)
 }) {
   const navigate = useNavigate();
   const location = useLocation();
-  const [currentWeek, setCurrentWeek] = useState(null);
+  const [currentWeek, setCurrentWeek] = useState(contextCurrentWeek || null);
   const [displayWeek, setDisplayWeek] = useState(null); // The week to actually display (may be +1 in preview mode)
   const [projectedPoints, setProjectedPoints] = useState(0);
   const [globalStats, setGlobalStats] = useState(null);
@@ -182,27 +183,12 @@ export default function FantasyNavBanner({
     setEditedName(teamName);
   }, [teamName]);
 
-  // Load current week from database
+  // Update currentWeek state when context updates
   useEffect(() => {
-    const loadCurrentWeek = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('nfl_season_config')
-          .select('current_week, season_year')
-          .eq('is_active', true)
-          .single();
-        
-        if (error) throw error;
-        if (data) {
-          setCurrentWeek({ week: data.current_week, year: data.season_year });
-        }
-      } catch (error) {
-        console.error('Error loading current week:', error);
-      }
-    };
-    
-    loadCurrentWeek();
-  }, []);
+    if (contextCurrentWeek) {
+      setCurrentWeek(contextCurrentWeek);
+    }
+  }, [contextCurrentWeek]);
 
   // Check finalization status and set displayWeek
   useEffect(() => {
@@ -656,28 +642,6 @@ export default function FantasyNavBanner({
             setLivePoints(finalScore);
             setProjectedFinal(finalScore);
             console.log('🏁 FINAL - Score:', finalScore);
-          } else if (weekIsLive && lineupData.lineup_snapshot) {
-            // Use lineup_snapshot which has real stats from track-live-stats edge function
-            let calculatedTotal = 0;
-            let projectedFinalTotal = 0;
-            const positions = ['QB', 'RB1', 'RB2', 'WR1', 'WR2', 'WR3', 'TE', 'FLEX'];
-            
-            positions.forEach(pos => {
-              const playerData = lineupData.lineup_snapshot[pos];
-              if (playerData) {
-                // Use total_points from snapshot (includes live stats + tokens)
-                const livePoints = parseFloat(playerData.total_points || 0);
-                const projectedPoints = parseFloat(playerData.projected_points || 0);
-                
-                calculatedTotal += livePoints;
-                // If player has live points, use those; otherwise use projection
-                projectedFinalTotal += livePoints > 0 ? livePoints : projectedPoints;
-              }
-            });
-            
-            setLivePoints(calculatedTotal);
-            setProjectedFinal(projectedFinalTotal);
-            console.log('🔴 LIVE - From snapshot:', calculatedTotal, 'Projected Final:', projectedFinalTotal);
           } else if (weekIsLive) {
             // Calculate from lineup directly - get live stats for each player
             if (lineup) {
