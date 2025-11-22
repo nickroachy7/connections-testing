@@ -1,3 +1,4 @@
+import React from 'react';
 import PropTypes from 'prop-types';
 import { getTokenRarityColor, getRarityTextColor } from './tableHelpers.jsx';
 
@@ -71,7 +72,30 @@ const TokenTable = ({
     return columns.join(' ');
   };
 
+  // Mobile grid template - hide Pull % and Tier columns
+  const getMobileGridTemplate = () => {
+    let columns = [];
+    
+    // Checkbox/Add button column (conditional)
+    if (showBulkSelect || showAddButton) {
+      columns.push('28px'); // Smaller add button for mobile
+    } else {
+      columns.push('20px'); // Empty/drag handle
+    }
+    
+    // Mobile columns - optimized for information density
+    columns.push(
+      '32px',   // Icon (compact)
+      '1fr',    // Token name & description (takes most space)
+      '45px',   // Sell value (compact)
+      '50px'    // Bonus (compact)
+    );
+    
+    return columns.join(' ');
+  };
+
   const gridTemplate = getGridTemplate();
+  const mobileGridTemplate = getMobileGridTemplate();
 
   if (tokens.length === 0) {
     return (
@@ -94,12 +118,12 @@ const TokenTable = ({
         <div className="h-full border-r border-primary-black-600"></div>
       </div>
 
-      {/* Header Row */}
+      {/* Header Row - Desktop (compact) */}
       <div 
-        className="grid bg-primary-black-800 border-b border-primary-black-700 py-3 px-2"
+        className="hidden md:grid bg-primary-black-800 border-b border-primary-black-700 py-2 px-2"
         style={{ 
           gridTemplateColumns: gridTemplate,
-          gap: '8px'
+          gap: '6px'
         }}
       >
         {/* Checkbox or Empty column */}
@@ -120,6 +144,22 @@ const TokenTable = ({
         <span className="text-[10px] font-bold text-primary-black-500 uppercase tracking-wider text-center">BONUS</span>
         
         {/* Custom headers */}
+        {renderExtraHeaderColumns && renderExtraHeaderColumns()}
+      </div>
+
+      {/* Mobile Header Row */}
+      <div 
+        className="grid md:hidden bg-primary-black-800 border-b border-primary-black-700 py-1 px-1"
+        style={{ 
+          gridTemplateColumns: mobileGridTemplate,
+          gap: '4px'
+        }}
+      >
+        <span className="text-[9px] font-bold text-primary-black-500 uppercase tracking-wide text-center"></span>
+        <span className="text-[9px] font-bold text-primary-black-500 uppercase tracking-wide text-center"></span>
+        <span className="text-[9px] font-bold text-primary-black-500 uppercase tracking-wide">TOKEN</span>
+        <span className="text-[9px] font-bold text-primary-black-500 uppercase tracking-wide text-center">SELL</span>
+        <span className="text-[9px] font-bold text-primary-black-500 uppercase tracking-wide text-center">BONUS</span>
         {renderExtraHeaderColumns && renderExtraHeaderColumns()}
       </div>
 
@@ -157,19 +197,21 @@ const TokenTable = ({
         const isSelected = selectedIds.includes(token.id);
 
         return (
-          <div
-            key={token.id}
-            draggable={!isLocked}
-            onDragStart={handleDragStart}
-            onDragEnd={onRowDragEnd}
-            onClick={handleClick}
-            className={customClassName}
-            style={{ 
-              gridTemplateColumns: gridTemplate,
-              gap: '8px',
-              alignItems: 'center'
-            }}
-          >
+          <React.Fragment key={token.id}>
+            {/* Desktop Row - Compact */}
+            <div
+              draggable={!isLocked}
+              onDragStart={handleDragStart}
+              onDragEnd={onRowDragEnd}
+              onClick={handleClick}
+              className={`hidden md:grid ${customClassName}`}
+              style={{
+                gridTemplateColumns: gridTemplate,
+                gap: '6px',
+                alignItems: 'center',
+                padding: '0.5rem 0.5rem'
+              }}
+            >
             {/* COLUMN 1: Add Button, Checkbox, or Drag Handle */}
             <div className="flex items-center justify-center">
               {showAddButton ? (
@@ -216,22 +258,22 @@ const TokenTable = ({
             
             {/* COLUMN 2: Type Badge */}
             <div className="flex items-center justify-center">
-              <span className="px-2 py-1 bg-primary-black-700 text-primary-black-300 rounded text-xs font-semibold text-center">
+              <span className="px-1.5 py-0.5 bg-primary-black-700 text-primary-black-300 rounded text-[10px] font-semibold text-center">
                 TK
               </span>
             </div>
 
             {/* COLUMN 3: Token Icon */}
-            <div className={`rounded-md flex items-center justify-center text-2xl bg-gradient-to-br ${getTokenRarityColor(token.token_card.rarity)} w-10 h-10`}>
+            <div className={`rounded-md flex items-center justify-center text-xl bg-gradient-to-br ${getTokenRarityColor(token.token_card.rarity)} w-8 h-8`}>
               💎
             </div>
 
             {/* COLUMN 4: Token Name & Type */}
             <div className="min-w-0">
-              <h4 className="font-bold text-primary-black-50 truncate text-sm">
+              <h4 className="font-bold text-primary-black-50 truncate text-xs">
                 {token.token_card.token_name}
               </h4>
-              <div className="text-xs text-primary-black-500 font-medium uppercase">
+              <div className="text-[10px] text-primary-black-500 font-medium uppercase">
                 {token.token_card.token_type}
               </div>
             </div>
@@ -279,7 +321,100 @@ const TokenTable = ({
 
             {/* Custom columns */}
             {renderExtraRowColumns && renderExtraRowColumns(token, index)}
-          </div>
+            </div>
+
+            {/* Mobile Row */}
+            <div
+              draggable={!isLocked}
+              onDragStart={handleDragStart}
+              onDragEnd={onRowDragEnd}
+              onClick={handleClick}
+              className={`grid md:hidden ${customClassName}`}
+              style={{ 
+                gridTemplateColumns: mobileGridTemplate,
+                gap: '4px',
+                alignItems: 'center',
+                padding: '0.5rem 0.25rem'
+              }}
+            >
+              {/* COLUMN 1: Add Button or Checkbox */}
+              <div className="flex items-center justify-center">
+                {showAddButton ? (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (onAddButtonClick && !isLocked) {
+                        onAddButtonClick(token);
+                      }
+                    }}
+                    disabled={isLocked}
+                    className={`w-5 h-5 cursor-pointer rounded-full appearance-none border transition-all flex items-center justify-center text-xs font-bold leading-none disabled:opacity-50 disabled:cursor-not-allowed ${
+                      selectedTokenId === token.id
+                        ? 'border-yellow-500 bg-yellow-500 text-white'
+                        : 'border-primary-black-600 bg-primary-black-800 text-primary-black-400'
+                    }`}
+                  >
+                    +
+                  </button>
+                ) : showBulkSelect ? (
+                  <div className="relative flex items-center justify-center">
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={(e) => {
+                        e.stopPropagation();
+                        if (onBulkSelectChange) {
+                          onBulkSelectChange(token, e.target.checked);
+                        }
+                      }}
+                      className="w-4 h-4 cursor-pointer rounded appearance-none border border-primary-black-600 bg-primary-black-800 checked:bg-primary-black-700 checked:border-primary-black-500"
+                    />
+                    {isSelected && (
+                      <svg className="absolute w-2.5 h-2.5 text-primary-black-200 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                  </div>
+                ) : (
+                  <span className="text-primary-black-600 text-[10px]">⋮⋮</span>
+                )}
+              </div>
+
+              {/* COLUMN 2: Token Icon */}
+              <div className={`rounded flex items-center justify-center text-base bg-gradient-to-br ${getTokenRarityColor(token.token_card.rarity)} w-7 h-7`}>
+                💎
+              </div>
+
+              {/* COLUMN 3: Token Name with Description */}
+              <div className="min-w-0">
+                <div className="flex items-center gap-0.5 mb-0.5">
+                  <h4 className="font-bold text-primary-black-50 truncate text-[10px]">
+                    {token.token_card.token_name}
+                  </h4>
+                </div>
+                <p className="text-[8px] text-primary-black-400 truncate leading-tight">
+                  {token.token_card.description}
+                </p>
+              </div>
+
+              {/* COLUMN 4: Sell Value */}
+              <div className="text-center">
+                <span className="text-[9px] text-primary-black-300 font-semibold">
+                  {token.sellValue || 0}
+                </span>
+              </div>
+
+              {/* COLUMN 5: Bonus */}
+              <div className="text-center">
+                <span className="text-[10px] font-bold text-primary-green-400">
+                  +{token.token_card.bonus_points}
+                </span>
+              </div>
+
+              {/* Custom columns */}
+              {renderExtraRowColumns && renderExtraRowColumns(token, index)}
+            </div>
+          </React.Fragment>
         );
       })}
     </div>
