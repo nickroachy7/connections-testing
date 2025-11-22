@@ -10,3 +10,6 @@ export * from './usePrevious';
 export * from './useQuery';
 export * from './useStorage';
 export * from './useSupabase';
+
+// Fantasy hooks
+export * from './fantasy';

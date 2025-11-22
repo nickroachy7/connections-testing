@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import { supabase } from '../services/supabase';
 import { getUserInventory } from '../services/supabase';
 import { EMPTY_LINEUP, createEmptyLineup, getBaselineProjection } from '../constants/lineup';
+import { useLineupStats } from '../hooks/fantasy/useLineupStats';
 
 const FantasyContext = createContext(null);
 
@@ -375,6 +376,9 @@ export function FantasyProvider({ children, user, activeTeam }) {
     };
   }, [user?.id, currentWeek?.week, currentWeek?.year, inventory?.players?.length]); // Use primitive values to prevent stale closures
 
+  // Calculate derived lineup statistics using custom hook
+  const lineupStats = useLineupStats(lineup, projections, liveGameData);
+
   const value = {
     lineup,
     setLineup,
@@ -387,7 +391,9 @@ export function FantasyProvider({ children, user, activeTeam }) {
     setInventory,
     loading,
     loadInventory,
-    loadLiveGameData
+    loadLiveGameData,
+    // Derived stats (always up-to-date)
+    lineupStats
   };
 
   return (

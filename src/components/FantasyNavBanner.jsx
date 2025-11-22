@@ -2,8 +2,10 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { supabase } from '../services/supabase';
+import { useFantasy } from '../contexts/FantasyContext';
+import { useProjectedMedian } from '../hooks/fantasy';
 
-// TEMPORARY: Using debug version to troubleshoot live updates
+// Production-ready banner component using derived stats from FantasyContext
 export default function FantasyNavBanner({ 
   username, 
   teamName, 
@@ -12,17 +14,17 @@ export default function FantasyNavBanner({
   coins,
   teamId,
   userId,
-  liveGameData,
-  lineup,
-  projections,
-  team, // ADD team prop to get contest info
+  team, // Team prop to get contest info
   previewMode = false // If true, show next week when current week is finalized (for Starting Lineup page only)
 }) {
   const navigate = useNavigate();
   const location = useLocation();
+  
+  // Get derived lineup stats AND raw data from FantasyContext (always up-to-date)
+  const { lineupStats, lineup, projections, liveGameData } = useFantasy();
+  
   const [currentWeek, setCurrentWeek] = useState(null);
   const [displayWeek, setDisplayWeek] = useState(null); // The week to actually display (may be +1 in preview mode)
-  const [projectedPoints, setProjectedPoints] = useState(0);
   const [globalStats, setGlobalStats] = useState(null);
   const [isLive, setIsLive] = useState(false);
   const [isFinal, setIsFinal] = useState(false);
@@ -37,12 +39,17 @@ export default function FantasyNavBanner({
   const nameInputRef = useRef(null);
   const fileInputRef = useRef(null);
   const [simulatedSeasonId, setSimulatedSeasonId] = useState(null);
-  const [simulatedAverage, setSimulatedAverage] = useState(null);
-  const averageCalculatedRef = useRef(false);
+  const [simulatedMedian, setSimulatedMedian] = useState(null);
+  const [allTeamsProjected, setAllTeamsProjected] = useState([]);
+  const medianCalculatedRef = useRef(false);
   const [weekIsFinalized, setWeekIsFinalized] = useState(false); // Track if current week is finalized
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [bannerTheme, setBannerTheme] = useState('default');
   const colorPickerRef = useRef(null);
+  
+  // DERIVED STATS from lineupStats hook (no local calculation needed)
+  // These automatically update when lineup/projections/liveGameData changes
+  const projectedPoints = lineupStats?.projectedPoints || 0;
 
   // Check if we're on the view page (read-only mode)
   const isViewMode = location.pathname.includes('/view');
@@ -164,10 +171,10 @@ export default function FantasyNavBanner({
           setLocalTeamName(data.team_name);
           setSimulatedSeasonId(data.simulated_season_id);
           
-          // If in simulated season, calculate projected average ONCE
-          if (data.simulated_season_id && currentWeek && !averageCalculatedRef.current) {
-            averageCalculatedRef.current = true;
-            calculateSimulatedAverage(data.simulated_season_id);
+          // If in simulated season, calculate projected median ONCE
+          if (data.simulated_season_id && currentWeek && !medianCalculatedRef.current) {
+            medianCalculatedRef.current = true;
+            calculateSimulatedMedian(data.simulated_season_id);
           }
         }
       };
@@ -420,14 +427,14 @@ export default function FantasyNavBanner({
     fetchCurrentWeek();
   }, []);
 
-  // Calculate projected average for simulated season
-  const calculateSimulatedAverage = async (seasonId) => {
+  // Calculate projected median for simulated season
+  const calculateSimulatedMedian = async (seasonId) => {
     if (!currentWeek || !teamId) {
-      console.log('⏸️ Skipping average calculation - no current week or team');
+      console.log('⏸️ Skipping median calculation - no current week or team');
       return;
     }
     
-    console.log('📊 Calculating simulated average once...');
+    console.log('📊 Calculating simulated median once...');
     
     try {
       
@@ -502,56 +509,29 @@ export default function FantasyNavBanner({
       }
       
       if (teamCount > 0) {
-        const avg = totalProjected / teamCount;
-        setSimulatedAverage(avg.toFixed(1));
-        console.log('🤖 Bot team average (only bots):', avg.toFixed(1), 'pts from', teamCount, 'teams');
+        // Calculate MEDIAN (not average)
+        const sortedScores = teamProjections.sort((a, b) => a - b);
+        let median;
+        if (sortedScores.length % 2 === 0) {
+          // Even number - average of middle two
+          const mid1 = sortedScores[sortedScores.length / 2 - 1];
+          const mid2 = sortedScores[sortedScores.length / 2];
+          median = (mid1 + mid2) / 2;
+        } else {
+          // Odd number - middle value
+          median = sortedScores[Math.floor(sortedScores.length / 2)];
+        }
+        setSimulatedMedian(median.toFixed(1));
+        console.log('🤖 Bot team median:', median.toFixed(1), 'pts from', teamCount, 'teams');
       }
     } catch (error) {
-      console.error('Error calculating simulated average:', error);
+      console.error('Error calculating simulated median:', error);
     }
   };
 
-  // Calculate projected points from lineup prop whenever it changes
-  useEffect(() => {
-    if (!lineup) {
-      console.log('⏳ Waiting for lineup to load...');
-      return;
-    }
-    
-    const positions = ['QB', 'RB1', 'RB2', 'WR1', 'WR2', 'WR3', 'TE', 'FLEX'];
-    let total = 0;
-    let foundProjections = 0;
-    
-    positions.forEach(pos => {
-      const player = lineup[pos];
-      if (player?.player_card) {
-        // First try weekly_projected_points from player_cards (most reliable)
-        const weeklyProj = player.player_card.weekly_projected_points;
-        if (weeklyProj && parseFloat(weeklyProj) > 0) {
-          const projValue = parseFloat(weeklyProj);
-          total += projValue;
-          foundProjections++;
-          console.log(`  ${pos}: ${player.player_card.player_name} = ${projValue.toFixed(1)} (from DB)`);
-        } else if (projections && projections.size > 0) {
-          // Fallback to projections Map if weekly_projected_points not available
-          const projection = projections.get(player.player_card.player_id);
-          if (projection?.projected) {
-            total += projection.projected;
-            foundProjections++;
-            console.log(`  ${pos}: ${player.player_card.player_name} = ${projection.projected.toFixed(1)} (from Map)`);
-          } else {
-            console.log(`  ${pos}: ${player.player_card.player_name} = no projection yet`);
-          }
-        } else {
-          console.log(`  ${pos}: ${player.player_card.player_name} = no projection`);
-        }
-      }
-    });
-    
-    // Update projectedPoints (this is what shows in PROJECTED badge)
-    setProjectedPoints(total);
-    console.log(`📊 Total projected points: ${total.toFixed(1)} (from ${foundProjections} players)`);
-  }, [lineup, projections]);
+  // **REMOVED OLD CALCULATION LOGIC**
+  // Projected points now come from lineupStats hook via FantasyContext
+  // This ensures they update immediately when lineup changes
 
   // Fetch global stats and user's lineup data
   useEffect(() => {
@@ -644,160 +624,25 @@ export default function FantasyNavBanner({
             setLivePoints(finalScore);
             setProjectedFinal(finalScore);
             console.log('🏁 FINAL - Score:', finalScore);
-          } else if (weekIsLive && lineupData.lineup_snapshot) {
-            // Use lineup_snapshot which has real stats from track-live-stats edge function
-            let calculatedTotal = 0;
-            let projectedFinalTotal = 0;
-            const positions = ['QB', 'RB1', 'RB2', 'WR1', 'WR2', 'WR3', 'TE', 'FLEX'];
-            
-            positions.forEach(pos => {
-              const playerData = lineupData.lineup_snapshot[pos];
-              if (playerData) {
-                // Use total_points from snapshot (includes live stats + tokens)
-                const livePoints = parseFloat(playerData.total_points || 0);
-                const projectedPoints = parseFloat(playerData.projected_points || 0);
-                
-                calculatedTotal += livePoints;
-                // If player has live points, use those; otherwise use projection
-                projectedFinalTotal += livePoints > 0 ? livePoints : projectedPoints;
-              }
-            });
-            
-            setLivePoints(calculatedTotal);
-            setProjectedFinal(projectedFinalTotal);
-            console.log('🔴 LIVE - From snapshot:', calculatedTotal, 'Projected Final:', projectedFinalTotal);
           } else if (weekIsLive) {
-            // Calculate from lineup directly - get live stats for each player
-            if (lineup) {
-              let calculatedTotal = 0;
-              const positions = ['QB', 'RB1', 'RB2', 'WR1', 'WR2', 'WR3', 'TE', 'FLEX'];
-              const statsMap = new Map(); // Track which players have played (needed for projected final calc)
-              
-              // First try liveGameData if it has data
-              if (liveGameData && liveGameData.size > 0) {
-                console.log('🎮 Using liveGameData (Size:', liveGameData.size, ')');
-                positions.forEach(pos => {
-                  const player = lineup[pos];
-                  if (player?.player_card?.player_id) {
-                    const gameData = liveGameData.get(player.player_card.player_id);
-                    if (gameData) {
-                      const statusLower = gameData.gameStatus?.toLowerCase();
-                      if (statusLower === 'final' || statusLower === 'live' || statusLower === 'halftime') {
-                        calculatedTotal += gameData.currentPoints || 0;
-                        console.log(`  ✓ ${pos}: ${gameData.currentPoints} pts (${gameData.gameStatus})`);
-                      }
-                    }
-                  }
-                });
-              } else {
-                // Fallback: Query player_game_stats for lineup players
-                console.log('🔍 liveGameData empty, querying player_game_stats...');
-                
-                const playerCardIds = positions
-                  .map(pos => lineup[pos]?.player_card_id)
-                  .filter(id => id);
-                
-                if (playerCardIds.length > 0) {
-                  const { data: statsData } = await supabase
-                    .from('player_game_stats')
-                    .select(`
-                      player_card_id,
-                      fantasy_points,
-                      game_id,
-                      game_scores!inner(game_status)
-                    `)
-                    .in('player_card_id', playerCardIds)
-                    .eq('week_number', currentWeek.week)
-                    .eq('season_year', currentWeek.year);
-                  
-                  if (statsData) {
-                    statsData.forEach(stat => {
-                      const statusLower = stat.game_scores?.game_status?.toLowerCase();
-                      if (statusLower === 'final' || statusLower === 'live' || statusLower === 'halftime') {
-                        calculatedTotal += stat.fantasy_points || 0;
-                        statsMap.set(stat.player_card_id, true); // Mark as played
-                        console.log(`  ✓ Player card ${stat.player_card_id}: ${stat.fantasy_points} pts (${stat.game_scores.game_status})`);
-                      }
-                    });
-                  }
-                }
-              }
-              
-              setLivePoints(calculatedTotal);
-              console.log('🔴 LIVE - Total calculated:', calculatedTotal);
-              
-              // Calculate projected final (live + projected for unplayed games)
-              let projectedFinalTotal = calculatedTotal;
-              positions.forEach(pos => {
-                const player = lineup[pos];
-                if (player?.player_card?.player_id) {
-                  // Check both liveGameData and statsMap to determine if game started
-                  const gameData = liveGameData?.get(player.player_card.player_id);
-                  const statusLower = gameData?.gameStatus?.toLowerCase();
-                  const hasPlayedInDB = statsMap && statsMap.has(player.player_card_id);
-                  
-                  // If game hasn't started yet (not in liveGameData AND not in DB stats), add projection
-                  const gameNotStarted = !hasPlayedInDB && (!gameData || (statusLower !== 'final' && statusLower !== 'live' && statusLower !== 'halftime'));
-                  
-                  if (gameNotStarted) {
-                    const projection = projections?.get(player.player_card.player_id);
-                    if (projection?.projected) {
-                      projectedFinalTotal += projection.projected;
-                      console.log(`  📈 ${pos}: Adding projection ${projection.projected} pts (game not started)`);
-                    }
-                  }
-                }
-              });
-              setProjectedFinal(projectedFinalTotal);
-              console.log('📊 PROJECTED FINAL:', projectedFinalTotal);
-            } else {
-              // Final fallback to database value
-              const dbLivePoints = lineupData.total_points || 0;
-              setLivePoints(dbLivePoints);
-              console.log('🔴 LIVE - Using DB total_points:', dbLivePoints);
-              
-              // Calculate projected final from lineup_snapshot in database
-              if (lineupData.lineup_snapshot && projections) {
-                let projectedFinalTotal = dbLivePoints;
-                const positions = ['QB', 'RB1', 'RB2', 'WR1', 'WR2', 'WR3', 'TE', 'FLEX'];
-                
-                positions.forEach(pos => {
-                  const playerCardId = lineupData.lineup_snapshot[pos];
-                  if (playerCardId) {
-                    // Find player in liveGameData by card ID
-                    let gameStarted = false;
-                    if (liveGameData) {
-                      for (const [playerId, gameData] of liveGameData.entries()) {
-                        // We need to match by checking if this player's card is in the lineup
-                        const statusLower = gameData?.gameStatus?.toLowerCase();
-                        if (statusLower === 'final' || statusLower === 'live' || statusLower === 'halftime') {
-                          gameStarted = true;
-                          break;
-                        }
-                      }
-                    }
-                    
-                    // If game hasn't started, add projection
-                    if (!gameStarted) {
-                      // Find projection by player card ID - need to iterate through projections
-                      for (const [playerId, projection] of projections.entries()) {
-                        // This is tricky - we'd need to match player_id to player_card_id
-                        // For now, we'll skip this path since lineup prop should be available
-                      }
-                    }
-                  }
-                });
-                
-                setProjectedFinal(projectedFinalTotal);
-                console.log('📈 PROJECTED FINAL (DB fallback):', projectedFinalTotal);
-              } else {
-                setProjectedFinal(dbLivePoints);
-              }
-            }
-          } else {
-            // Week not live yet - calculate projected points from lineup_snapshot
-            console.log('⚪ Week not live - calculating PROJECTED points from lineup_snapshot');
+            // Week is LIVE - use hook's live calculations + DB total_points as fallback
+            console.log('🔴 Week is LIVE - using lineupStats hook');
             
+            // Primary: Use total_points from DB (most reliable during live games)
+            const dbLivePoints = parseFloat(lineupData.total_points || 0);
+            setLivePoints(dbLivePoints);
+            
+            // Projected Final: Use hook's calculation (live + projected for unstarted games)
+            // Fallback to DB if hook isn't ready yet
+            const hookProjectedFinal = lineupStats?.projectedFinal || 0;
+            setProjectedFinal(hookProjectedFinal > 0 ? hookProjectedFinal : dbLivePoints);
+            
+            console.log('🔴 LIVE:', dbLivePoints, '| PROJECTED FINAL:', hookProjectedFinal);
+          } else {
+            // Week not live yet - use hook's projected points
+            console.log('⚪ Week not live - using lineupStats hook for projected');
+            
+            // Try lineup_snapshot from DB first, then fall back to hook
             let calculatedProjected = 0;
             
             if (lineupData.lineup_snapshot) {
@@ -826,61 +671,19 @@ export default function FantasyNavBanner({
             console.log('📊 Total PROJECTED:', calculatedProjected);
           }
         } else {
-          // No lineup data in database yet - calculate from lineup prop
-          console.log('📦 No weekly_lineups entry yet - calculating from lineup prop');
+          // No lineup data in database yet - use hook's calculations
+          console.log('📦 No weekly_lineups entry - using lineupStats hook');
           
-          if (lineup) {
-            if (weekIsLive) {
-              // Calculate live points and projected final from lineup prop
-              let calculatedLive = 0;
-              let calculatedProjectedFinal = 0;
-              const positions = ['QB', 'RB1', 'RB2', 'WR1', 'WR2', 'WR3', 'TE', 'FLEX'];
-              
-              positions.forEach(pos => {
-                const player = lineup[pos];
-                if (player?.player_card?.player_id) {
-                  const gameData = liveGameData?.get(player.player_card.player_id);
-                  const statusLower = gameData?.gameStatus?.toLowerCase();
-                  
-                  // Add live points if game has started
-                  if (gameData && (statusLower === 'final' || statusLower === 'live' || statusLower === 'halftime')) {
-                    const pts = gameData.currentPoints || 0;
-                    calculatedLive += pts;
-                    calculatedProjectedFinal += pts;
-                    console.log(`  ✓ ${pos}: ${pts} pts LIVE (${gameData.gameStatus})`);
-                  } else {
-                    // Game hasn't started - use projection
-                    const projection = projections?.get(player.player_card.player_id);
-                    if (projection?.projected) {
-                      calculatedProjectedFinal += projection.projected;
-                      console.log(`  📈 ${pos}: ${projection.projected} pts PROJECTED (game not started)`);
-                    }
-                  }
-                }
-              });
-              
-              setLivePoints(calculatedLive);
-              setProjectedFinal(calculatedProjectedFinal);
-              console.log('🔴 LIVE (no DB entry):', calculatedLive);
-              console.log('📊 PROJECTED FINAL (no DB entry):', calculatedProjectedFinal);
-            } else {
-              // Week not live - calculate projected from lineup prop
-              console.log('⚪ Week not live (no DB entry) - calculating PROJECTED from lineup prop');
-              let calculatedProjected = 0;
-              const positions = ['QB', 'RB1', 'RB2', 'WR1', 'WR2', 'WR3', 'TE', 'FLEX'];
-              
-              positions.forEach(pos => {
-                const player = lineup[pos];
-                if (player?.player_card?.weekly_projected_points) {
-                  const projected = parseFloat(player.player_card.weekly_projected_points);
-                  calculatedProjected += projected;
-                  console.log(`  📈 ${pos}: ${projected} pts (${player.player_card.player_name})`);
-                }
-              });
-              
-              setProjectedFinal(calculatedProjected);
-              console.log('📊 Total PROJECTED (no DB):', calculatedProjected);
-            }
+          if (weekIsLive) {
+            // Use hook for live calculations
+            setLivePoints(lineupStats?.livePoints || 0);
+            setProjectedFinal(lineupStats?.projectedFinal || 0);
+            console.log('🔴 LIVE (no DB):', lineupStats?.livePoints);
+            console.log('📊 PROJECTED FINAL (no DB):', lineupStats?.projectedFinal);
+          } else {
+            // Week not live - projected is same as projected final
+            setProjectedFinal(lineupStats?.projectedPoints || 0);
+            console.log('📊 PROJECTED (no DB):', lineupStats?.projectedPoints);
           }
         }
       } catch (error) {
@@ -996,26 +799,149 @@ export default function FantasyNavBanner({
     };
   }, [displayWeek, teamId, simulatedSeasonId, liveGameData, lineup, previewMode, weekIsFinalized]); // Re-run when displayWeek, liveGameData, lineup, or preview state changes
 
+  // Fetch all teams' projected scores for real-time median calculation (PROJECTED state only)
+  useEffect(() => {
+    console.log('🔍 Median fetch useEffect triggered:', { 
+      displayWeek: displayWeek?.week, 
+      currentWeek: currentWeek?.week,
+      isLive, 
+      isFinal,
+      shouldSkip: !displayWeek || !currentWeek || isLive || isFinal
+    });
+
+    if (!displayWeek || !currentWeek || isLive || isFinal) {
+      console.log('⏸️ Skipping projected median fetch - Week is live/final or no displayWeek');
+      return;
+    }
+
+    const fetchAllTeamsProjections = async () => {
+      try {
+        console.log('🔍 Fetching all teams for projected median calculation...');
+        
+        // Get ALL active teams (not just ones in current week)
+        const { data: teams, error: teamsError } = await supabase
+          .from('teams')
+          .select('id, team_name, is_active')
+          .eq('is_active', true);
+
+        console.log('📊 Teams query result:', { teams, teamsError });
+
+        if (teamsError) {
+          console.error('❌ Error fetching teams:', teamsError);
+          return;
+        }
+
+        if (!teams || teams.length === 0) {
+          console.log('⚠️ No teams found');
+          setAllTeamsProjected([]);
+          return;
+        }
+
+        console.log(`✅ Found ${teams.length} active teams:`, teams.map(t => t.team_name).join(', '));
+        const projections = [];
+        
+        for (const team of teams) {
+          console.log(`  Fetching lineup for ${team.team_name} (${team.id})...`);
+          
+          // Get team's current lineup (players marked as is_in_lineup)
+          const { data: lineup, error: lineupError } = await supabase
+            .from('user_inventory')
+            .select(`
+              player_card_id,
+              is_in_lineup,
+              player_cards!inner(
+                player_name,
+                weekly_projected_points,
+                projected_points
+              )
+            `)
+            .eq('team_id', team.id)
+            .eq('is_in_lineup', true);
+
+          console.log(`  ${team.team_name} lineup result:`, { 
+            lineupCount: lineup?.length || 0, 
+            lineupError,
+            lineup: lineup?.slice(0, 3) // Show first 3 for debugging
+          });
+
+          if (lineupError) {
+            console.error(`❌ Error fetching lineup for team ${team.id}:`, lineupError);
+            continue;
+          }
+
+          if (lineup && lineup.length > 0) {
+            // Sum up projected points for this team
+            const teamProjected = lineup.reduce((sum, player) => {
+              const proj = player.player_cards?.weekly_projected_points || 
+                          player.player_cards?.projected_points || 0;
+              return sum + parseFloat(proj);
+            }, 0);
+            
+            if (teamProjected > 0) {
+              projections.push(teamProjected);
+              console.log(`  ✅ Team ${team.team_name}: ${teamProjected.toFixed(1)} pts (${lineup.length} players)`);
+            } else {
+              console.log(`  ⚠️ Team ${team.team_name}: 0 pts (${lineup.length} players but no projections)`);
+            }
+          } else {
+            console.log(`  ℹ️ Team ${team.team_name}: No players in lineup`);
+          }
+        }
+
+        console.log(`\n📊 FINAL PROJECTIONS ARRAY:`, projections);
+        setAllTeamsProjected(projections);
+        console.log(`✅ Set ${projections.length} teams' projected scores for median calculation`);
+        if (projections.length > 0) {
+          console.log('   Projected scores:', projections.map(p => p.toFixed(1)).join(', '));
+        }
+      } catch (error) {
+        console.error('❌ Error fetching all teams projections:', error);
+      }
+    };
+
+    fetchAllTeamsProjections();
+  }, [displayWeek, currentWeek, isLive, isFinal, projectedPoints]); // Recalculate when user's projection changes
+
+  // Calculate projected median from all teams' projections
+  const { projectedMedian, totalTeams } = useProjectedMedian(
+    currentWeek?.week,
+    currentWeek?.year,
+    allTeamsProjected
+  );
+
   // Calculate bar percentage
   const userScore = (isLive || isFinal) ? livePoints : projectedPoints;
   const hasGlobalStats = globalStats && globalStats.total_active_teams > 0;
   
-  // For simulated seasons, use simulated average; otherwise use global stats
-  const averageScore = simulatedSeasonId && simulatedAverage
-    ? parseFloat(simulatedAverage)
+  // Use MEDIAN scoring (not average)
+  // Priority: Simulated median > DB median (live/final) > Projected median (calculated)
+  const medianScore = simulatedSeasonId && simulatedMedian
+    ? parseFloat(simulatedMedian)
     : (hasGlobalStats 
-        ? (isLive ? (globalStats?.median_score || 0) : (globalStats?.median_score || 0))
-        : userScore); // When you're the only team, you ARE the median
+        ? globalStats.median_score || 0
+        : (totalTeams > 0 ? projectedMedian : userScore));
+
+  console.log('📊 Median Calculation State:', {
+    projectedMedian: projectedMedian?.toFixed(1),
+    totalTeams,
+    hasGlobalStats,
+    globalStatsMedian: globalStats?.median_score,
+    simulatedMedian,
+    isLive,
+    isFinal,
+    finalMedianScore: medianScore?.toFixed(1),
+    source: simulatedSeasonId ? 'simulated' : (hasGlobalStats ? 'database' : (totalTeams > 0 ? 'projected' : 'userScore'))
+  });
   
   const maxScore = hasGlobalStats 
     ? (globalStats?.highest_score || userScore * 1.5) 
     : (userScore * 1.5); // Scale to 150% of user's score for better visualization
   
   const userPercentage = Math.min((userScore / maxScore) * 100, 100);
-  const averagePercentage = Math.min((averageScore / maxScore) * 100, 100);
+  const medianPercentage = Math.min((medianScore / maxScore) * 100, 100);
   
-  // When you're the only team, you're right at average (not above or below)
-  const isAboveAverage = hasGlobalStats ? userScore >= averageScore : true;
+  // When you're the only team, you're right at median (not above or below)
+  const isAboveMedian = hasGlobalStats ? userScore >= medianScore : true;
 
   // Check if team hasn't started yet
   // Show blue banner if:
@@ -1231,10 +1157,10 @@ export default function FantasyNavBanner({
             {/* Center - Progress Bar (Flex Grow) */}
             <div className="flex-1 flex items-center gap-3">
               <div className="relative flex-1 h-2 bg-dk-black-tertiary rounded-full overflow-hidden border border-dk-black-light">
-                {/* Average Marker */}
+                {/* Median Marker */}
                 <div
                   className="absolute top-0 bottom-0 w-0.5 bg-yellow-400 z-10"
-                  style={{ left: `${averagePercentage}%` }}
+                  style={{ left: `${medianPercentage}%` }}
                 />
                 {/* User's Bar */}
                 <div
@@ -1249,9 +1175,9 @@ export default function FantasyNavBanner({
                 />
               </div>
               
-              {/* Average Label */}
+              {/* Median Label */}
               <span className="text-xs text-dk-white-muted font-dk whitespace-nowrap">
-                Avg {averageScore.toFixed(1)}
+                Median {medianScore.toFixed(1)}
               </span>
             </div>
 
@@ -1294,12 +1220,12 @@ export default function FantasyNavBanner({
           {/* Status Text Below - Optional, Only Show if Has Global Stats */}
           {hasGlobalStats && (
             <p className={`text-xs font-dk-display font-bold mt-2 ${
-              isAboveAverage ? 'text-dk-green-primary' : 'text-orange-400'
+              isAboveMedian ? 'text-dk-green-primary' : 'text-orange-400'
             }`}>
-              {userScore > averageScore 
-                ? `↑ ${(userScore - averageScore).toFixed(1)} pts above median`
-                : userScore < averageScore
-                  ? `↓ ${(averageScore - userScore).toFixed(1)} pts below median`
+              {userScore > medianScore 
+                ? `↑ ${(userScore - medianScore).toFixed(1)} pts above median`
+                : userScore < medianScore
+                  ? `↓ ${(medianScore - userScore).toFixed(1)} pts below median`
                   : `= Right at median`
               }
             </p>
@@ -1402,10 +1328,8 @@ FantasyNavBanner.propTypes = {
   coins: PropTypes.number,
   teamId: PropTypes.string,
   userId: PropTypes.string,
-  liveGameData: PropTypes.instanceOf(Map),
-  lineup: PropTypes.object,
-  projections: PropTypes.instanceOf(Map),
   team: PropTypes.object,
   currentWeek: PropTypes.object,
   previewMode: PropTypes.bool
+  // NOTE: liveGameData, lineup, and projections are now consumed from FantasyContext via useLineupStats hook
 };

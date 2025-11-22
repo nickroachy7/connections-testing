@@ -216,6 +216,13 @@ As a senior engineer, **CONSTANTLY** scan for and flag these common issues:
 - Simulated seasons: `simulate_week` function calculates median
 - Legacy compatibility: `beat_average` column kept in sync with `beat_median`
 
+**Live Median Calculation:**
+- **Projected Median**: Calculated in real-time from all teams' projected scores (before week starts)
+- **Live/Final Median**: Retrieved from `weekly_global_stats.median_score` (after week starts)
+- Hook: `useProjectedMedian` calculates the projected median dynamically
+- Updates automatically as users build their lineups
+- Displayed in FantasyNavBanner for competitive context
+
 ### 11. Project Completion Mindset
 
 You are driving toward **production launch**. This means:

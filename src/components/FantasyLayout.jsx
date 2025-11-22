@@ -30,9 +30,6 @@ function FantasyLayoutInner() {
           coins={activeTeam?.coins}
           teamId={activeTeam?.id}
           userId={user?.id}
-          liveGameData={liveGameData}
-          lineup={lineup}
-          projections={projections}
           team={activeTeam}
           currentWeek={currentWeek}
           previewMode={isStartingLineupPage}
