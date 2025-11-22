@@ -27,7 +27,8 @@ export default function PlayerCard({
   showStats = true,
   onClick,
   className = '',
-  onAddToken
+  onAddToken,
+  showNameOutside = false // For mobile: render name/matchup outside card
 }) {
   const [isHovered, setIsHovered] = useState(false);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
@@ -210,6 +211,13 @@ export default function PlayerCard({
   // Get size classes
   const getSizeClasses = () => {
     const sizes = {
+      tiny: {
+        container: 'p-1',
+        name: 'text-[10px]',
+        stats: 'text-[8px]',
+        badge: 'text-[8px] px-0.5 py-0.5',
+        spacing: 'space-y-0.5'
+      },
       small: {
         container: 'p-2 pb-2',
         name: 'text-sm',
@@ -297,7 +305,8 @@ export default function PlayerCard({
     }
   };
 
-  return (
+  // Wrapper for card + external name
+  const cardContent = (
     <div
       draggable={draggable && !isLocked}
       onDragStart={onDragStart}
@@ -310,6 +319,7 @@ export default function PlayerCard({
       className={`
         relative transition-all duration-200 flex flex-col
         ${size === 'small' ? `border-2 ${tierStyles.border} rounded-lg h-full overflow-visible` : `rounded-lg border-2 ${tierStyles.border} ${tierStyles.bg} overflow-visible`}
+        ${size === 'tiny' ? `border ${tierStyles.border} rounded h-full` : ''}
         ${isHovered && !isDisabled ? tierStyles.glow : ''}
         ${!draggable ? 'cursor-not-allowed' : 'cursor-pointer hover:scale-[1.02]'}
         ${isTokenHovering ? 'ring-4 ring-primary-green-500 ring-opacity-60 scale-105 shadow-2xl shadow-primary-green-500/50' : ''}
@@ -325,7 +335,7 @@ export default function PlayerCard({
       )}
 
       {/* Points Display - Top Right Corner */}
-      <div className="absolute top-2 right-2 z-10">
+      <div className={`absolute ${size === 'tiny' ? 'top-1 right-1' : 'top-2 right-2'} z-10`}>
         {(() => {
           // IMPORTANT: Don't render stats until BOTH projection AND gameData are ready
           // This prevents the flash of showing only projection before gameData loads
@@ -353,6 +363,36 @@ export default function PlayerCard({
           // Debug for Darnold
           if (player.player_card.player_name === 'Sam Darnold') {
             console.log('🎮 Darnold render - isFinal:', isFinal, 'currentPoints:', gameData?.currentPoints, 'projection:', projection?.projected);
+          }
+          
+          // TINY SIZE: Only show main score (no projection underneath)
+          if (size === 'tiny') {
+            if (isFinal && gameData) {
+              const finalPoints = gameData.currentPoints !== undefined ? gameData.currentPoints : 0;
+              return (
+                <div className="text-xs text-white font-bold">
+                  {finalPoints.toFixed(1)}
+                </div>
+              );
+            }
+            
+            if (isLive && gameData && gameData.currentPoints !== undefined) {
+              return (
+                <div className="text-xs text-white font-bold">
+                  {gameData.currentPoints.toFixed(1)}
+                </div>
+              );
+            }
+            
+            if (projection && projection.projected !== undefined) {
+              return (
+                <div className="text-xs text-primary-green-400 font-bold">
+                  {projection.projected.toFixed(1)}
+                </div>
+              );
+            }
+            
+            return null;
           }
           
           // If game is FINAL, show final points on top, projection below
@@ -418,83 +458,105 @@ export default function PlayerCard({
       {/* Spacer to push content to bottom */}
       <div className="flex-grow min-h-0"></div>
 
-      {/* Token Badge - Above Player Name (Centered) */}
-      <div className="flex-shrink-0 flex justify-center mb-2 pointer-events-none">
-        {appliedToken ? (
-          <div className="relative group pointer-events-auto">
-            {/* Circular Token Badge with Emoji */}
-            <div 
-              className={`${size === 'small' ? 'w-10 h-10' : 'w-12 h-12'} flex items-center justify-center bg-primary-green-500/20 border-2 border-primary-green-500/50 rounded-full transition-all duration-200 cursor-pointer hover:scale-110 hover:border-primary-green-400 relative shadow-lg`}
-            >
-              <span className={`${size === 'small' ? 'text-xl' : 'text-2xl'}`}>
-                {appliedToken.token_card.emoji || '💎'}
-              </span>
-            </div>
-            
-            {/* Tooltip Popup - Directly below token using absolute positioning */}
-            <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-[9999]">
-              <div className="bg-primary-black-900 border-2 border-primary-green-500 rounded-lg px-3 py-2 shadow-2xl min-w-max max-w-xs">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-base">{appliedToken.token_card.emoji || '💎'}</span>
-                  <span className="text-sm text-primary-green-400 font-bold">
-                    {appliedToken.token_card.token_name}
-                  </span>
-                </div>
-                <div className="text-xs text-primary-green-300 mb-1">
-                  +{appliedToken.token_card.bonus_points} Fantasy Points
-                </div>
-                {appliedToken.token_card.description && (
-                  <div className="text-xs text-primary-black-300 mb-1 leading-tight whitespace-normal">
-                    {appliedToken.token_card.description}
-                  </div>
-                )}
-                {onRemoveToken && !isLocked && (
-                  <div className="text-[10px] text-primary-black-400 mt-1 border-t border-primary-black-700 pt-1">
-                    Click to remove
-                  </div>
-                )}
+      {/* Small Token + Button - Bottom Left Corner (mobile - small size without name inside) */}
+      {size === 'small' && !isLocked && onAddToken && !appliedToken && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onAddToken(player);
+          }}
+          className="md:hidden absolute bottom-1 left-1 w-5 h-5 flex items-center justify-center border border-dashed border-primary-black-600 hover:border-primary-green-500 rounded-full transition-all duration-200 cursor-pointer hover:scale-110 bg-primary-black-800/50 hover:bg-primary-green-500/10 group z-30"
+          title="Add token"
+        >
+          <span className="text-xs text-primary-black-600 group-hover:text-primary-green-400 font-bold">+</span>
+        </button>
+      )}
+
+      {/* Token Badge - Centered (desktop for small size) */}
+      {size !== 'tiny' && (
+        <div className="hidden md:flex flex-shrink-0 justify-center mb-2 pointer-events-none">
+          {appliedToken ? (
+            <div className="relative group pointer-events-auto">
+              {/* Circular Token Badge with Emoji */}
+              <div 
+                className={`${size === 'small' ? 'w-10 h-10' : 'w-12 h-12'} flex items-center justify-center bg-primary-green-500/20 border-2 border-primary-green-500/50 rounded-full transition-all duration-200 cursor-pointer hover:scale-110 hover:border-primary-green-400 relative shadow-lg`}
+              >
+                <span className={`${size === 'small' ? 'text-xl' : 'text-2xl'}`}>
+                  {appliedToken.token_card.emoji || '💎'}
+                </span>
               </div>
-              {/* Tooltip Arrow - pointing up */}
-              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-[1px] w-0 h-0 border-l-4 border-l-transparent border-r-4 border-r-transparent border-b-4 border-b-primary-green-500"></div>
+              
+              {/* Tooltip Popup - Directly below token using absolute positioning */}
+              <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-[9999]">
+                <div className="bg-primary-black-900 border-2 border-primary-green-500 rounded-lg px-3 py-2 shadow-2xl min-w-max max-w-xs">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-base">{appliedToken.token_card.emoji || '💎'}</span>
+                    <span className="text-sm text-primary-green-400 font-bold">
+                      {appliedToken.token_card.token_name}
+                    </span>
+                  </div>
+                  <div className="text-xs text-primary-green-300 mb-1">
+                    +{appliedToken.token_card.bonus_points} Fantasy Points
+                  </div>
+                  {appliedToken.token_card.description && (
+                    <div className="text-xs text-primary-black-300 mb-1 leading-tight whitespace-normal">
+                      {appliedToken.token_card.description}
+                    </div>
+                  )}
+                  {onRemoveToken && !isLocked && (
+                    <div className="text-[10px] text-primary-black-400 mt-1 border-t border-primary-black-700 pt-1">
+                      Click to remove
+                    </div>
+                  )}
+                </div>
+                {/* Tooltip Arrow - pointing up */}
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-[1px] w-0 h-0 border-l-4 border-l-transparent border-r-4 border-r-transparent border-b-4 border-b-primary-green-500"></div>
+              </div>
+              
+              {/* Invisible click target for removal */}
+              {onRemoveToken && !isLocked && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onRemoveToken(appliedToken.id);
+                  }}
+                  className="absolute inset-0 z-[50]"
+                  aria-label="Remove token"
+                />
+              )}
             </div>
-            
-            {/* Invisible click target for removal */}
-            {onRemoveToken && !isLocked && (
+          ) : (
+            /* Empty Token Slot with + Button */
+            !isLocked && onAddToken && (
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  onRemoveToken(appliedToken.id);
+                  onAddToken(player);
                 }}
-                className="absolute inset-0 z-[50]"
-                aria-label="Remove token"
-              />
-            )}
-          </div>
-        ) : (
-          /* Empty Token Slot with + Button */
-          !isLocked && onAddToken && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onAddToken(player);
-              }}
-              className={`${size === 'small' ? 'w-10 h-10' : 'w-12 h-12'} flex items-center justify-center border-2 border-dashed border-primary-black-600 hover:border-primary-green-500 rounded-full transition-all duration-200 cursor-pointer hover:scale-110 bg-primary-black-800/30 hover:bg-primary-green-500/10 group pointer-events-auto`}
-              title="Add token"
-            >
-              <span className={`${size === 'small' ? 'text-xl' : 'text-2xl'} text-primary-black-600 group-hover:text-primary-green-400 font-bold`}>
-                +
-              </span>
-            </button>
-          )
-        )}
-      </div>
+                className={`${size === 'small' ? 'w-10 h-10' : 'w-12 h-12'} flex items-center justify-center border-2 border-dashed border-primary-black-600 hover:border-primary-green-500 rounded-full transition-all duration-200 cursor-pointer hover:scale-110 bg-primary-black-800/30 hover:bg-primary-green-500/10 group pointer-events-auto`}
+                title="Add token"
+              >
+                <span className={`${size === 'small' ? 'text-xl' : 'text-2xl'} text-primary-black-600 group-hover:text-primary-green-400 font-bold`}>
+                  +
+                </span>
+              </button>
+            )
+          )}
+        </div>
+      )}
 
-      {/* Bottom Stack - Player Name */}
-      <div className={`flex-shrink-0 ${size === 'small' ? 'mt-1 mb-1 px-1' : 'mt-2 mb-2 px-1'}`}>
+      {/* Bottom Stack - Player Name (hidden on mobile for small size) */}
+      {!showNameOutside && (
+      <div className={`flex-shrink-0 ${size === 'small' ? 'hidden md:block' : ''} ${size === 'tiny' ? 'mt-0.5' : size === 'small' ? 'mt-1 mb-1 px-1' : 'mt-2 mb-2 px-1'}`}>
         <div className={`${sizeClasses.name} font-bold text-primary-black-50 text-center leading-tight`}>
           {(() => {
             const name = player.player_card.player_name;
             const parts = name.split(' ');
+            
+            // Tiny size: Last name only
+            if (size === 'tiny') {
+              return parts[parts.length - 1];
+            }
             
             // Always abbreviate first name to initial
             if (parts.length >= 2) {
@@ -504,8 +566,8 @@ export default function PlayerCard({
           })()}
         </div>
         
-        {/* Tier & Level Badge - Below Name */}
-        {player.card_tier && player.card_level && (
+        {/* Tier Badge - Below Name - Skip for tiny/small size, tier shown via border color */}
+        {size !== 'tiny' && size !== 'small' && player.card_tier && player.card_level && (
           <div className="flex items-center justify-center gap-1 mt-1">
             <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase ${getTierInfo(player.card_tier, player.card_level).bgColor} text-white`}>
               {getTierInfo(player.card_tier, player.card_level).name.charAt(0)}
@@ -516,30 +578,79 @@ export default function PlayerCard({
           </div>
         )}
       </div>
+      )}
 
-      {/* Next Game - Shows game matchup, bye week, or nothing for completed games */}
-      {gameData && gameData.gameStatus === 'scheduled' && gameData.opponent ? (
-        <div className={`${size === 'small' ? 'mb-1' : 'mb-2'} text-center flex-shrink-0`}>
-          {gameData.gameStartTime && (
-            <div className={`${sizeClasses.stats} text-primary-black-400 font-semibold`}>
-              {gameData.isHome ? 'vs' : '@'} {gameData.opponent} · {new Date(gameData.gameStartTime).toLocaleDateString('en-US', { 
-                weekday: 'short'
-              }).toUpperCase()} {new Date(gameData.gameStartTime).toLocaleTimeString('en-US', { 
-                hour: 'numeric',
-                hour12: true 
-              }).replace(' ', '')}
+      {/* Next Game - Desktop only for medium/large sizes */}
+      {size !== 'tiny' && size !== 'small' && (
+        <>
+          {gameData && gameData.gameStatus === 'scheduled' && gameData.opponent ? (
+            <div className="mb-2 text-center flex-shrink-0">
+              {gameData.gameStartTime && (
+                <div className={`${sizeClasses.stats} text-primary-black-400 font-semibold`}>
+                  {gameData.isHome ? 'vs' : '@'} {gameData.opponent} · {new Date(gameData.gameStartTime).toLocaleDateString('en-US', { 
+                    weekday: 'short'
+                  }).toUpperCase()} {new Date(gameData.gameStartTime).toLocaleTimeString('en-US', { 
+                    hour: 'numeric',
+                    hour12: true 
+                  }).replace(' ', '')}
+                </div>
+              )}
             </div>
-          )}
-        </div>
-      ) : !gameData ? (
-        <div className={`${size === 'small' ? 'mb-1' : 'mb-2'} text-center flex-shrink-0`}>
-          <div className={`${sizeClasses.stats} text-primary-black-500 font-semibold`}>
-            On Bye Week
-          </div>
-        </div>
-      ) : null}
+          ) : !gameData ? (
+            <div className="mb-2 text-center flex-shrink-0">
+              <div className={`${sizeClasses.stats} text-primary-black-500 font-semibold`}>
+                On Bye Week
+              </div>
+            </div>
+          ) : null}
+        </>
+      )}
     </div>
   );
+  
+  // If showNameOutside, wrap card with name/matchup below
+  if (showNameOutside && size === 'small') {
+    return (
+      <div className="flex flex-col">
+        {/* Card */}
+        {cardContent}
+        
+        {/* Name and Matchup Below Card */}
+        <div className="mt-1 text-center px-0.5">
+          <div className="text-xs font-bold text-primary-black-50 leading-tight">
+            {(() => {
+              const name = player.player_card.player_name;
+              const parts = name.split(' ');
+              if (parts.length >= 2) {
+                return `${parts[0][0]}. ${parts.slice(1).join(' ')}`;
+              }
+              return name;
+            })()}
+          </div>
+          
+          {/* Game matchup or bye week */}
+          {gameData && gameData.gameStatus === 'scheduled' && gameData.opponent ? (
+            gameData.gameStartTime && (
+              <div className="text-[10px] text-primary-black-400 font-medium leading-tight mt-0.5">
+                {gameData.isHome ? 'vs' : '@'} {gameData.opponent} · {new Date(gameData.gameStartTime).toLocaleDateString('en-US', { 
+                  weekday: 'short'
+                }).toUpperCase()} {new Date(gameData.gameStartTime).toLocaleTimeString('en-US', { 
+                  hour: 'numeric',
+                  hour12: true 
+                }).replace(' ', '')}
+              </div>
+            )
+          ) : !gameData ? (
+            <div className="text-[10px] text-primary-black-500 font-medium leading-tight mt-0.5">
+              On Bye Week
+            </div>
+          ) : null}
+        </div>
+      </div>
+    );
+  }
+  
+  return cardContent;
 }
 
 PlayerCard.propTypes = {
@@ -580,9 +691,10 @@ PlayerCard.propTypes = {
     gamesPlayed: PropTypes.number,
     injuryStatus: PropTypes.string
   }),
-  size: PropTypes.oneOf(['small', 'medium', 'large']),
+  size: PropTypes.oneOf(['tiny', 'small', 'medium', 'large']),
   showStats: PropTypes.bool,
   onClick: PropTypes.func,
   className: PropTypes.string,
-  onAddToken: PropTypes.func
+  onAddToken: PropTypes.func,
+  showNameOutside: PropTypes.bool
 };

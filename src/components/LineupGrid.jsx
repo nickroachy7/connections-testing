@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import PropTypes from 'prop-types';
 import PlayerCard from './PlayerCard';
+import PlayerCardModal from './PlayerCardModal';
 
 /**
  * LineupGrid Component
@@ -34,6 +35,8 @@ export default function LineupGrid({
 }) {
   const [dragOverSlot, setDragOverSlot] = useState(null);
   const [hoveredSlot, setHoveredSlot] = useState(null);
+  const [modalPlayer, setModalPlayer] = useState(null);
+  const [modalSlot, setModalSlot] = useState(null);
 
   // Position slots configuration - single horizontal row
   const positionSlots = [
@@ -262,18 +265,38 @@ export default function LineupGrid({
         onSlotClickWithSelection(slot.key);
       } else if (selectedTokenForPlayer && isEligibleForSelectedToken && onPlayerClickWithTokenSelection) {
         onPlayerClickWithTokenSelection(player);
+      } else if (player && !isLocked) {
+        // Open modal for player actions
+        setModalPlayer(player);
+        setModalSlot(slot.key);
+      }
+    };
+
+    const handleSwap = (slotKey) => {
+      // Trigger the click-to-add flow which will filter for this position
+      if (onClickToAdd) {
+        onClickToAdd(slotKey);
       }
     };
 
     return (
       <div
         key={slot.key}
-        className="relative w-full aspect-[3.2/5]"
+        className="relative w-full"
         onMouseEnter={() => setHoveredSlot(slot.key)}
         onMouseLeave={() => setHoveredSlot(null)}
         data-lineup-slot={slot.key}
         onClick={handleSlotClick}
       >
+        {/* Position Label - Above card on mobile always */}
+        <div className="md:hidden text-center mb-1">
+          <span className="text-[10px] font-bold text-primary-black-400 uppercase tracking-wide">
+            {posAbbr}
+          </span>
+        </div>
+        
+        {/* Card Container with fixed aspect ratio */}
+        <div className="aspect-[3.2/5] relative">
         <div
           onDragEnter={(e) => !isLocked && handleDragOver(e, slot.key)}
           onDragOver={(e) => !isLocked && handleDragOver(e, slot.key)}
@@ -300,47 +323,32 @@ export default function LineupGrid({
             ${!player ? 'pointer-events-auto' : ''}
           `}
         >
-          {/* Position Label - Only show when player is added */}
-          <div className="absolute top-1 md:top-2 left-1 md:left-2 right-1 md:right-2 flex items-center justify-center z-20">
+          {/* Position Label - Only show when player is added - Desktop only now */}
+          <div className="hidden md:block absolute top-2 left-2 right-2 z-20">
             {player && (
-              <span className="text-[9px] md:text-xs font-bold text-primary-black-400 uppercase tracking-wide absolute left-0">
-                {posAbbr}
-              </span>
-            )}
-            {/* Remove button - centered at top */}
-            {player && !isLocked && (
-              <button
-                onClick={() => onRemovePlayer(slot.key)}
-                className="w-4 h-4 md:w-5 md:h-5 bg-red-600 hover:bg-red-700 text-white rounded-full flex items-center justify-center transition-colors shadow-lg z-20 text-[10px] md:text-xs font-bold"
-                title="Remove from lineup"
-              >
-                ×
-              </button>
+              <div className="flex items-center justify-center">
+                <span className="text-xs font-bold text-primary-black-400 uppercase tracking-wide absolute left-0">
+                  {posAbbr}
+                </span>
+                {/* Remove button - Desktop only */}
+                {!isLocked && (
+                  <button
+                    onClick={() => onRemovePlayer(slot.key)}
+                    className="w-5 h-5 bg-red-600 hover:bg-red-700 text-white rounded-full flex items-center justify-center transition-colors shadow-lg z-20 text-xs font-bold"
+                    title="Remove from lineup"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
             )}
           </div>
 
           {/* Player Card or Empty State */}
           <div className="absolute inset-0 flex flex-col">
             {player ? (
-              <div className="relative w-full h-full">
-                {/* Mobile: Tiny PlayerCard */}
-                <PlayerCard
-                  player={player}
-                  onDragStart={(e) => !isLocked && onPlayerDragStart(e, player, slot.key)}
-                  onTokenDrop={onTokenDrop}
-                  draggable={!isLocked}
-                  isLocked={isLocked}
-                  appliedToken={appliedToken}
-                  onRemoveToken={onRemoveToken}
-                  onAddToken={onClickToAddToken}
-                  gameData={liveGameData?.get(player.player_card.player_id)}
-                  projection={projections?.get(player.player_card.player_id)}
-                  size="tiny"
-                  showStats={true}
-                  className="md:hidden absolute inset-0 rounded-xl"
-                />
-                
-                {/* Desktop: Small PlayerCard */}
+              <>
+                {/* PlayerCard - both mobile and desktop render inside the fixed container */}
                 <PlayerCard
                   player={player}
                   onDragStart={(e) => !isLocked && onPlayerDragStart(e, player, slot.key)}
@@ -354,7 +362,8 @@ export default function LineupGrid({
                   projection={projections?.get(player.player_card.player_id)}
                   size="small"
                   showStats={true}
-                  className="hidden md:block absolute inset-0 rounded-xl"
+                  showNameOutside={false}
+                  className="absolute inset-0 rounded-xl"
                 />
                 
                 {/* SWAP overlay for eligible slots */}
@@ -370,7 +379,7 @@ export default function LineupGrid({
                     <span className="text-base md:text-xl font-bold text-white drop-shadow-lg">APPLY</span>
                   </div>
                 )}
-              </div>
+              </>
             ) : (
               <>
                 <div className="flex flex-col items-center justify-center h-full text-center gap-1 md:gap-2">
@@ -407,6 +416,47 @@ export default function LineupGrid({
             )}
           </div>
         </div>
+        </div>
+        
+        {/* Name and Matchup - OUTSIDE card container on mobile only */}
+        {player && (
+          <div className="md:hidden mt-1 text-center px-0.5">
+            <div className="text-xs font-bold text-primary-black-50 leading-tight">
+              {(() => {
+                const name = player.player_card.player_name;
+                const parts = name.split(' ');
+                if (parts.length >= 2) {
+                  return `${parts[0][0]}. ${parts.slice(1).join(' ')}`;
+                }
+                return name;
+              })()}
+            </div>
+            
+            {/* Game matchup or bye week */}
+            {(() => {
+              const gameData = liveGameData?.get(player.player_card.player_id);
+              if (gameData && gameData.gameStatus === 'scheduled' && gameData.opponent && gameData.gameStartTime) {
+                return (
+                  <div className="text-[10px] text-primary-black-400 font-medium leading-tight mt-0.5">
+                    {gameData.isHome ? 'vs' : '@'} {gameData.opponent} · {new Date(gameData.gameStartTime).toLocaleDateString('en-US', { 
+                      weekday: 'short'
+                    }).toUpperCase()} {new Date(gameData.gameStartTime).toLocaleTimeString('en-US', { 
+                      hour: 'numeric',
+                      hour12: true 
+                    }).replace(' ', '')}
+                  </div>
+                );
+              } else if (!gameData) {
+                return (
+                  <div className="text-[10px] text-primary-black-500 font-medium leading-tight mt-0.5">
+                    On Bye Week
+                  </div>
+                );
+              }
+              return null;
+            })()}
+          </div>
+        )}
       </div>
     );
   };
@@ -417,10 +467,31 @@ export default function LineupGrid({
 
   return (
     <div className={paddingClass}>
-      {/* Lineup Grid */}
-      <div className={`grid grid-cols-2 sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-8 ${gapClass}`}>
+      {/* Mobile: 4 on top, 4 on bottom */}
+      <div className="md:hidden grid grid-cols-4 gap-1">
         {positionSlots.map(renderPositionSlot)}
       </div>
+      
+      {/* Desktop Grid */}
+      <div className={`hidden md:grid md:grid-cols-4 lg:grid-cols-8 ${gapClass}`}>
+        {positionSlots.map(renderPositionSlot)}
+      </div>
+      
+      {/* Player Card Modal */}
+      {modalPlayer && modalSlot && (
+        <PlayerCardModal
+          player={modalPlayer}
+          slotKey={modalSlot}
+          onClose={() => {
+            setModalPlayer(null);
+            setModalSlot(null);
+          }}
+          onRemove={() => {
+            onRemovePlayer(modalSlot);
+          }}
+          onSwap={handleSwap}
+        />
+      )}
     </div>
   );
 }
