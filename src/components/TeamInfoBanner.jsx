@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import TeamHeader from './TeamHeader';
 import WeekStatusBar from './WeekStatusBar';
 
+// v2.0 - Unified background with dark gradients (900/950 shades)
 const BANNER_THEMES = [
   { id: 'default', name: 'Classic Dark', bg: 'bg-dk-black-secondary' },
   { id: 'ocean', name: 'Ocean Blue', bg: 'bg-gradient-to-r from-blue-900 via-blue-800 to-cyan-900' },
@@ -36,8 +37,17 @@ export default function TeamInfoBanner({
 
   useEffect(() => {
     if (teamId) {
+      // Clear old cached themes to force reload with new dark gradients
+      const oldThemes = ['ocean', 'forest', 'sunset', 'purple', 'crimson', 'emerald', 'rose', 'arctic'];
       const savedTheme = localStorage.getItem(`bannerTheme_${teamId}`);
-      setBannerTheme(savedTheme || 'forest');
+      
+      // Reset to default if it was one of the old bright themes
+      if (savedTheme && oldThemes.includes(savedTheme)) {
+        localStorage.removeItem(`bannerTheme_${teamId}`);
+        setBannerTheme('forest');
+      } else {
+        setBannerTheme(savedTheme || 'forest');
+      }
     }
   }, [teamId]);
 

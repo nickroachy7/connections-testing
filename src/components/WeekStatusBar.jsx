@@ -262,12 +262,11 @@ export default function WeekStatusBar({ teamId, team, previewMode = false }) {
   );
 
   return (
-    <div className={`${getCurrentTheme().bg} border-b border-dk-black-light transition-all duration-300`}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
-          <div className="bg-dk-black-primary rounded-lg border border-dk-black-light px-4 py-2.5">
-            <div className="flex items-center gap-6">
-              {/* Left: Week & Status */}
-              <div className="flex items-center gap-2">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-3">
+      <div className="bg-black/20 backdrop-blur-sm rounded-lg px-4 py-2.5 border border-white/10">
+        <div className="flex items-center gap-6">
+          {/* Left: Week & Status */}
+          <div className="flex items-center gap-2">
                 {displayWeek ? (
                   <span className="text-base font-dk-display font-black text-dk-white uppercase">Week {displayWeek.week}</span>
                 ) : (
@@ -322,7 +321,6 @@ export default function WeekStatusBar({ teamId, team, previewMode = false }) {
                 </div>
               </div>
             </div>
-          </div>
         </div>
       </div>
   );

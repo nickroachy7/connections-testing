@@ -195,10 +195,9 @@ export default function TeamHeader({
     <>
       <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageSelect} className="hidden" />
 
-      <div className={`${getCurrentTheme().bg} transition-all duration-300`}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 relative">
-          {/* Color Picker Button - Top Right */}
-          <div className="absolute top-3 right-4 z-10" ref={colorPickerRef}>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 relative">
+        {/* Color Picker Button - Top Right */}
+        <div className="absolute top-3 right-4 z-10" ref={colorPickerRef}>
             <button
               onClick={() => setShowColorPicker(!showColorPicker)}
               className="p-2 rounded-lg bg-black/30 hover:bg-black/50 border border-white/20 transition-all duration-200 group"
@@ -344,7 +343,6 @@ export default function TeamHeader({
             </div>
           </div>
         </div>
-      </div>
     </>
   );
 }
