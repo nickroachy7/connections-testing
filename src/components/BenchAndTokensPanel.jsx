@@ -31,7 +31,7 @@ export default function BenchAndTokensPanel({
   selectedTokenId,
   liveGameData,
   projections
-) {
+}) {
   const [activeTab, setActiveTab] = useState('all');
 
   // Safely handle undefined/null arrays
