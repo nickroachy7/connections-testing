@@ -135,11 +135,12 @@ export default function ViewTeam() {
 
         // Create mock players from snapshot data
         const mockPlayers = [];
+        const snapshotGameData = new Map();
         
         for (const [position, playerData] of Object.entries(snapshot)) {
           if (position === 'BENCH' || !playerData) continue;
           
-          console.log(`📋 Position ${position}:`, playerData.player_name);
+          console.log(`📋 Position ${position}:`, playerData.player_name, 'Points:', playerData.total_points);
           
           // Create a mock player object that matches the inventory structure
           const mockPlayer = {
@@ -149,17 +150,26 @@ export default function ViewTeam() {
               player_id: playerData.player_id,
               player_name: playerData.player_name,
               position: playerData.position,
-              team_abbreviation: playerData.team_abbreviation,
+              team_abbreviation: playerData.team || playerData.team_abbreviation,
               projected_points: playerData.projected_points,
               weekly_projected_points: playerData.projected_points
             },
-            card_level: 1,
+            card_level: playerData.card_level || 1,
             is_in_lineup: true,
             lineup_position: position
           };
           
           newLineup[position] = mockPlayer;
           mockPlayers.push(mockPlayer);
+          
+          // Store live points from snapshot if they exist
+          if (playerData.total_points && parseFloat(playerData.total_points) > 0) {
+            snapshotGameData.set(playerData.player_id, {
+              gameStatus: 'final', // Assume final if points exist
+              currentPoints: parseFloat(playerData.total_points || 0),
+              fromSnapshot: true
+            });
+          }
         }
 
         setLineup(newLineup);
@@ -177,6 +187,9 @@ export default function ViewTeam() {
         setProjections(dbProjections);
         
         console.log('✅ Loaded lineup from snapshot:', newLineup);
+        
+        // Load live game data and merge with snapshot data
+        await loadLiveGameData(mockPlayers, weekNumber, seasonYear, snapshotGameData);
       } else {
         // No lineup set - show empty lineup (don't show logged-in user's cards!)
         console.log('⚠️ Team has not set a lineup for this week');
@@ -193,34 +206,16 @@ export default function ViewTeam() {
         };
         setLineup(emptyLineup);
         setProjections(new Map());
+        setLiveGameData(new Map());
       }
 
-      // Load projections
-      if (inventory.players && inventory.players.length > 0) {
-        const dbProjections = new Map();
-        inventory.players.forEach(p => {
-          if (p.player_card) {
-            const weeklyProjValue = p.player_card.weekly_projected_points != null ? parseFloat(p.player_card.weekly_projected_points) : null;
-            const projValue = p.player_card.projected_points != null ? parseFloat(p.player_card.projected_points) : null;
-            const weeklyProj = weeklyProjValue ?? projValue ?? getBaselineProjection(p.player_card.position);
-            
-            dbProjections.set(p.player_card.player_id, {
-              projected: weeklyProj,
-              source: weeklyProjValue != null ? 'weekly_db' : (projValue != null ? 'season_db' : 'baseline')
-            });
-          }
-        });
-        setProjections(dbProjections);
-      }
-      
-      // Load live game data
-      await loadLiveGameData(inventory.players, weekNumber, seasonYear);
+      // Load projections (removed duplicate code below)
     } catch (err) {
       console.error('Error loading lineup data:', err);
     }
   }, [activeTeam]);
 
-  const loadLiveGameData = async (players, weekNumber, seasonYear) => {
+  const loadLiveGameData = async (players, weekNumber, seasonYear, snapshotGameData = new Map()) => {
     try {
       // Load games for the week
       const { data: gamesData, error: gamesError } = await supabase
@@ -230,6 +225,9 @@ export default function ViewTeam() {
         .eq('season_year', seasonYear);
       
       if (gamesError) throw gamesError;
+      
+      // Start with snapshot data (which has the real calculated points)
+      const gameDataMap = new Map(snapshotGameData);
       
       // Load player stats for the week
       if (gamesData && gamesData.length > 0) {
@@ -248,22 +246,23 @@ export default function ViewTeam() {
         
         if (statsError) throw statsError;
 
-        const gameDataMap = new Map();
-        
         statsData?.forEach(stat => {
           const game = gamesData.find(g => g.game_id === stat.game_id);
           if (game && stat.player_card?.player_id) {
-            gameDataMap.set(stat.player_card.player_id, {
-              gameStatus: game.game_status,
-              currentPoints: parseFloat(stat.fantasy_points || 0),
-              quarter: game.quarter,
-              timeRemaining: game.time_remaining,
-              gameStartTime: game.game_start_time,
-              homeTeam: game.home_team,
-              awayTeam: game.away_team,
-              homeScore: game.home_score,
-              awayScore: game.away_score
-            });
+            // Only override if snapshot doesn't have this player's data
+            if (!gameDataMap.has(stat.player_card.player_id)) {
+              gameDataMap.set(stat.player_card.player_id, {
+                gameStatus: game.game_status,
+                currentPoints: parseFloat(stat.fantasy_points || 0),
+                quarter: game.quarter,
+                timeRemaining: game.time_remaining,
+                gameStartTime: game.game_start_time,
+                homeTeam: game.home_team,
+                awayTeam: game.away_team,
+                homeScore: game.home_score,
+                awayScore: game.away_score
+              });
+            }
           }
         });
         
@@ -305,96 +304,27 @@ export default function ViewTeam() {
     }
   };
 
-  // Data already loaded by loader
   if (!user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-primary-black-50 text-xl">Redirecting...</div>
-      </div>
-    );
+    return null;
   }
 
   return (
-    <>
-      {/* View Only Banner */}
-      <div className="bg-blue-900/30 border-b-2 border-blue-600 sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => navigate(-1)}
-                className="p-2 hover:bg-blue-800/50 rounded-lg transition-colors"
-              >
-                <svg className="w-5 h-5 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                </svg>
-              </button>
-              <div>
-                <div className="text-blue-300 text-sm font-semibold">Viewing Team</div>
-                <div className="text-blue-100 font-bold">{activeTeam?.team_name} (@{activeTeam?.user?.username})</div>
-              </div>
-            </div>
-            <div className="px-4 py-2 bg-blue-600 text-white rounded-lg">
-              <span className="text-sm font-semibold">READ ONLY</span>
-            </div>
-          </div>
-        </div>
+    <div className="container mx-auto px-4 py-8">
+      <div className="mb-8">
+        <h2 className="text-2xl font-bold text-white mb-2">
+          Starting Lineup
+        </h2>
+        <p className="text-primary-black-400">
+          Viewing {activeTeam?.team_name || 'Team'}
+        </p>
       </div>
 
-      {/* Main Content Section */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
-        {/* Starting Lineup Grid - Read Only */}
-        {activeTeam && initialInventory && (
-          <section aria-label="Starting Lineup Grid" className="mt-6">
-            <LineupGridReadOnly
-              lineup={lineup}
-              liveGameData={liveGameData}
-              projections={projections}
-              inventory={initialInventory}
-            />
-          </section>
-        )}
-
-        {/* Team Statistics */}
-        {activeTeam && (
-          <section aria-label="Team Statistics" className="mt-6">
-            <div className="bg-primary-black-900 border-2 border-primary-black-700 rounded-xl p-6">
-              <h2 className="text-xl font-bold text-primary-black-50 mb-4">Season Statistics</h2>
-              
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-primary-black-800 rounded-lg p-4">
-                  <div className="text-xs text-primary-black-400 mb-1">Record</div>
-                  <div className="text-2xl font-bold text-primary-black-50">
-                    <span className="text-primary-green-400">{activeTeam.wins}</span>-
-                    <span className="text-red-400">{activeTeam.losses}</span>
-                  </div>
-                </div>
-                
-                <div className="bg-primary-black-800 rounded-lg p-4">
-                  <div className="text-xs text-primary-black-400 mb-1">Total Points</div>
-                  <div className="text-2xl font-bold text-primary-green-400">
-                    {activeTeam.total_points?.toFixed(1) || 0}
-                  </div>
-                </div>
-                
-                <div className="bg-primary-black-800 rounded-lg p-4">
-                  <div className="text-xs text-primary-black-400 mb-1">Current Week</div>
-                  <div className="text-2xl font-bold text-primary-black-50">
-                    Week {currentWeek?.week || '-'}
-                  </div>
-                </div>
-                
-                <div className="bg-primary-black-800 rounded-lg p-4">
-                  <div className="text-xs text-primary-black-400 mb-1">Roster Size</div>
-                  <div className="text-2xl font-bold text-primary-black-50">
-                    {inventory?.players?.length || 0}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
-        )}
-      </div>
-    </>
+      <LineupGridReadOnly
+        lineup={lineup}
+        liveGameData={liveGameData}
+        projections={projections}
+        inventory={inventory}
+      />
+    </div>
   );
 }
