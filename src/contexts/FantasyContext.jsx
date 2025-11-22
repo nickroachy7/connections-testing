@@ -2,19 +2,9 @@ import { createContext, useContext, useState, useCallback, useEffect, useRef } f
 import PropTypes from 'prop-types';
 import { supabase } from '../services/supabase';
 import { getUserInventory } from '../services/supabase';
+import { EMPTY_LINEUP, createEmptyLineup, getBaselineProjection } from '../constants/lineup';
 
 const FantasyContext = createContext(null);
-
-// Helper function for baseline projections
-function getBaselineProjection(position) {
-  const baselines = {
-    'Quarterback': 18,
-    'Running Back': 12,
-    'Wide Receiver': 10,
-    'Tight End': 8,
-  };
-  return baselines[position] || 8;
-}
 
 export function FantasyProvider({ children, user, activeTeam }) {
   // Track previous team ID to detect team changes BEFORE render
@@ -27,17 +17,7 @@ export function FantasyProvider({ children, user, activeTeam }) {
   }, [activeTeam?.id]);
   
   // Lineup state - shared across all pages
-  const [lineup, setLineup] = useState({
-    QB: null,
-    RB1: null,
-    RB2: null,
-    WR1: null,
-    WR2: null,
-    WR3: null,
-    TE: null,
-    FLEX: null,
-    BENCH: []
-  });
+  const [lineup, setLineup] = useState(createEmptyLineup());
 
   // Projections state - shared across all pages
   const [projections, setProjections] = useState(new Map());
@@ -87,17 +67,7 @@ export function FantasyProvider({ children, user, activeTeam }) {
     // Clear everything to prevent any stale data from showing during team switch
     setLiveGameData(new Map());
     setProjections(new Map());
-    setLineup({
-      QB: null,
-      RB1: null,
-      RB2: null,
-      WR1: null,
-      WR2: null,
-      WR3: null,
-      TE: null,
-      FLEX: null,
-      BENCH: []
-    });
+    setLineup(createEmptyLineup());
     setInventory({ players: [], tokens: [] });
     setLoading(true); // Set loading state while switching
   }, [activeTeam?.id]); // Clear when team changes
@@ -239,17 +209,7 @@ export function FantasyProvider({ children, user, activeTeam }) {
       setInventory(data);
       
       // Build lineup from inventory
-      const newLineup = {
-        QB: null,
-        RB1: null,
-        RB2: null,
-        WR1: null,
-        WR2: null,
-        WR3: null,
-        TE: null,
-        FLEX: null,
-        BENCH: []
-      };
+      const newLineup = createEmptyLineup();
       
       data.players.forEach(player => {
         if (player.is_in_lineup && player.lineup_position) {

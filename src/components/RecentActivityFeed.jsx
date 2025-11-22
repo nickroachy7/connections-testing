@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../services/supabase';
+import { formatTimeAgo } from '../utils/time';
+import { getActivityIcon } from '../constants/ui';
 
 export default function RecentActivityFeed({ teamId, userId, limit = 10 }) {
   const [activities, setActivities] = useState([]);
@@ -39,21 +41,6 @@ export default function RecentActivityFeed({ teamId, userId, limit = 10 }) {
     }
   };
 
-  const getActivityIcon = (type) => {
-    switch (type) {
-      case 'pack_purchase':
-        return '📦';
-      case 'quick_sell':
-        return '💰';
-      case 'starter_pack':
-        return '🎁';
-      case 'reward':
-        return '🏆';
-      default:
-        return '📝';
-    }
-  };
-
   const getActivityMessage = (activity) => {
     const metadata = activity.metadata || {};
     
@@ -69,18 +56,6 @@ export default function RecentActivityFeed({ teamId, userId, limit = 10 }) {
       default:
         return 'Unknown activity';
     }
-  };
-
-  const formatTimeAgo = (timestamp) => {
-    const date = new Date(timestamp);
-    const now = new Date();
-    const seconds = Math.floor((now - date) / 1000);
-    
-    if (seconds < 60) return 'Just now';
-    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
-    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
-    if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`;
-    return date.toLocaleDateString();
   };
 
   if (loading) {

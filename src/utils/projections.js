@@ -1,12 +1,12 @@
 import { getPlayerSeasonStats, getPlayerInjuries } from '../services/nflApi';
+import { CACHE_DURATION } from '../constants/ui';
 
-// Cache for projections (expires after 5 minutes)
+// Cache for projections
 const projectionCache = new Map();
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
 function getCachedProjection(playerId) {
   const cached = projectionCache.get(playerId);
-  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+  if (cached && Date.now() - cached.timestamp < CACHE_DURATION.MEDIUM) {
     return cached.data;
   }
   return null;

@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../services/supabase';
 import { useNavigate } from 'react-router-dom';
 import PropTypes from 'prop-types';
+import { getRankColor } from '../constants/ui';
+import { sortLeaderboard } from '../utils/sorting';
+import { filterBySimulatedSeason } from '../utils/filters';
 
 /**
  * Reusable Leaderboard Widget Component
@@ -193,13 +196,6 @@ export default function LeaderboardWidget({
     }
   };
 
-  const getRankColor = (rank) => {
-    if (rank === 1) return 'text-yellow-400';
-    if (rank === 2) return 'text-gray-300';
-    if (rank === 3) return 'text-orange-400';
-    return 'text-primary-black-300';
-  };
-
   const getRankBadge = (rank) => {
     if (rank === 1) return '🥇';
     if (rank === 2) return '🥈';
@@ -207,39 +203,8 @@ export default function LeaderboardWidget({
     return '';
   };
 
-  // Get sorted leaderboard based on sortBy
-  const getSortedLeaderboard = () => {
-    let sorted = [...leaderboardData];
-    
-    switch(sortBy) {
-      case 'week':
-        sorted.sort((a, b) => b.week_points - a.week_points);
-        break;
-      case 'projected':
-        sorted.sort((a, b) => b.projected_points - a.projected_points);
-        break;
-      case 'season':
-        sorted.sort((a, b) => b.season_total_points - a.season_total_points);
-        break;
-      case 'wins':
-        sorted.sort((a, b) => {
-          if (b.wins !== a.wins) return b.wins - a.wins;
-          if (a.losses !== b.losses) return a.losses - b.losses;
-          return b.season_total_points - a.season_total_points;
-        });
-        break;
-      default:
-        sorted.sort((a, b) => b.season_total_points - a.season_total_points);
-    }
-    
-    // Add rank numbers
-    return sorted.map((item, index) => ({
-      ...item,
-      rank: index + 1
-    }));
-  };
-
-  const sortedLeaderboard = getSortedLeaderboard();
+  // Get sorted leaderboard using utility function
+  const sortedLeaderboard = sortLeaderboard(leaderboardData, sortBy);
   const displayedLeaderboard = sortedLeaderboard.slice(0, limit);
 
   // Handle clicking on a team row to view their dashboard
