@@ -279,31 +279,31 @@ export default function LineupGrid({
           onDragOver={(e) => !isLocked && handleDragOver(e, slot.key)}
           onDragLeave={handleDragLeave}
           onDrop={(e) => !isLocked && handleDrop(e, slot.key)}
-           className={`
-             relative rounded-xl border-2 transition-all duration-200 w-full h-full
-             ${isDragOver 
-               ? 'border-primary-green-500 bg-primary-green-500/20 scale-105 shadow-lg shadow-primary-green-500/50' 
-               : isFilteredSlot && !player
-                 ? 'border-primary-green-500/50 bg-primary-green-500/10 shadow-md shadow-primary-green-500/30'
-                 : (selectedPlayerForSlot || selectedTokenForPlayer) && !isEligibleForSelectedPlayer && !isEligibleForSelectedToken
-                   ? 'opacity-30 pointer-events-none'
-                   : isEligibleForSelectedPlayer
-                     ? 'border-primary-green-500/70 bg-primary-green-500/10 cursor-pointer hover:border-primary-green-500 hover:bg-primary-green-500/20'
-                     : isEligibleForSelectedToken
-                       ? 'border-yellow-500/70 bg-yellow-500/10 cursor-pointer hover:border-yellow-500 hover:bg-yellow-500/20'
-                       : player 
-                         ? 'border-primary-black-600 bg-primary-black-800/50' 
-                         : 'border-dashed border-primary-black-600 bg-primary-black-800/30'
-             }
-             ${isHovered && !player && !isLocked && !selectedPlayerForSlot && !selectedTokenForPlayer ? 'border-primary-green-500/50 bg-primary-black-700/50' : ''}
-             ${isLocked ? 'opacity-60' : ''}
-             ${!player ? 'pointer-events-auto' : ''}
-           `}
+          className={`
+            relative rounded-xl border-2 transition-all duration-200 w-full h-full
+            ${isDragOver 
+              ? 'border-primary-green-500 bg-primary-green-500/20 scale-105 shadow-lg shadow-primary-green-500/50' 
+              : isFilteredSlot && !player
+                ? 'border-primary-green-500/50 bg-primary-green-500/10 shadow-md shadow-primary-green-500/30'
+                : (selectedPlayerForSlot || selectedTokenForPlayer) && !isEligibleForSelectedPlayer && !isEligibleForSelectedToken
+                  ? 'opacity-30 pointer-events-none'
+                  : isEligibleForSelectedPlayer
+                    ? 'border-primary-green-500/70 bg-primary-green-500/10 cursor-pointer hover:border-primary-green-500 hover:bg-primary-green-500/20'
+                    : isEligibleForSelectedToken
+                      ? 'border-yellow-500/70 bg-yellow-500/10 cursor-pointer hover:border-yellow-500 hover:bg-yellow-500/20'
+                      : player 
+                        ? 'border-primary-black-600 bg-primary-black-800/50' 
+                        : 'border-dashed border-primary-black-600 bg-primary-black-800/30'
+            }
+            ${isHovered && !player && !isLocked && !selectedPlayerForSlot && !selectedTokenForPlayer ? 'border-primary-green-500/50 bg-primary-black-700/50' : ''}
+            ${isLocked ? 'opacity-60' : ''}
+            ${!player ? 'pointer-events-auto' : ''}
+          `}
         >
           {/* Position Label - Only show when player is added */}
-          <div className="absolute top-2 left-2 right-2 flex items-center justify-center">
+          <div className="absolute top-1 md:top-2 left-1 md:left-2 right-1 md:right-2 flex items-center justify-center z-20">
             {player && (
-              <span className="text-xs font-bold text-primary-black-400 uppercase tracking-wide absolute left-0">
+              <span className="text-[9px] md:text-xs font-bold text-primary-black-400 uppercase tracking-wide absolute left-0">
                 {posAbbr}
               </span>
             )}
@@ -311,7 +311,7 @@ export default function LineupGrid({
             {player && !isLocked && (
               <button
                 onClick={() => onRemovePlayer(slot.key)}
-                className="w-5 h-5 bg-red-600 hover:bg-red-700 text-white rounded-full flex items-center justify-center transition-colors shadow-lg z-20 text-xs font-bold"
+                className="w-4 h-4 md:w-5 md:h-5 bg-red-600 hover:bg-red-700 text-white rounded-full flex items-center justify-center transition-colors shadow-lg z-20 text-[10px] md:text-xs font-bold"
                 title="Remove from lineup"
               >
                 ×
@@ -323,6 +323,24 @@ export default function LineupGrid({
           <div className="absolute inset-0 flex flex-col">
             {player ? (
               <div className="relative w-full h-full">
+                {/* Mobile: Tiny PlayerCard */}
+                <PlayerCard
+                  player={player}
+                  onDragStart={(e) => !isLocked && onPlayerDragStart(e, player, slot.key)}
+                  onTokenDrop={onTokenDrop}
+                  draggable={!isLocked}
+                  isLocked={isLocked}
+                  appliedToken={appliedToken}
+                  onRemoveToken={onRemoveToken}
+                  onAddToken={onClickToAddToken}
+                  gameData={liveGameData?.get(player.player_card.player_id)}
+                  projection={projections?.get(player.player_card.player_id)}
+                  size="tiny"
+                  showStats={true}
+                  className="md:hidden absolute inset-0 rounded-xl"
+                />
+                
+                {/* Desktop: Small PlayerCard */}
                 <PlayerCard
                   player={player}
                   onDragStart={(e) => !isLocked && onPlayerDragStart(e, player, slot.key)}
@@ -336,57 +354,57 @@ export default function LineupGrid({
                   projection={projections?.get(player.player_card.player_id)}
                   size="small"
                   showStats={true}
-                  className="absolute inset-0 rounded-xl"
+                  className="hidden md:block absolute inset-0 rounded-xl"
                 />
                 
                 {/* SWAP overlay for eligible slots */}
                 {isEligibleForSelectedPlayer && (
                   <div className="absolute inset-0 bg-primary-green-500/30 rounded-xl flex items-center justify-center pointer-events-none z-10">
-                    <span className="text-xl font-bold text-white drop-shadow-lg">SWAP</span>
+                    <span className="text-base md:text-xl font-bold text-white drop-shadow-lg">SWAP</span>
                   </div>
                 )}
                 
                 {/* APPLY overlay for eligible players with selected token */}
                 {isEligibleForSelectedToken && (
                   <div className="absolute inset-0 bg-yellow-500/30 rounded-xl flex items-center justify-center pointer-events-none z-10">
-                    <span className="text-xl font-bold text-white drop-shadow-lg">APPLY</span>
+                    <span className="text-base md:text-xl font-bold text-white drop-shadow-lg">APPLY</span>
                   </div>
                 )}
               </div>
-             ) : (
-               <>
-                 <div className="flex flex-col items-center justify-center h-full text-center gap-2">
-                   {/* Position Label */}
-                   <p className={`text-base font-bold ${isFilteredSlot ? 'text-primary-green-400 animate-pulse' : 'text-primary-black-400'}`}>
-                     {slot.key}
-                   </p>
-                   
-                   {/* Add Button - Hidden when this slot is being filtered */}
-                   {onClickToAdd && !isFilteredSlot && (
-                     <button
-                       onClick={() => onClickToAdd(slot.key)}
-                       className="w-6 h-6 bg-primary-black-700 hover:bg-primary-black-600 border border-primary-black-500 text-primary-black-300 hover:text-primary-black-100 rounded-full text-base font-light transition-all hover:scale-110 flex items-center justify-center"
-                       title={`Add ${slot.label}`}
-                     >
-                       +
-                     </button>
-                   )}
-                   
-                   {/* Show hint when filtered */}
-                   {isFilteredSlot && (
-                     <p className="text-xs text-primary-green-400 font-bold animate-pulse">
-                       Select below ↓
-                     </p>
-                   )}
-                 </div>
-                 
-                 {isDragOver && (
-                   <div className="absolute inset-0 flex items-center justify-center bg-primary-green-500/10 rounded-xl animate-pulse">
-                     <span className="text-primary-green-400 font-bold text-sm">Drop!</span>
-                   </div>
-                 )}
-               </>
-             )}
+            ) : (
+              <>
+                <div className="flex flex-col items-center justify-center h-full text-center gap-1 md:gap-2">
+                  {/* Position Label */}
+                  <p className={`text-sm md:text-base font-bold ${isFilteredSlot ? 'text-primary-green-400 animate-pulse' : 'text-primary-black-400'}`}>
+                    {slot.key}
+                  </p>
+                  
+                  {/* Add Button - Hidden when this slot is being filtered */}
+                  {onClickToAdd && !isFilteredSlot && (
+                    <button
+                      onClick={() => onClickToAdd(slot.key)}
+                      className="w-5 h-5 md:w-6 md:h-6 bg-primary-black-700 hover:bg-primary-black-600 border border-primary-black-500 text-primary-black-300 hover:text-primary-black-100 rounded-full text-sm md:text-base font-light transition-all hover:scale-110 flex items-center justify-center"
+                      title={`Add ${slot.label}`}
+                    >
+                      +
+                    </button>
+                  )}
+                  
+                  {/* Show hint when filtered */}
+                  {isFilteredSlot && (
+                    <p className="text-[10px] md:text-xs text-primary-green-400 font-bold animate-pulse">
+                      Select below ↓
+                    </p>
+                  )}
+                </div>
+                
+                {isDragOver && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-primary-green-500/10 rounded-xl animate-pulse">
+                    <span className="text-primary-green-400 font-bold text-xs md:text-sm">Drop!</span>
+                  </div>
+                )}
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -394,7 +412,7 @@ export default function LineupGrid({
   };
 
   // Calculate responsive gap and padding based on available space
-  const gapClass = 'gap-4';
+  const gapClass = 'gap-2 md:gap-4';
   const paddingClass = 'mb-1';
 
   return (
