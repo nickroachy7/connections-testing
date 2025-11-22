@@ -77,7 +77,30 @@ const PlayerTable = ({
     return columns.join(' ');
   };
 
+  // Mobile grid template - hide Pull % and Tier columns
+  const getMobileGridTemplate = () => {
+    let columns = [];
+    
+    // Checkbox/Add button column (conditional)
+    if (showBulkSelect || showAddButton) {
+      columns.push('28px'); // Smaller add button for mobile
+    } else {
+      columns.push('20px'); // Empty/drag handle
+    }
+    
+    // Mobile columns - optimized for information density
+    columns.push(
+      '32px',   // Position badge (compact)
+      '1fr',    // Player name + game info (takes most space)
+      '50px',   // Sell value (compact)
+      '55px'    // Score with projected (compact)
+    );
+    
+    return columns.join(' ');
+  };
+
   const gridTemplate = getGridTemplate();
+  const mobileGridTemplate = getMobileGridTemplate();
 
   if (players.length === 0) {
     return (
@@ -102,12 +125,13 @@ const PlayerTable = ({
 
       {/* Header Row */}
       <div 
-        className="grid bg-primary-black-800 border-b border-primary-black-700 py-3 px-2"
+        className="hidden md:grid bg-primary-black-800 border-b border-primary-black-700 py-3 px-2"
         style={{ 
           gridTemplateColumns: gridTemplate,
           gap: '8px'
         }}
       >
+        {/* Desktop headers */}
         {/* Checkbox or Empty column */}
         <span className="text-[10px] font-bold text-primary-black-500 uppercase tracking-wider text-center">
           {/* Empty - no checkbox symbol in header */}
@@ -136,6 +160,22 @@ const PlayerTable = ({
         {renderExtraHeaderColumns && renderExtraHeaderColumns()}
       </div>
 
+      {/* Mobile Header Row */}
+      <div 
+        className="grid md:hidden bg-primary-black-800 border-b border-primary-black-700 py-1.5 px-1.5"
+        style={{ 
+          gridTemplateColumns: mobileGridTemplate,
+          gap: '4px'
+        }}
+      >
+        <span className="text-[9px] font-bold text-primary-black-500 uppercase tracking-wide text-center"></span>
+        <span className="text-[9px] font-bold text-primary-black-500 uppercase tracking-wide text-center"></span>
+        <span className="text-[9px] font-bold text-primary-black-500 uppercase tracking-wide">PLAYER</span>
+        <span className="text-[9px] font-bold text-primary-black-500 uppercase tracking-wide text-center">SELL</span>
+        <span className="text-[9px] font-bold text-primary-black-500 uppercase tracking-wide text-center">SCORE</span>
+        {renderExtraHeaderColumns && renderExtraHeaderColumns()}
+      </div>
+
       {/* Player Rows */}
       {players.map((player, index) => (
         <PlayerTableRow
@@ -143,6 +183,7 @@ const PlayerTable = ({
           player={player}
           index={index}
           gridTemplate={gridTemplate}
+          mobileGridTemplate={mobileGridTemplate}
           showBulkSelect={showBulkSelect}
           showAddButton={showAddButton}
           showTierLevel={showTierLevel}
@@ -170,6 +211,7 @@ const PlayerTableRow = ({
   player,
   index,
   gridTemplate,
+  mobileGridTemplate,
   showBulkSelect,
   showAddButton,
   showTierLevel,
@@ -185,10 +227,13 @@ const PlayerTableRow = ({
   isSelectedForAction
 }) => {
   const defaultClassName = `
-    grid py-3 px-2 transition-all border-l-4
+    grid py-3 px-2 md:py-3 md:px-2 transition-all border-l-4
     ${isLocked ? 'cursor-not-allowed opacity-60 bg-red-900/20 border-red-500/50' : 'cursor-move hover:bg-primary-green-500/10 hover:border-primary-green-500 border-transparent'}
     ${index % 2 === 0 && !isLocked ? 'bg-primary-black-900' : !isLocked ? 'bg-primary-black-800/50' : ''}
   `;
+  
+  // Mobile-specific row styling - tighter spacing like Sleeper
+  const mobileRowClassName = `py-1.5 px-1.5`;
 
   const customClassName = getRowClassName ? getRowClassName(player, index, isLocked) : defaultClassName;
 
@@ -211,18 +256,20 @@ const PlayerTableRow = ({
 
 
   return (
-    <div
-      draggable={!isLocked}
-      onDragStart={handleDragStart}
-      onDragEnd={onDragEnd}
-      onClick={handleClick}
-      className={customClassName}
-      style={{ 
-        gridTemplateColumns: gridTemplate,
-        gap: '8px',
-        alignItems: 'center'
-      }}
-    >
+    <>
+      {/* Desktop Row */}
+      <div
+        draggable={!isLocked}
+        onDragStart={handleDragStart}
+        onDragEnd={onDragEnd}
+        onClick={handleClick}
+        className={`hidden md:grid ${customClassName}`}
+        style={{ 
+          gridTemplateColumns: gridTemplate,
+          gap: '8px',
+          alignItems: 'center'
+        }}
+      >
       {/* COLUMN 1: Add Button, Checkbox, or Drag Handle */}
       <div className="flex items-center justify-center">
         {showAddButton ? (
@@ -264,15 +311,15 @@ const PlayerTableRow = ({
             )}
           </div>
         ) : isLocked ? (
-          <span className="text-red-400 text-sm">🔒</span>
+          <span className="text-red-400 text-xs">🔒</span>
         ) : (
-          <span className="text-primary-black-600 text-sm">⋮⋮</span>
+          <span className="text-primary-black-600 text-xs">⋮⋮</span>
         )}
       </div>
-      
-      {/* COLUMN 2: Position Badge (restored) */}
+
+      {/* COLUMN 2: Position Badge */}
       <div className="flex items-center justify-center">
-        <span className="px-2 py-1 bg-primary-black-700 text-primary-black-300 rounded text-xs font-semibold text-center">
+        <span className="px-1.5 py-0.5 bg-primary-black-700 text-primary-black-300 rounded text-[10px] font-semibold text-center">
           {getPositionAbbr(player.player_card.position)}
         </span>
       </div>
@@ -284,20 +331,23 @@ const PlayerTableRow = ({
         </svg>
       </div>
 
-      {/* COLUMN 4: Player Name, Team Badge & Position Rank */}
+      {/* COLUMN 4: Player Name & Team */}
       <div className="min-w-0">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 mb-1">
           <h4 className="font-bold text-primary-black-50 truncate text-sm">
             {player.player_card.player_name}
           </h4>
-          {/* Team Badge */}
-          <span className="px-1.5 py-0.5 bg-primary-black-700 text-primary-black-300 rounded text-[10px] font-semibold">
-            {player.player_card.team_abbreviation}
-          </span>
+          {/* Tier Badge next to name */}
+          {player.card_tier && (
+            <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase ${getTierBadgeInfo(player.card_tier).color} flex-shrink-0`}>
+              {getTierBadgeInfo(player.card_tier).initial}
+            </span>
+          )}
         </div>
-        <div className="text-xs text-primary-black-500 font-medium">
-          {getPositionAbbr(player.player_card.position)} #{player.player_card.position_rank || '--'}
-        </div>
+        {/* Team Badge */}
+        <span className="px-1.5 py-0.5 bg-primary-black-700 text-primary-black-300 rounded text-[10px] font-semibold">
+          {player.player_card.team_abbreviation}
+        </span>
       </div>
 
       {/* COLUMN 5: Spacer (divider 1 is absolute positioned) */}
@@ -387,7 +437,151 @@ const PlayerTableRow = ({
 
       {/* Custom columns */}
       {renderExtraColumns && renderExtraColumns(player, index)}
-    </div>
+      </div>
+
+      {/* Mobile Row */}
+      <div
+        draggable={!isLocked}
+        onDragStart={handleDragStart}
+        onDragEnd={onDragEnd}
+        onClick={handleClick}
+        className={`grid md:hidden ${customClassName} ${mobileRowClassName}`}
+        style={{ 
+          gridTemplateColumns: mobileGridTemplate,
+          gap: '4px',
+          alignItems: 'center'
+        }}
+      >
+        {/* COLUMN 1: Add Button, Checkbox, or Drag Handle */}
+        <div className="flex items-center justify-center">
+          {showAddButton ? (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                if (onAddButtonClick && !isLocked) {
+                  onAddButtonClick(player);
+                }
+              }}
+              disabled={isLocked}
+              className={`w-5 h-5 cursor-pointer rounded-full appearance-none border transition-all flex items-center justify-center text-xs font-bold leading-none disabled:opacity-50 disabled:cursor-not-allowed ${
+                isSelectedForAction
+                  ? 'border-primary-green-500 bg-primary-green-500 text-white'
+                  : 'border-primary-black-600 bg-primary-black-800 text-primary-black-400'
+              }`}
+              title={isSelectedForAction ? "Selected for swap" : "Add to lineup"}
+            >
+              +
+            </button>
+          ) : showBulkSelect ? (
+            <div className="relative flex items-center justify-center">
+              <input
+                type="checkbox"
+                checked={isSelected}
+                onChange={(e) => {
+                  e.stopPropagation();
+                  if (onBulkSelectChange && !isLocked) {
+                    onBulkSelectChange(player, e.target.checked);
+                  }
+                }}
+                disabled={isLocked}
+                className="w-5 h-5 cursor-pointer rounded appearance-none border border-primary-black-600 bg-primary-black-800 checked:bg-primary-black-700 checked:border-primary-black-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              />
+              {isSelected && (
+                <svg className="absolute w-3 h-3 text-primary-black-200 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              )}
+            </div>
+          ) : isLocked ? (
+            <span className="text-red-400 text-[10px]">🔒</span>
+          ) : (
+            <span className="text-primary-black-600 text-[10px]">⋮⋮</span>
+          )}
+        </div>
+
+        {/* COLUMN 2: Position Badge */}
+        <div className="flex items-center justify-center">
+          <span className="px-1 py-0.5 bg-primary-black-700 text-primary-black-300 rounded text-[9px] font-semibold text-center">
+            {getPositionAbbr(player.player_card.position)}
+          </span>
+        </div>
+
+        {/* COLUMN 3: Player Name & Info (stacked for mobile) - No person icon to save space */}
+        <div className="min-w-0">
+          <div className="flex items-center gap-1 mb-0.5">
+            <h4 className="font-bold text-primary-black-50 truncate text-[11px]">
+              {player.player_card.player_name}
+            </h4>
+            {/* Tier Badge next to name */}
+            {player.card_tier && (
+              <span className={`px-1 py-0 rounded text-[8px] font-bold uppercase ${getTierBadgeInfo(player.card_tier).color} flex-shrink-0`}>
+                {getTierBadgeInfo(player.card_tier).initial}
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-1 text-[9px] flex-wrap">
+            {/* Team Badge */}
+            <span className="px-1 py-0 bg-primary-black-700 text-primary-black-300 rounded font-semibold">
+              {player.player_card.team_abbreviation}
+            </span>
+            {/* Opponent and Game Time on same line */}
+            {player.isBye ? (
+              <span className="text-primary-black-500 font-semibold">BYE</span>
+            ) : player.opponent ? (
+              <>
+                <span className="text-primary-black-300 font-semibold">
+                  {player.isHome ? 'vs' : '@'}{player.opponent}
+                </span>
+                {/* Game Time directly after opponent */}
+                {player.gameStartTime && player.gameStatus === 'scheduled' && (
+                  <span className="text-primary-black-500">
+                    {new Date(player.gameStartTime).toLocaleDateString('en-US', { weekday: 'short' })}{' '}
+                    {new Date(player.gameStartTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+                  </span>
+                )}
+              </>
+            ) : null}
+            {/* Game Status for live/final games */}
+            {!player.isBye && (player.gameStatus === 'live' || player.gameStatus === 'halftime') && (
+              <span className="text-red-400 font-bold">🔴 LIVE</span>
+            )}
+            {!player.isBye && player.gameStatus === 'final' && (
+              <span className="text-green-400 font-bold">✓ FINAL</span>
+            )}
+          </div>
+        </div>
+
+        {/* COLUMN 4: Sell Value */}
+        <div className="text-center">
+          <span className="text-[9px] text-primary-black-300 font-semibold">
+            {player.sellValue || 0}
+          </span>
+        </div>
+
+        {/* COLUMN 5: Score with Projected below */}
+        <div className="text-center">
+          {player.isLiveOrFinal && player.score !== undefined ? (
+            <div className="flex flex-col items-center">
+              <span className="text-sm text-white font-bold leading-tight">{player.score.toFixed(1)}</span>
+              {player.projected && player.projected > 0 && (
+                <span className="text-[7px] text-primary-black-500 leading-tight">{player.projected.toFixed(1)}</span>
+              )}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center">
+              {player.projected && player.projected > 0 ? (
+                <span className="text-[10px] text-primary-green-400 font-bold">{player.projected.toFixed(1)}</span>
+              ) : (
+                <span className="text-[9px] text-primary-black-600">--</span>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Custom columns */}
+        {renderExtraColumns && renderExtraColumns(player, index)}
+      </div>
+    </>
   );
 };
 
@@ -415,6 +609,7 @@ PlayerTableRow.propTypes = {
   player: PropTypes.object.isRequired,
   index: PropTypes.number.isRequired,
   gridTemplate: PropTypes.string.isRequired,
+  mobileGridTemplate: PropTypes.string.isRequired,
   showBulkSelect: PropTypes.bool,
   showAddButton: PropTypes.bool,
   showTierLevel: PropTypes.bool,
