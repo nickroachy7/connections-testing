@@ -31,8 +31,12 @@ export default function BenchAndTokensPanel({
   selectedTokenId,
   liveGameData,
   projections
-}) {
+) {
   const [activeTab, setActiveTab] = useState('all');
+
+  // Safely handle undefined/null arrays
+  const safeBenchPlayers = benchPlayers || [];
+  const safeTokens = tokens || [];
 
   const shouldShowPlayers = activeTab === 'all' || activeTab === 'players';
   const shouldShowTokens = activeTab === 'all' || activeTab === 'tokens';
@@ -80,13 +84,13 @@ export default function BenchAndTokensPanel({
       {/* Content */}
       <div className="px-1.5 sm:px-3 md:px-4 py-2 md:py-4">
         {/* Players Section */}
-        {shouldShowPlayers && benchPlayers.length > 0 && (
+        {shouldShowPlayers && safeBenchPlayers.length > 0 && (
           <div className="mb-3 md:mb-4">
             {shouldShowTokens && (
               <h3 className="text-sm md:text-base font-bold text-primary-black-300 mb-2 md:mb-3">Players</h3>
             )}
             <PlayerTable
-              players={benchPlayers}
+              players={safeBenchPlayers}
               showAddButton={!!onAddButtonClick}
               onRowDragStart={onPlayerDragStart}
               onRowClick={onPlayerClick}
@@ -99,13 +103,13 @@ export default function BenchAndTokensPanel({
         )}
 
         {/* Tokens Section */}
-        {shouldShowTokens && tokens.length > 0 && (
+        {shouldShowTokens && safeTokens.length > 0 && (
           <div>
             {shouldShowPlayers && (
               <h3 className="text-sm md:text-base font-bold text-primary-black-300 mb-2 md:mb-3">Tokens</h3>
             )}
             <TokenTable
-              tokens={tokens}
+              tokens={safeTokens}
               showAddButton={!!onTokenClick}
               onRowDragStart={onTokenDragStart}
               onRowClick={onTokenClick}
@@ -118,7 +122,7 @@ export default function BenchAndTokensPanel({
         )}
 
         {/* Empty States */}
-        {shouldShowPlayers && !shouldShowTokens && benchPlayers.length === 0 && (
+        {shouldShowPlayers && !shouldShowTokens && safeBenchPlayers.length === 0 && (
           <div className="flex items-center justify-center py-8 md:py-12 text-center">
             <div>
               <div className="text-3xl md:text-4xl mb-2 opacity-30">🏈</div>
@@ -127,7 +131,7 @@ export default function BenchAndTokensPanel({
           </div>
         )}
 
-        {!shouldShowPlayers && shouldShowTokens && tokens.length === 0 && (
+        {!shouldShowPlayers && shouldShowTokens && safeTokens.length === 0 && (
           <div className="flex items-center justify-center py-8 md:py-12 text-center">
             <div>
               <div className="text-3xl md:text-4xl mb-2 opacity-30">💎</div>
@@ -136,7 +140,7 @@ export default function BenchAndTokensPanel({
           </div>
         )}
 
-        {shouldShowPlayers && shouldShowTokens && benchPlayers.length === 0 && tokens.length === 0 && (
+        {shouldShowPlayers && shouldShowTokens && safeBenchPlayers.length === 0 && safeTokens.length === 0 && (
           <div className="flex items-center justify-center py-8 md:py-12 text-center">
             <div>
               <div className="text-3xl md:text-4xl mb-2 opacity-30">📦</div>
