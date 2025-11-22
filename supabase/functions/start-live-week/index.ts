@@ -41,17 +41,34 @@ Deno.serve(async (req) => {
 
     console.log(`🏈 Checking if Week ${weekNumber}, ${seasonYear} should go live (current status: ${currentStatus})`)
 
-    // If already live or finalized, nothing to do
+    // If already live or finalized, nothing to do (prevents running multiple times)
     if (currentStatus === 'live' || currentStatus === 'finalized') {
+      console.log(`✅ Week ${weekNumber} is already ${currentStatus}, skipping`)
       return new Response(
         JSON.stringify({ 
           success: true, 
-          message: `Week ${weekNumber} is already ${currentStatus}`,
+          message: `Week ${weekNumber} is already ${currentStatus}, no action needed`,
+          week_number: weekNumber,
+          season_year: seasonYear,
+          week_status: currentStatus,
+          already_processed: true
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      )
+    }
+
+    // Only proceed if status is 'scheduled'
+    if (currentStatus !== 'scheduled') {
+      console.log(`⚠️  Week ${weekNumber} status is '${currentStatus}', expected 'scheduled'`)
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          message: `Week ${weekNumber} status is '${currentStatus}', cannot mark as live`,
           week_number: weekNumber,
           season_year: seasonYear,
           week_status: currentStatus
         }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       )
     }
 
