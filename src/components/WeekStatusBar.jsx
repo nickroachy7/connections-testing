@@ -28,8 +28,31 @@ export default function WeekStatusBar({ teamId, team, previewMode = false }) {
   const [simulatedMedian, setSimulatedMedian] = useState(null);
   const [allTeamsProjected, setAllTeamsProjected] = useState([]);
   const [weekIsFinalized, setWeekIsFinalized] = useState(false);
+  const [bannerTheme, setBannerTheme] = useState('default');
+  
+  const themeOptions = [
+    { id: 'default', bg: 'bg-gradient-to-r from-dk-green-secondary to-dk-green-primary' },
+    { id: 'ocean', bg: 'bg-gradient-to-r from-blue-900 to-blue-800' },
+    { id: 'forest', bg: 'bg-gradient-to-r from-emerald-900 to-green-800' },
+    { id: 'sunset', bg: 'bg-gradient-to-r from-orange-900 to-red-900' },
+    { id: 'purple', bg: 'bg-gradient-to-r from-purple-900 to-indigo-900' },
+    { id: 'crimson', bg: 'bg-gradient-to-r from-red-950 to-rose-900' },
+    { id: 'cow', bg: 'bg-gradient-to-br from-zinc-100 via-zinc-900 to-zinc-100' },
+    { id: 'matrix', bg: 'bg-gradient-to-b from-black via-green-950 to-black' },
+    { id: 'lava', bg: 'bg-gradient-to-r from-red-600 via-orange-600 to-yellow-500' }
+  ];
+  
+  const getCurrentTheme = () => themeOptions.find(t => t.id === bannerTheme) || themeOptions[0];
   
   const projectedPoints = lineupStats?.projectedPoints || 0;
+
+  // Load banner theme from localStorage
+  useEffect(() => {
+    if (teamId) {
+      const savedTheme = localStorage.getItem(`bannerTheme_${teamId}`);
+      if (savedTheme) setBannerTheme(savedTheme);
+    }
+  }, [teamId]);
 
   // Load simulated season ID
   useEffect(() => {
@@ -108,95 +131,60 @@ export default function WeekStatusBar({ teamId, team, previewMode = false }) {
     };
 
     checkWeekStatus();
-  }, [currentWeek, teamId, previewMode, team?.current_week]);
+  }, [currentWeek, teamId, team, previewMode]);
 
-  // Fetch stats and scores
+  // Fetch stats for the display week
   useEffect(() => {
     if (!displayWeek || !teamId) return;
 
     const fetchStats = async () => {
       try {
-        if (simulatedSeasonId) setIsLive(false);
-        
-        const { data: globalData } = await supabase
-          .from('weekly_global_stats')
-          .select('*')
-          .eq('week_number', displayWeek.week)
-          .eq('season_year', displayWeek.year)
-          .maybeSingle();
-
-        setGlobalStats(globalData);
-
         const { data: lineupData } = await supabase
           .from('weekly_lineups')
-          .select('total_points, status, lineup_snapshot')
+          .select('total_points, projected_points, status')
           .eq('team_id', teamId)
           .eq('week_number', displayWeek.week)
           .eq('season_year', displayWeek.year)
           .maybeSingle();
 
-        const weekFinalizedStatus = lineupData?.status === 'completed';
-        setIsFinal(weekFinalizedStatus);
-        setWeekIsFinalized(weekFinalizedStatus);
-        setHasWeeklyLineup(!!lineupData);
-
-        if (previewMode && weekFinalizedStatus && displayWeek.week > currentWeek.week) {
+        if (lineupData) {
+          setHasWeeklyLineup(true);
+          const isLiveStatus = lineupData.status === 'live';
+          const isFinalStatus = lineupData.status === 'completed';
+          setIsLive(isLiveStatus);
+          setIsFinal(isFinalStatus);
+          setLivePoints(parseFloat(lineupData.total_points || 0));
+          setProjectedFinal(parseFloat(lineupData.projected_points || 0));
+        } else {
+          setHasWeeklyLineup(false);
           setIsLive(false);
           setIsFinal(false);
-          setGlobalStats(null);
-          setHasWeeklyLineup(false);
-          return;
+          setLivePoints(0);
+          setProjectedFinal(0);
         }
 
-        let weekIsLive = false;
-        if (!simulatedSeasonId && !weekFinalizedStatus) {
-          const { data: weekConfig } = await supabase
-            .from('nfl_season_config')
-            .select('week_status')
-            .eq('season_year', displayWeek.year)
-            .eq('current_week', displayWeek.week)
-            .eq('is_active', true)
+        if (simulatedSeasonId) {
+          const { data: simData } = await supabase
+            .from('simulated_weeks')
+            .select('median_score')
+            .eq('simulated_season_id', simulatedSeasonId)
+            .eq('week_number', displayWeek.week)
             .maybeSingle();
-          weekIsLive = weekConfig?.week_status === 'live';
-        }
-        
-        setIsLive(weekIsLive);
-
-        if (lineupData) {
-          if (weekFinalizedStatus) {
-            const finalScore = lineupData.total_points || 0;
-            setLivePoints(finalScore);
-            setProjectedFinal(finalScore);
-          } else if (weekIsLive) {
-            const dbLivePoints = parseFloat(lineupData.total_points || 0);
-            setLivePoints(dbLivePoints);
-            const hookProjectedFinal = lineupStats?.projectedFinal || 0;
-            setProjectedFinal(hookProjectedFinal > 0 ? hookProjectedFinal : dbLivePoints);
-          } else {
-            let calculatedProjected = 0;
-            if (lineupData.lineup_snapshot) {
-              Object.keys(lineupData.lineup_snapshot).forEach(pos => {
-                const playerData = lineupData.lineup_snapshot[pos];
-                if (playerData?.projected_points) {
-                  calculatedProjected += parseFloat(playerData.projected_points);
-                }
-              });
-            } else if (lineup) {
-              ['QB', 'RB1', 'RB2', 'WR1', 'WR2', 'WR3', 'TE', 'FLEX'].forEach(pos => {
-                const player = lineup[pos];
-                if (player?.player_card?.weekly_projected_points) {
-                  calculatedProjected += parseFloat(player.player_card.weekly_projected_points);
-                }
-              });
-            }
-            setProjectedFinal(calculatedProjected);
+          if (simData) {
+            setSimulatedMedian(simData.median_score);
           }
         } else {
-          if (weekIsLive) {
-            setLivePoints(lineupStats?.livePoints || 0);
-            setProjectedFinal(lineupStats?.projectedFinal || 0);
+          const { data: stats } = await supabase
+            .from('weekly_global_stats')
+            .select('median_score, total_active_teams, highest_score')
+            .eq('week_number', displayWeek.week)
+            .eq('season_year', displayWeek.year)
+            .maybeSingle();
+
+          if (stats) {
+            setGlobalStats(stats);
           } else {
-            setProjectedFinal(lineupStats?.projectedPoints || 0);
+            setGlobalStats(null);
           }
         }
       } catch (error) {
@@ -274,93 +262,69 @@ export default function WeekStatusBar({ teamId, team, previewMode = false }) {
   );
 
   return (
-    <>
-      {teamHasntStarted && (
-        <div className="bg-blue-900/30 border-b-2 border-blue-500">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
-            <div className="flex items-center justify-center gap-2">
-              <svg className="w-5 h-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-              </svg>
-              <span className="text-blue-100 font-semibold text-sm">
-                Your first week will be Week {team.current_week}. The current week ({currentWeek.week}) is already in progress.
-              </span>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <div className="bg-dk-black-secondary border-b border-dk-black-light">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center gap-4">
-            {/* Week & Badge */}
-            <div className="flex items-center gap-2">
-              {displayWeek ? (
-                <span className="text-sm font-dk-display font-bold text-dk-white-muted uppercase">Week {displayWeek.week}</span>
-              ) : (
-                <span className="text-sm font-dk-display font-bold text-dk-white-muted uppercase opacity-50">Loading...</span>
-              )}
-              {(isLive || isFinal) && !previewMode && (
-                <span className={`px-2 py-0.5 ${isFinal ? 'bg-blue-600' : 'bg-red-500'} text-white text-xs font-dk-display font-bold rounded flex items-center gap-1`}>
-                  {!isFinal && <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span>}
-                  {isFinal ? 'FINAL' : 'LIVE'}
+    <div className={`${getCurrentTheme().bg} border-b border-dk-black-light transition-all duration-300`}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+          <div className="bg-dk-black-primary rounded-lg border border-dk-black-light px-4 py-2.5">
+            <div className="flex items-center gap-6">
+              {/* Left: Week & Status */}
+              <div className="flex items-center gap-2">
+                {displayWeek ? (
+                  <span className="text-base font-dk-display font-black text-dk-white uppercase">Week {displayWeek.week}</span>
+                ) : (
+                  <span className="text-base font-dk-display font-black text-dk-white-muted uppercase opacity-50">Loading...</span>
+                )}
+                
+                <span className="text-dk-white-muted">•</span>
+                
+                <span className={`text-xs font-dk-display font-bold uppercase tracking-wider ${
+                  isFinal ? 'text-blue-400' :
+                  isLive ? 'text-red-400' : 
+                  'text-dk-white-muted'
+                }`}>
+                  {isFinal ? 'Final' : (isLive ? 'Live' : 'Pre-Week')}
                 </span>
-              )}
-            </div>
-
-            {/* Progress Bar */}
-            <div className="flex-1 flex items-center gap-3">
-              <div className="relative flex-1 h-2 bg-dk-black-tertiary rounded-full overflow-hidden border border-dk-black-light">
-                <div className="absolute top-0 bottom-0 w-0.5 bg-yellow-400 z-10" style={{ left: `${medianPercentage}%` }} />
-                <div
-                  className={`absolute top-0 bottom-0 left-0 transition-all duration-500 ${
-                    isFinal ? 'bg-gradient-to-r from-blue-500 to-blue-400' :
-                    isLive ? 'bg-gradient-to-r from-red-500 to-red-400' :
-                    'bg-gradient-to-r from-dk-green-primary to-green-400'
-                  }`}
-                  style={{ width: `${userPercentage}%` }}
-                />
               </div>
-              <span className="text-xs text-dk-white-muted font-dk whitespace-nowrap">Median {medianScore.toFixed(1)}</span>
-            </div>
 
-            {/* Score Badges */}
-            <div className="flex items-center gap-2">
-              {isLive && !isFinal && projectedFinal >= livePoints && (
-                <div className="rounded-lg px-3 py-1.5 shadow-lg border-2 bg-gradient-to-r from-blue-600 to-indigo-600 border-blue-400">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-white font-semibold uppercase tracking-wider">PROJ FINAL</span>
-                    <span className="text-xl text-white font-black leading-none">{projectedFinal.toFixed(1)}</span>
+              {/* Center: Progress Bar with Median Marker */}
+              <div className="flex-1">
+                <div className="relative group">
+                  <div className="relative h-2 bg-dk-black-tertiary rounded-full overflow-hidden border border-dk-black-light">
+                    <div className="absolute top-0 bottom-0 w-px bg-yellow-400 z-10 group-hover:bg-yellow-300 transition-colors" style={{ left: `${medianPercentage}%` }} />
+                    <div
+                      className={`absolute top-0 bottom-0 left-0 transition-all duration-500 ${
+                        isAboveMedian 
+                          ? 'bg-gradient-to-r from-dk-green-primary to-dk-green-primary/80'
+                          : 'bg-gradient-to-r from-red-500 to-red-400'
+                      }`}
+                      style={{ width: `${userPercentage}%` }}
+                    />
+                  </div>
+                  {/* Median indicator - only visible on hover */}
+                  <div 
+                    className="absolute -top-8 -translate-x-1/2 bg-dk-black-secondary border border-yellow-400/50 rounded px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-lg"
+                    style={{ left: `${medianPercentage}%` }}
+                  >
+                    <span className="text-xs text-yellow-400 font-bold whitespace-nowrap">Median: {medianScore.toFixed(1)}</span>
                   </div>
                 </div>
-              )}
-              
-              <div className={`rounded-lg px-3 py-1.5 shadow-lg border-2 ${
-                isFinal ? 'bg-gradient-to-r from-blue-600 to-blue-700 border-blue-400' :
-                isLive ? 'bg-gradient-to-r from-red-600 to-red-700 border-red-400' : 
-                'bg-gradient-to-r from-green-600 to-emerald-600 border-green-400'
-              }`}>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-white font-semibold uppercase tracking-wider">
-                    {isFinal ? 'FINAL' : (isLive ? 'LIVE' : 'PROJECTED')}
-                  </span>
-                  <span className="text-xl text-white font-black leading-none">{userScore.toFixed(1)}</span>
+              </div>
+
+              {/* Right: Score Display */}
+              <div className="flex items-center gap-3">
+                {isLive && !isFinal && projectedFinal > livePoints && (
+                  <div className="flex flex-col items-end">
+                    <span className="text-lg text-dk-white-muted font-black leading-none">{projectedFinal.toFixed(1)}</span>
+                  </div>
+                )}
+                
+                <div className="flex flex-col items-end">
+                  <span className="text-2xl text-dk-white font-black leading-none">{userScore.toFixed(1)}</span>
                 </div>
               </div>
             </div>
           </div>
-
-          {/* Comparison Text */}
-          {hasGlobalStats && (
-            <p className={`text-xs font-dk-display font-bold mt-2 ${isAboveMedian ? 'text-dk-green-primary' : 'text-orange-400'}`}>
-              {userScore > medianScore ? `↑ ${(userScore - medianScore).toFixed(1)} pts above median` :
-               userScore < medianScore ? `↓ ${(medianScore - userScore).toFixed(1)} pts below median` :
-               '= Right at median'}
-            </p>
-          )}
         </div>
       </div>
-    </>
   );
 }
 
