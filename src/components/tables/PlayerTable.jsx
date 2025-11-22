@@ -162,10 +162,10 @@ const PlayerTable = ({
 
       {/* Mobile Header Row */}
       <div 
-        className="grid md:hidden bg-primary-black-800 border-b border-primary-black-700 py-1.5 px-1.5"
+        className="grid md:hidden bg-primary-black-800 border-b border-primary-black-700 py-1 px-1"
         style={{ 
           gridTemplateColumns: mobileGridTemplate,
-          gap: '4px'
+          gap: '3px'
         }}
       >
         <span className="text-[9px] font-bold text-primary-black-500 uppercase tracking-wide text-center"></span>
@@ -233,7 +233,7 @@ const PlayerTableRow = ({
   `;
   
   // Mobile-specific row styling - tighter spacing like Sleeper
-  const mobileRowClassName = `py-1.5 px-1.5`;
+  const mobileRowClassName = `py-1 px-1`;
 
   const customClassName = getRowClassName ? getRowClassName(player, index, isLocked) : defaultClassName;
 
@@ -448,7 +448,7 @@ const PlayerTableRow = ({
         className={`grid md:hidden ${customClassName} ${mobileRowClassName}`}
         style={{ 
           gridTemplateColumns: mobileGridTemplate,
-          gap: '4px',
+          gap: '3px',
           alignItems: 'center'
         }}
       >
@@ -484,10 +484,10 @@ const PlayerTableRow = ({
                   }
                 }}
                 disabled={isLocked}
-                className="w-5 h-5 cursor-pointer rounded appearance-none border border-primary-black-600 bg-primary-black-800 checked:bg-primary-black-700 checked:border-primary-black-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-4 h-4 cursor-pointer rounded appearance-none border border-primary-black-600 bg-primary-black-800 checked:bg-primary-black-700 checked:border-primary-black-500 disabled:opacity-50 disabled:cursor-not-allowed"
               />
               {isSelected && (
-                <svg className="absolute w-3 h-3 text-primary-black-200 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                <svg className="absolute w-2.5 h-2.5 text-primary-black-200 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
               )}
