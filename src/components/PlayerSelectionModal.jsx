@@ -5,8 +5,8 @@ import PlayerCard from './PlayerCard';
 /**
  * PlayerSelectionModal Component
  * 
- * Modal for selecting a player to add to a lineup position.
- * Alternative to drag-and-drop for easier interaction.
+ * Modal for selecting a player to add to a specific lineup position.
+ * Shows available players filtered by position with search and sort.
  */
 export default function PlayerSelectionModal({
   isOpen,
@@ -19,22 +19,24 @@ export default function PlayerSelectionModal({
   inventory
 }) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [sortBy, setSortBy] = useState('name'); // name, points, level
+  const [sortBy, setSortBy] = useState('name');
 
   // Filter and sort players
   const filteredPlayers = useMemo(() => {
-    let filtered = availablePlayers.filter(player => 
-      player.player_card.player_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      player.player_card.team_abbreviation.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    let filtered = availablePlayers.filter(player => {
+      const matchesSearch = 
+        player.player_card.player_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        player.player_card.team_abbreviation.toLowerCase().includes(searchTerm.toLowerCase());
+      return matchesSearch;
+    });
 
     // Sort
     switch (sortBy) {
       case 'points':
-        filtered.sort((a, b) => b.total_fantasy_points - a.total_fantasy_points);
+        filtered.sort((a, b) => (b.total_fantasy_points || 0) - (a.total_fantasy_points || 0));
         break;
       case 'level':
-        filtered.sort((a, b) => b.card_level - a.card_level);
+        filtered.sort((a, b) => (b.card_level || 0) - (a.card_level || 0));
         break;
       case 'name':
       default:
@@ -47,54 +49,51 @@ export default function PlayerSelectionModal({
 
   if (!isOpen) return null;
 
-  const getPositionLabel = () => {
-    if (position === 'FLEX') return 'FLEX (RB/WR/TE)';
-    if (position?.startsWith('QB')) return 'Quarterback';
-    if (position?.startsWith('RB')) return 'Running Back';
-    if (position?.startsWith('WR')) return 'Wide Receiver';
-    if (position?.startsWith('TE')) return 'Tight End';
-    return position;
+  const getPositionLabel = (pos) => {
+    const labels = {
+      'QB': 'Quarterback',
+      'RB1': 'Running Back',
+      'RB2': 'Running Back',
+      'WR1': 'Wide Receiver',
+      'WR2': 'Wide Receiver',
+      'WR3': 'Wide Receiver',
+      'TE': 'Tight End',
+      'FLEX': 'Flex (RB/WR/TE)'
+    };
+    return labels[pos] || pos;
   };
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-primary-black-800 border-2 border-primary-black-700 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+      <div className="bg-primary-black-900 rounded-2xl shadow-2xl max-w-6xl w-full max-h-[90vh] flex flex-col border border-primary-black-700">
         {/* Header */}
-        <div className="bg-gradient-to-r from-primary-green-600/20 to-primary-green-500/10 border-b-2 border-primary-black-700 px-6 py-4 rounded-t-2xl flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold text-primary-black-50 mb-1">
-              Select {getPositionLabel()}
-            </h2>
-            <p className="text-sm text-primary-black-400">
-              Choose a player to add to your lineup
-            </p>
-          </div>
-          <button
-            onClick={onClose}
-            className="text-3xl text-primary-black-400 hover:text-primary-black-50 transition-colors leading-none"
-          >
-            ×
-          </button>
-        </div>
-
-        {/* Filters */}
-        <div className="border-b border-primary-black-700 px-6 py-4 bg-primary-black-900/50">
-          <div className="flex gap-3 items-center">
-            {/* Search */}
-            <div className="flex-1">
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search by name or team..."
-                className="w-full px-4 py-2 bg-primary-black-900 border border-primary-black-600 text-primary-black-50 rounded-lg focus:ring-2 focus:ring-primary-green-500 focus:border-transparent placeholder-primary-black-500"
-                autoFocus
-              />
+        <div className="border-b border-primary-black-700 px-6 py-4 bg-primary-black-900/50 rounded-t-2xl">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-2xl font-bold text-primary-black-50">Select Player</h2>
+              <p className="text-sm text-primary-black-400 mt-1">
+                Choose a {getPositionLabel(position)} to add to your lineup
+              </p>
             </div>
+            <button
+              onClick={onClose}
+              className="text-primary-black-400 hover:text-primary-black-50 transition-colors text-3xl leading-none"
+            >
+              ×
+            </button>
+          </div>
 
-            {/* Sort */}
+          {/* Search and Sort */}
+          <div className="flex gap-4">
+            <input
+              type="text"
+              placeholder="Search by name or team..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="flex-1 px-4 py-2 bg-primary-black-900 border border-primary-black-600 text-primary-black-50 rounded-lg focus:ring-2 focus:ring-primary-green-500 focus:border-transparent"
+            />
             <div className="flex items-center gap-2">
-              <span className="text-sm text-primary-black-400 whitespace-nowrap">Sort by:</span>
+              <label className="text-sm text-primary-black-400 whitespace-nowrap">Sort by:</label>
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
@@ -140,6 +139,7 @@ export default function PlayerSelectionModal({
                       isLocked={false}
                       appliedToken={appliedToken}
                       gameData={liveGameData?.get(player.player_card.player_id)}
+                      liveGameData={liveGameData}
                       projection={projections?.get(player.player_card.player_id)}
                       size="medium"
                       showStats={true}

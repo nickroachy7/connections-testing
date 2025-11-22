@@ -80,6 +80,7 @@ export default function LineupGridReadOnly({
                   isLocked={isLocked}
                   appliedToken={appliedToken}
                   gameData={liveGameData?.get(player.player_card.player_id)}
+                  liveGameData={liveGameData}
                   projection={projections?.get(player.player_card.player_id)}
                   size="small"
                   showStats={true}
