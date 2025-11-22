@@ -69,23 +69,32 @@ export default function WeekStatusBar({ teamId, team, previewMode = false }) {
     }
   }, [teamId]);
 
-  // Load current week
+  // Load current week and week status
   useEffect(() => {
     const loadCurrentWeek = async () => {
       try {
         const { data, error } = await supabase
           .from('nfl_season_config')
-          .select('current_week, season_year')
+          .select('current_week, season_year, week_status')
           .eq('is_active', true)
           .single();
         
         if (error) throw error;
-        if (data) setCurrentWeek({ week: data.current_week, year: data.season_year });
+        if (data) {
+          setCurrentWeek({ week: data.current_week, year: data.season_year });
+          // Set live/final status based on global week status
+          setIsLive(data.week_status === 'live');
+          setIsFinal(data.week_status === 'final');
+        }
       } catch (error) {
         console.error('Error loading current week:', error);
       }
     };
     loadCurrentWeek();
+    
+    // Poll for status changes every 30 seconds
+    const interval = setInterval(loadCurrentWeek, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   // Set display week (handles preview mode)
@@ -149,16 +158,11 @@ export default function WeekStatusBar({ teamId, team, previewMode = false }) {
 
         if (lineupData) {
           setHasWeeklyLineup(true);
-          const isLiveStatus = lineupData.status === 'live';
-          const isFinalStatus = lineupData.status === 'completed';
-          setIsLive(isLiveStatus);
-          setIsFinal(isFinalStatus);
           setLivePoints(parseFloat(lineupData.total_points || 0));
           setProjectedFinal(parseFloat(lineupData.projected_points || 0));
+          // Don't override global week status - it's already set from nfl_season_config
         } else {
           setHasWeeklyLineup(false);
-          setIsLive(false);
-          setIsFinal(false);
           setLivePoints(0);
           setProjectedFinal(0);
         }
