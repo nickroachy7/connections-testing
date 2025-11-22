@@ -615,33 +615,21 @@ export default function FantasyNavBanner({
           return; // Skip remaining queries for next week
         }
 
-        // Check if week is live
-        // ONLY show LIVE if the team has a weekly_lineup entry for this week
+        // Check global week status for ALL teams (not just those with lineups)
         let weekIsLive = false;
         
-        if (lineupData && !simulatedSeasonId) {
-          // Team must have a weekly_lineup entry to potentially be "live"
-          // For regular seasons, check if the week is "live"
-          // A week is live if ANY game has started (even if finished)
-          // BUT NOT if the week is finalized
+        if (!simulatedSeasonId && !weekFinalizedStatus) {
+          // Check global week status from nfl_season_config
+          const { data: weekConfig } = await supabase
+            .from('nfl_season_config')
+            .select('week_status')
+            .eq('season_year', displayWeek.year)
+            .eq('current_week', displayWeek.week)
+            .eq('is_active', true)
+            .maybeSingle();
           
-          // IMPORTANT: Don't check liveGameData first - it may be stale/empty
-          // Always query the database for actual game statuses
-          if (!weekFinalizedStatus) {
-            const { data: startedGames } = await supabase
-              .from('game_scores')
-              .select('id, game_status, game_start_time')
-              .eq('week_number', displayWeek.week)
-              .eq('season_year', displayWeek.year)
-              .in('game_status', ['live', 'halftime', 'final']);  // Any game that has started
-
-            weekIsLive = startedGames && startedGames.length > 0;
-            if (weekIsLive) {
-              console.log('🔴 Week is LIVE - games from DB:', startedGames.length, 'games started');
-            } else {
-              console.log('⚪ Week is NOT live - all games scheduled (', displayWeek.week, ')');
-            }
-          }
+          weekIsLive = weekConfig?.week_status === 'live';
+          console.log('🔴 Global week status:', weekConfig?.week_status, '- isLive:', weekIsLive);
         }
         
         // Set the live status
