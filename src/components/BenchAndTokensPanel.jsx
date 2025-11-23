@@ -49,7 +49,8 @@ export default function BenchAndTokensPanel({
   const safeTokens = availableTokens || [];
 
   // When filtering tokens for a specific player, force tokens tab
-  const effectiveTab = tokenFilterPlayerId ? 'tokens' : activeTab;
+  // On mobile, always show all items (ignore tab state)
+  const effectiveTab = tokenFilterPlayerId ? 'tokens' : (isMobile ? 'all' : activeTab);
   
   const shouldShowPlayers = effectiveTab === 'all' || effectiveTab === 'players';
   const shouldShowTokens = effectiveTab === 'all' || effectiveTab === 'tokens';
@@ -87,10 +88,10 @@ export default function BenchAndTokensPanel({
   );
 
   return (
-    <div data-bench-section className="bg-dk-black-secondary rounded-lg border border-dk-black-light p-2 md:p-4">
+    <div data-bench-section className="md:bg-dk-black-secondary md:rounded-lg md:border md:border-dk-black-light md:p-4">
       {/* Filter Badge */}
       {(filterPosition || tokenFilterPlayerId) && (
-        <div className="mb-3 flex items-center justify-between bg-dk-black-tertiary border border-dk-black-light rounded-lg px-3 py-2">
+        <div className="mb-2 md:mb-3 mx-3 md:mx-0 flex items-center justify-between bg-dk-black-tertiary border border-dk-black-light rounded-lg px-3 py-2">
           <div className="flex items-center gap-2">
             {filterPosition ? (
               <>
@@ -121,11 +122,11 @@ export default function BenchAndTokensPanel({
         </div>
       )}
 
-      {/* Tabs */}
-      <div className="flex gap-0.5 md:gap-2 mb-3 bg-dk-black-tertiary rounded-lg p-0.5 md:p-1">
+      {/* Tabs - Desktop only */}
+      <div className="hidden md:flex gap-2 mb-3 bg-dk-black-tertiary rounded-lg p-1">
         <button
           onClick={() => setActiveTab('all')}
-          className={`flex-1 px-2 md:px-4 py-1.5 md:py-2 rounded text-xs md:text-sm font-dk-display font-bold transition-all duration-200 ${
+          className={`flex-1 px-4 py-2 rounded text-sm font-dk-display font-bold transition-all duration-200 ${
             activeTab === 'all'
               ? 'bg-dk-green-primary text-dk-black-primary'
               : 'text-dk-white-muted hover:text-dk-white hover:bg-dk-black-light'
@@ -135,7 +136,7 @@ export default function BenchAndTokensPanel({
         </button>
         <button
           onClick={() => setActiveTab('players')}
-          className={`flex-1 px-2 md:px-4 py-1.5 md:py-2 rounded text-xs md:text-sm font-dk-display font-bold transition-all duration-200 ${
+          className={`flex-1 px-4 py-2 rounded text-sm font-dk-display font-bold transition-all duration-200 ${
             activeTab === 'players'
               ? 'bg-dk-green-primary text-dk-black-primary'
               : 'text-dk-white-muted hover:text-dk-white hover:bg-dk-black-light'
@@ -145,7 +146,7 @@ export default function BenchAndTokensPanel({
         </button>
         <button
           onClick={() => setActiveTab('tokens')}
-          className={`flex-1 px-2 md:px-4 py-1.5 md:py-2 rounded text-xs md:text-sm font-dk-display font-bold transition-all duration-200 ${
+          className={`flex-1 px-4 py-2 rounded text-sm font-dk-display font-bold transition-all duration-200 ${
             activeTab === 'tokens'
               ? 'bg-dk-green-primary text-dk-black-primary'
               : 'text-dk-white-muted hover:text-dk-white hover:bg-dk-black-light'

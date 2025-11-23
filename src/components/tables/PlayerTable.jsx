@@ -79,23 +79,16 @@ const PlayerTable = ({
     return columns.join(' ');
   };
 
-  // Mobile grid template - hide Pull % and Tier columns, NO + button
+  // Mobile grid template - match BenchPlayerSwapModal exactly
   const getMobileGridTemplate = () => {
     let columns = [];
     
-    // Checkbox or empty column (NO add button on mobile)
-    if (showBulkSelect) {
-      columns.push('28px'); // Checkbox
-    } else {
-      columns.push('20px'); // Empty/drag handle
-    }
-    
-    // Mobile columns - hide Sell, Tier, Pull % - only show essential info
+    // Mobile columns - exact match to swap modal
     columns.push(
-      '32px',   // Position badge (compact)
-      '40px',   // Player icon
-      '1fr',    // Player name + team + opponent + game time (takes most space)
-      '60px'    // FPTS (combined score/projected)
+      '32px',   // Position badge (matches modal)
+      '40px',   // Player icon (matches modal)
+      '1fr',    // Player name + team + opponent + game time (matches modal)
+      '60px'    // FPTS (matches modal)
     );
     
     return columns.join(' ');
@@ -116,7 +109,7 @@ const PlayerTable = ({
   }
 
   return (
-    <div className="bg-primary-black-900 border-2 border-primary-black-700 rounded-xl overflow-hidden relative w-full">
+    <div className="md:bg-primary-black-900 md:border-2 md:border-primary-black-700 md:rounded-xl overflow-hidden relative w-full">
       {/* Continuous vertical divider lines - absolute positioned to span full height */}
       <div className="absolute top-0 bottom-0 hidden lg:block pointer-events-none" style={{ left: 'calc(24px + 8px + 40px + 8px + 50px + 8px + 400px + 8px - 1px)', width: '1px', backgroundColor: 'rgb(64, 64, 64)' }}></div>
       <div className="absolute top-0 bottom-0 hidden lg:block pointer-events-none" style={{ left: 'calc(24px + 8px + 40px + 8px + 50px + 8px + 400px + 8px + 90px + 8px + 90px + 8px)', width: '1px', backgroundColor: 'rgb(64, 64, 64)' }}></div>
@@ -150,21 +143,7 @@ const PlayerTable = ({
         {renderExtraHeaderColumns && renderExtraHeaderColumns()}
       </div>
 
-      {/* Mobile Header Row */}
-      <div 
-        className="grid md:hidden bg-primary-black-800 border-b border-primary-black-700 py-1 px-1"
-        style={{ 
-          gridTemplateColumns: mobileGridTemplate,
-          gap: '4px'
-        }}
-      >
-        <span className="text-[9px] font-bold text-primary-black-500 uppercase tracking-wide text-center"></span>
-        <span className="text-[9px] font-bold text-primary-black-500 uppercase tracking-wide text-center"></span>
-        <span className="text-[9px] font-bold text-primary-black-500 uppercase tracking-wide text-center"></span>
-        <span className="text-[9px] font-bold text-primary-black-500 uppercase tracking-wide">PLAYER</span>
-        <span className="text-[9px] font-bold text-primary-black-500 uppercase tracking-wide text-center">FPTS</span>
-        {renderExtraHeaderColumns && renderExtraHeaderColumns()}
-      </div>
+      {/* Mobile Header Row - REMOVED for cleaner look */}
 
       {/* Player Rows */}
       {players.map((player, index) => (
@@ -217,9 +196,9 @@ const PlayerTableRow = ({
   isSelectedForAction
 }) => {
   const defaultClassName = `
-    grid py-0.5 px-1 md:py-2 md:px-2 transition-all border-l-4 min-h-[32px] md:min-h-[48px]
-    ${isLocked ? 'cursor-not-allowed opacity-60 bg-red-900/20 border-red-500/50' : 'cursor-move hover:bg-primary-green-500/10 hover:border-primary-green-500 border-transparent'}
-    ${index % 2 === 0 && !isLocked ? 'bg-primary-black-900' : !isLocked ? 'bg-primary-black-800/50' : ''}
+    grid md:py-2 md:px-2 transition-all md:border-l-4 min-h-[64px] md:min-h-[48px]
+    ${isLocked ? 'cursor-not-allowed opacity-60 bg-red-900/20 md:border-red-500/50' : 'cursor-move hover:bg-primary-green-500/10 md:hover:border-primary-green-500 md:border-transparent'}
+    ${index % 2 === 0 && !isLocked ? 'md:bg-primary-black-900 bg-primary-black-900' : !isLocked ? 'md:bg-primary-black-800/50 bg-primary-black-800/50' : ''}
   `;
 
 
@@ -416,7 +395,7 @@ const PlayerTableRow = ({
         onDragStart={handleDragStart}
         onDragEnd={onDragEnd}
         onClick={handleClick}
-        className={`grid md:hidden ${customClassName} py-2 px-1`}
+        className={`grid md:hidden ${customClassName} py-2 px-1 border-b border-primary-black-700 last:border-b-0`}
         style={{ 
           gridTemplateColumns: mobileGridTemplate,
           gap: '4px',
@@ -424,89 +403,64 @@ const PlayerTableRow = ({
           minHeight: '56px'
         }}
       >
-        {/* COLUMN 1: Checkbox or Drag Handle (NO + button on mobile) */}
-        <div className="flex items-center justify-center">
-          {showBulkSelect ? (
-            <div className="relative flex items-center justify-center">
-              <input
-                type="checkbox"
-                checked={isSelected}
-                onChange={(e) => {
-                  e.stopPropagation();
-                  if (onBulkSelectChange && !isLocked) {
-                    onBulkSelectChange(player, e.target.checked);
-                  }
-                }}
-                disabled={isLocked}
-                className="w-4 h-4 cursor-pointer rounded appearance-none border border-primary-black-600 bg-primary-black-800 checked:bg-primary-black-700 checked:border-primary-black-500 disabled:opacity-50 disabled:cursor-not-allowed"
-              />
-              {isSelected && (
-                <svg className="absolute w-2.5 h-2.5 text-primary-black-200 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                </svg>
-              )}
-            </div>
-          ) : isLocked ? (
-            <span className="text-red-400 text-[10px]">🔒</span>
-          ) : (
-            <span className="text-primary-black-600 text-[10px]">⋮⋮</span>
-          )}
-        </div>
-
-        {/* COLUMN 2: Position Badge */}
+        {/* COLUMN 1: Position Badge - exact match to modal */}
         <div className="flex items-center justify-center">
           <span className="px-1 py-0.5 bg-primary-black-700 text-primary-black-300 rounded text-[9px] font-semibold text-center">
             {getPositionAbbr(player.player_card.position)}
           </span>
         </div>
 
-        {/* COLUMN 3: Player Icon */}
+        {/* COLUMN 2: Player Icon - exact match to modal */}
         <div className="rounded bg-primary-black-700 flex items-center justify-center w-10 h-10">
           <svg className="w-6 h-6 text-primary-black-300" fill="currentColor" viewBox="0 0 24 24">
             <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
           </svg>
         </div>
 
-        {/* COLUMN 4: Player Name & Info (stacked for mobile) */}
+        {/* COLUMN 3: Player Name & Info - Sleeper-style dense layout */}
         <div className="min-w-0">
-          <div className="flex items-center gap-1 mb-0.5">
+          {/* Line 1: Name + Position + Team + Tier */}
+          <div className="flex items-baseline gap-1 mb-0.5">
             <h4 className="font-bold text-primary-black-50 truncate text-[11px] leading-tight">
               {player.player_card.player_name}
             </h4>
-          </div>
-          <div className="flex items-center gap-1 text-[9px] flex-wrap leading-tight">
-            {/* Team Badge */}
-            <span className="px-1 py-0 bg-primary-black-700 text-primary-black-300 rounded font-semibold">
-              {player.player_card.team_abbreviation}
+            <span className="text-[9px] text-primary-black-400 font-semibold flex-shrink-0">
+              {getPositionAbbr(player.player_card.position)} - {player.player_card.team_abbreviation}
             </span>
-            {/* Opponent and Game Time on same line */}
+            {player.card_tier && (
+              <span className={`px-1 py-0 rounded text-[8px] font-bold uppercase ${getTierBadgeInfo(player.card_tier).color} flex-shrink-0 leading-tight`}>
+                {getTierBadgeInfo(player.card_tier).initial}
+              </span>
+            )}
+          </div>
+          {/* Line 2: Matchup info */}
+          <div className="flex items-center gap-1 text-[9px] leading-tight">
             {player.isBye ? (
               <span className="text-primary-black-500 font-semibold">BYE</span>
             ) : player.opponent ? (
               <>
-                <span className="text-primary-black-300 font-semibold">
-                  {player.isHome ? 'vs' : '@'}{player.opponent}
-                </span>
-                {/* Game Time directly after opponent */}
+                {/* Game Status for live/final games */}
+                {(player.gameStatus === 'live' || player.gameStatus === 'halftime') && (
+                  <span className="text-red-400 font-bold">🔴 LIVE</span>
+                )}
+                {player.gameStatus === 'final' && (
+                  <span className="text-green-400 font-bold">✓ FINAL</span>
+                )}
+                {/* Matchup and time */}
                 {player.gameStartTime && player.gameStatus === 'scheduled' && (
-                  <span className="text-primary-black-500">
-                    {new Date(player.gameStartTime).toLocaleDateString('en-US', { weekday: 'short' })}{' '}
-                    {new Date(player.gameStartTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+                  <span className="text-primary-black-400">
+                    {new Date(player.gameStartTime).toLocaleDateString('en-US', { weekday: 'short' })} {new Date(player.gameStartTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
                   </span>
                 )}
+                <span className="text-primary-black-300 font-semibold">
+                  {player.isHome ? 'vs' : '@'} {player.opponent}
+                </span>
               </>
             ) : null}
-            {/* Game Status for live/final games */}
-            {!player.isBye && (player.gameStatus === 'live' || player.gameStatus === 'halftime') && (
-              <span className="text-red-400 font-bold">🔴 LIVE</span>
-            )}
-            {!player.isBye && player.gameStatus === 'final' && (
-              <span className="text-green-400 font-bold">✓ FINAL</span>
-            )}
           </div>
         </div>
 
-        {/* COLUMN 5: FPTS (score on top, projected below) */}
+        {/* COLUMN 4: FPTS - exact match to modal */}
         <div className="text-center">
           {player.isLiveOrFinal && player.score !== undefined ? (
             <div className="flex flex-col items-center">

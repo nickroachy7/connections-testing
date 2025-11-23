@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
+import { getTierBadgeInfo } from './tables/tableHelpers.jsx';
 
 /**
  * BenchPlayerSwapModal Component
@@ -188,38 +189,43 @@ export default function BenchPlayerSwapModal({
 
         {/* COLUMN 3: Player Name & Info */}
         <div className="min-w-0">
-          <div className="flex items-center gap-1 mb-0.5">
+          {/* Line 1: Name + Position + Team + Tier */}
+          <div className="flex items-baseline gap-1 mb-0.5">
             <h4 className="font-bold text-primary-black-50 truncate text-[11px] leading-tight">
               {player.player_card.player_name}
             </h4>
-          </div>
-          <div className="flex items-center gap-1 text-[9px] flex-wrap leading-tight">
-            {/* Team Badge */}
-            <span className="px-1 py-0 bg-primary-black-700 text-primary-black-300 rounded font-semibold">
-              {player.player_card.team_abbreviation}
+            <span className="text-[9px] text-primary-black-400 font-semibold flex-shrink-0">
+              {getPositionAbbr(player.player_card.position)} - {player.player_card.team_abbreviation}
             </span>
-            {/* Opponent and Game Time */}
-            {gameData && gameData.opponent ? (
+            {player.card_tier && (
+              <span className={`px-1 py-0 rounded text-[8px] font-bold uppercase ${getTierBadgeInfo(player.card_tier).color} flex-shrink-0 leading-tight`}>
+                {getTierBadgeInfo(player.card_tier).initial}
+              </span>
+            )}
+          </div>
+          {/* Line 2: Matchup info */}
+          <div className="flex items-center gap-1 text-[9px] leading-tight">
+            {!gameData || !gameData.opponent ? (
+              <span className="text-primary-black-500 font-semibold">BYE</span>
+            ) : (
               <>
-                <span className="text-primary-black-300 font-semibold">
-                  {gameData.isHome ? 'vs' : '@'}{gameData.opponent}
-                </span>
+                {/* Game Status for live/final games */}
+                {(gameData.gameStatus === 'live' || gameData.gameStatus === 'halftime') && (
+                  <span className="text-red-400 font-bold">🔴 LIVE</span>
+                )}
+                {gameData.gameStatus === 'final' && (
+                  <span className="text-green-400 font-bold">✓ FINAL</span>
+                )}
+                {/* Matchup and time */}
                 {gameData.gameStartTime && gameData.gameStatus === 'scheduled' && (
-                  <span className="text-primary-black-500">
-                    {new Date(gameData.gameStartTime).toLocaleDateString('en-US', { weekday: 'short' })}{' '}
-                    {new Date(gameData.gameStartTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+                  <span className="text-primary-black-400">
+                    {new Date(gameData.gameStartTime).toLocaleDateString('en-US', { weekday: 'short' })} {new Date(gameData.gameStartTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
                   </span>
                 )}
+                <span className="text-primary-black-300 font-semibold">
+                  {gameData.isHome ? 'vs' : '@'} {gameData.opponent}
+                </span>
               </>
-            ) : (
-              <span className="text-primary-black-500 font-semibold">BYE</span>
-            )}
-            {/* Game Status */}
-            {gameData && (gameData.gameStatus === 'live' || gameData.gameStatus === 'halftime') && (
-              <span className="text-red-400 font-bold">🔴 LIVE</span>
-            )}
-            {gameData && gameData.gameStatus === 'final' && (
-              <span className="text-green-400 font-bold">✓ FINAL</span>
             )}
           </div>
         </div>

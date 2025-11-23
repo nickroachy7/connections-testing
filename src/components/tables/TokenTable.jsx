@@ -74,23 +74,16 @@ const TokenTable = ({
     return columns.join(' ');
   };
 
-  // Mobile grid template - hide Pull % and Tier columns
+  // Mobile grid template - match BenchPlayerSwapModal exactly
   const getMobileGridTemplate = () => {
     let columns = [];
     
-    // Checkbox/Add button column (conditional)
-    if (showBulkSelect || showAddButton) {
-      columns.push('28px'); // Smaller add button for mobile
-    } else {
-      columns.push('20px'); // Empty/drag handle
-    }
-    
-    // Mobile columns - hide Sell, Tier, Pull % - only show essential info
+    // Mobile columns - exact match to swap modal dimensions
     columns.push(
-      '32px',   // TK badge (compact)
-      '40px',   // Token icon
-      '1fr',    // Token name & description (takes most space)
-      '50px'    // Bonus (compact)
+      '32px',   // TK badge (matches position badge width)
+      '40px',   // Token icon (matches player icon)
+      '1fr',    // Token name & description (matches modal)
+      '60px'    // Bonus (matches FPTS column)
     );
     
     return columns.join(' ');
@@ -111,7 +104,7 @@ const TokenTable = ({
   }
 
   return (
-    <div className="bg-primary-black-900 border-2 border-primary-black-700 rounded-xl overflow-hidden relative w-full">
+    <div className="md:bg-primary-black-900 md:border-2 md:border-primary-black-700 md:rounded-xl overflow-hidden relative w-full">
       {/* Continuous vertical divider lines - absolute positioned to span full height - SAME position as PlayerTable */}
       <div className="absolute top-0 bottom-0 hidden lg:block pointer-events-none" style={{ left: 'calc(24px + 8px + 40px + 8px + 50px + 8px + 400px + 8px - 1px)', width: '1px', backgroundColor: 'rgb(64, 64, 64)' }}></div>
       <div className="absolute top-0 bottom-0 hidden lg:block pointer-events-none" style={{ left: 'calc(24px + 8px + 40px + 8px + 50px + 8px + 400px + 8px + 90px + 8px + 90px + 8px)', width: '1px', backgroundColor: 'rgb(64, 64, 64)' }}></div>
@@ -145,31 +138,17 @@ const TokenTable = ({
         {renderExtraHeaderColumns && renderExtraHeaderColumns()}
       </div>
 
-      {/* Mobile Header Row */}
-      <div 
-        className="grid md:hidden bg-primary-black-800 border-b border-primary-black-700 py-1 px-1"
-        style={{ 
-          gridTemplateColumns: mobileGridTemplate,
-          gap: '4px'
-        }}
-      >
-        <span className="text-[9px] font-bold text-primary-black-500 uppercase tracking-wide text-center"></span>
-        <span className="text-[9px] font-bold text-primary-black-500 uppercase tracking-wide text-center"></span>
-        <span className="text-[9px] font-bold text-primary-black-500 uppercase tracking-wide text-center"></span>
-        <span className="text-[9px] font-bold text-primary-black-500 uppercase tracking-wide">TOKEN</span>
-        <span className="text-[9px] font-bold text-primary-black-500 uppercase tracking-wide text-center">BONUS</span>
-        {renderExtraHeaderColumns && renderExtraHeaderColumns()}
-      </div>
+      {/* Mobile Header Row - REMOVED for cleaner look */}
 
       {/* Token Rows */}
       {tokens.map((token, index) => {
         const isLocked = isRowLocked ? isRowLocked(token) : false;
         const defaultClassName = `
-          grid transition-all border-l-4 border-transparent min-h-[32px] md:min-h-[48px]
+          grid transition-all md:border-l-4 md:border-transparent min-h-[64px] md:min-h-[48px]
           ${
             isLocked
               ? 'cursor-not-allowed opacity-60'
-              : 'cursor-move hover:bg-primary-green-500/10 hover:border-primary-green-500'
+              : 'cursor-move hover:bg-primary-green-500/10 md:hover:border-primary-green-500'
           }
           ${index % 2 === 0 ? 'bg-primary-black-900' : 'bg-primary-black-800/50'}
         `;
@@ -318,7 +297,7 @@ const TokenTable = ({
               onDragStart={handleDragStart}
               onDragEnd={onRowDragEnd}
               onClick={handleClick}
-              className={`grid md:hidden ${customClassName} py-2 px-1`}
+              className={`grid md:hidden ${customClassName} py-2 px-1 border-b border-primary-black-700 last:border-b-0`}
               style={{ 
                 gridTemplateColumns: mobileGridTemplate,
                 gap: '4px',
@@ -326,76 +305,38 @@ const TokenTable = ({
                 minHeight: '56px'
               }}
             >
-              {/* COLUMN 1: Add Button or Checkbox */}
-              <div className="flex items-center justify-center">
-                {showAddButton ? (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (onAddButtonClick && !isLocked) {
-                        onAddButtonClick(token);
-                      }
-                    }}
-                    disabled={isLocked}
-                    className={`w-5 h-5 cursor-pointer rounded-full appearance-none border transition-all flex items-center justify-center text-xs font-bold leading-none disabled:opacity-50 disabled:cursor-not-allowed ${
-                      selectedTokenId === token.id
-                        ? 'border-yellow-500 bg-yellow-500 text-white'
-                        : 'border-primary-black-600 bg-primary-black-800 text-primary-black-400'
-                    }`}
-                  >
-                    +
-                  </button>
-                ) : showBulkSelect ? (
-                  <div className="relative flex items-center justify-center">
-                    <input
-                      type="checkbox"
-                      checked={isSelected}
-                      onChange={(e) => {
-                        e.stopPropagation();
-                        if (onBulkSelectChange) {
-                          onBulkSelectChange(token, e.target.checked);
-                        }
-                      }}
-                      className="w-4 h-4 cursor-pointer rounded appearance-none border border-primary-black-600 bg-primary-black-800 checked:bg-primary-black-700 checked:border-primary-black-500"
-                    />
-                    {isSelected && (
-                      <svg className="absolute w-2.5 h-2.5 text-primary-black-200 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                      </svg>
-                    )}
-                  </div>
-                ) : (
-                  <span className="text-primary-black-600 text-[10px]">⋮⋮</span>
-                )}
-              </div>
-
-              {/* COLUMN 2: TK Badge */}
+              {/* COLUMN 1: TK Badge - match modal styling */}
               <div className="flex items-center justify-center">
                 <span className="px-1 py-0.5 bg-primary-black-700 text-primary-black-400 rounded text-[9px] font-semibold text-center">
                   TK
                 </span>
               </div>
 
-              {/* COLUMN 3: Token Icon */}
-              <div className={`rounded flex items-center justify-center text-lg bg-gradient-to-br ${getTokenRarityColor(token.token_card.rarity)} w-10 h-10`}>
+              {/* COLUMN 2: Token Icon - match modal dimensions */}
+              <div className={`rounded flex items-center justify-center text-xl bg-gradient-to-br ${getTokenRarityColor(token.token_card.rarity)} w-10 h-10`}>
                 💎
               </div>
 
-              {/* COLUMN 4: Token Name with Description */}
+              {/* COLUMN 3: Token Name with Description - Sleeper-style dense layout */}
               <div className="min-w-0">
-                <div className="flex items-center gap-0.5 mb-0.5">
-                  <h4 className="font-bold text-primary-black-50 truncate text-[10px] leading-tight">
+                {/* Line 1: Name + Type */}
+                <div className="flex items-baseline gap-1 mb-0.5">
+                  <h4 className="font-bold text-primary-black-50 truncate text-[11px] leading-tight">
                     {token.token_card.token_name}
                   </h4>
+                  <span className="text-[9px] text-primary-black-400 font-semibold flex-shrink-0 uppercase">
+                    {token.token_card.token_type}
+                  </span>
                 </div>
-                <p className="text-[8px] text-primary-black-400 truncate leading-tight">
+                {/* Line 2: Description */}
+                <p className="text-[9px] text-primary-black-400 truncate leading-tight">
                   {token.token_card.description}
                 </p>
               </div>
 
-              {/* COLUMN 5: Bonus */}
+              {/* COLUMN 4: Bonus - match modal styling */}
               <div className="text-center">
-                <span className="text-[10px] font-bold text-primary-green-400">
+                <span className="text-sm font-bold text-primary-green-400">
                   +{token.token_card.bonus_points}
                 </span>
               </div>
