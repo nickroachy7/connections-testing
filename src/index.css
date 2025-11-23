@@ -62,4 +62,16 @@
   .border-3 {
     border-width: 3px;
   }
+
+  /* Confetti Fall Animation for Pack Opening */
+  @keyframes fall {
+    0% {
+      transform: translateY(0) rotate(0deg);
+      opacity: 1;
+    }
+    100% {
+      transform: translateY(500px) rotate(360deg);
+      opacity: 0;
+    }
+  }
 }
