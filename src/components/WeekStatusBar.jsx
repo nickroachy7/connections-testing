@@ -266,67 +266,117 @@ export default function WeekStatusBar({ teamId, team, previewMode = false }) {
   );
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-3">
-      <div className="bg-black/20 backdrop-blur-sm rounded-lg px-4 py-2.5 border border-white/10">
-        <div className="flex items-center gap-6">
+    <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 pb-2 md:pb-3">
+      <div className="bg-black/20 backdrop-blur-sm rounded-lg px-2.5 md:px-4 py-1.5 md:py-2.5 border border-white/10">
+        {/* Mobile Layout: Compact Single Row */}
+        <div className="flex md:hidden flex-col gap-1">
+          {/* Week, Status & Score Row */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              {displayWeek ? (
+                <span className="text-sm font-dk-display font-black text-dk-white uppercase">Week {displayWeek.week}</span>
+              ) : (
+                <span className="text-sm font-dk-display font-black text-dk-white-muted uppercase opacity-50">Loading...</span>
+              )}
+              <span className="text-dk-white-muted text-xs">•</span>
+              <span className={`text-[9px] font-dk-display font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${
+                isFinal ? 'text-blue-400 bg-blue-400/10' :
+                isLive ? 'text-red-400 bg-red-400/10' : 
+                'text-dk-white-muted bg-white/5'
+              }`}>
+                {isFinal ? 'Final' : (isLive ? 'Live' : 'Proj')}
+              </span>
+              <span className="text-dk-white-muted text-xs">•</span>
+              <span className="text-[9px] text-yellow-400 font-bold">Med: {medianScore.toFixed(1)}</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              {isLive && !isFinal && projectedFinal > livePoints && (
+                <span className="text-xs text-dk-white-muted font-bold">({projectedFinal.toFixed(1)})</span>
+              )}
+              <span className="text-lg text-dk-white font-black leading-none">{userScore.toFixed(1)}</span>
+              {medianScore > 0 && (
+                <span className={`text-[9px] font-bold ${
+                  isAboveMedian ? 'text-green-400' : 'text-red-400'
+                }`}>
+                  ({isAboveMedian ? '+' : ''}{(userScore - medianScore).toFixed(1)})
+                </span>
+              )}
+            </div>
+          </div>
+          
+          {/* Progress Bar */}
+          <div className="relative">
+            <div className="relative h-1.5 bg-dk-black-tertiary rounded-full overflow-hidden border border-dk-black-light">
+              <div className="absolute top-0 bottom-0 w-0.5 bg-yellow-400 z-10" style={{ left: `${medianPercentage}%` }} />
+              <div
+                className={`absolute top-0 bottom-0 left-0 transition-all duration-500 ${
+                  isAboveMedian 
+                    ? 'bg-gradient-to-r from-dk-green-primary to-dk-green-primary/80'
+                    : 'bg-gradient-to-r from-red-500 to-red-400'
+                }`}
+                style={{ width: `${userPercentage}%` }}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Desktop Layout: Horizontal */}
+        <div className="hidden md:flex items-center gap-6">
           {/* Left: Week & Status */}
           <div className="flex items-center gap-2">
-                {displayWeek ? (
-                  <span className="text-base font-dk-display font-black text-dk-white uppercase">Week {displayWeek.week}</span>
-                ) : (
-                  <span className="text-base font-dk-display font-black text-dk-white-muted uppercase opacity-50">Loading...</span>
-                )}
-                
-                <span className="text-dk-white-muted">•</span>
-                
-                <span className={`text-xs font-dk-display font-bold uppercase tracking-wider ${
-                  isFinal ? 'text-blue-400' :
-                  isLive ? 'text-red-400' : 
-                  'text-dk-white-muted'
-                }`}>
-                  {isFinal ? 'Final' : (isLive ? 'Live' : 'Pre-Week')}
-                </span>
-              </div>
+            {displayWeek ? (
+              <span className="text-base font-dk-display font-black text-dk-white uppercase">Week {displayWeek.week}</span>
+            ) : (
+              <span className="text-base font-dk-display font-black text-dk-white-muted uppercase opacity-50">Loading...</span>
+            )}
+            <span className="text-dk-white-muted">•</span>
+            <span className={`text-xs font-dk-display font-bold uppercase tracking-wider ${
+              isFinal ? 'text-blue-400' :
+              isLive ? 'text-red-400' : 
+              'text-dk-white-muted'
+            }`}>
+              {isFinal ? 'Final' : (isLive ? 'Live' : 'Pre-Week')}
+            </span>
+          </div>
 
-              {/* Center: Progress Bar with Median Marker */}
-              <div className="flex-1">
-                <div className="relative group">
-                  <div className="relative h-2 bg-dk-black-tertiary rounded-full overflow-hidden border border-dk-black-light">
-                    <div className="absolute top-0 bottom-0 w-px bg-yellow-400 z-10 group-hover:bg-yellow-300 transition-colors" style={{ left: `${medianPercentage}%` }} />
-                    <div
-                      className={`absolute top-0 bottom-0 left-0 transition-all duration-500 ${
-                        isAboveMedian 
-                          ? 'bg-gradient-to-r from-dk-green-primary to-dk-green-primary/80'
-                          : 'bg-gradient-to-r from-red-500 to-red-400'
-                      }`}
-                      style={{ width: `${userPercentage}%` }}
-                    />
-                  </div>
-                  {/* Median indicator - only visible on hover */}
-                  <div 
-                    className="absolute -top-8 -translate-x-1/2 bg-dk-black-secondary border border-yellow-400/50 rounded px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-lg"
-                    style={{ left: `${medianPercentage}%` }}
-                  >
-                    <span className="text-xs text-yellow-400 font-bold whitespace-nowrap">Median: {medianScore.toFixed(1)}</span>
-                  </div>
-                </div>
+          {/* Center: Progress Bar with Median Marker */}
+          <div className="flex-1">
+            <div className="relative group">
+              <div className="relative h-2 bg-dk-black-tertiary rounded-full overflow-hidden border border-dk-black-light">
+                <div className="absolute top-0 bottom-0 w-px bg-yellow-400 z-10 group-hover:bg-yellow-300 transition-colors" style={{ left: `${medianPercentage}%` }} />
+                <div
+                  className={`absolute top-0 bottom-0 left-0 transition-all duration-500 ${
+                    isAboveMedian 
+                      ? 'bg-gradient-to-r from-dk-green-primary to-dk-green-primary/80'
+                      : 'bg-gradient-to-r from-red-500 to-red-400'
+                  }`}
+                  style={{ width: `${userPercentage}%` }}
+                />
               </div>
-
-              {/* Right: Score Display */}
-              <div className="flex items-center gap-3">
-                {isLive && !isFinal && projectedFinal > livePoints && (
-                  <div className="flex flex-col items-end">
-                    <span className="text-lg text-dk-white-muted font-black leading-none">{projectedFinal.toFixed(1)}</span>
-                  </div>
-                )}
-                
-                <div className="flex flex-col items-end">
-                  <span className="text-2xl text-dk-white font-black leading-none">{userScore.toFixed(1)}</span>
-                </div>
+              {/* Median indicator - only visible on hover */}
+              <div 
+                className="absolute -top-8 -translate-x-1/2 bg-dk-black-secondary border border-yellow-400/50 rounded px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-lg"
+                style={{ left: `${medianPercentage}%` }}
+              >
+                <span className="text-xs text-yellow-400 font-bold whitespace-nowrap">Median: {medianScore.toFixed(1)}</span>
               </div>
             </div>
+          </div>
+
+          {/* Right: Score Display */}
+          <div className="flex items-center gap-3">
+            {isLive && !isFinal && projectedFinal > livePoints && (
+              <div className="flex flex-col items-end">
+                <span className="text-lg text-dk-white-muted font-black leading-none">{projectedFinal.toFixed(1)}</span>
+              </div>
+            )}
+            <div className="flex flex-col items-end">
+              <span className="text-2xl text-dk-white font-black leading-none">{userScore.toFixed(1)}</span>
+            </div>
+          </div>
         </div>
       </div>
+    </div>
   );
 }
 

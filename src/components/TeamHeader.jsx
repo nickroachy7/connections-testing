@@ -307,38 +307,34 @@ export default function TeamHeader({
               </div>
             </div>
 
-            {/* Coins, Wins, Losses - Below team info on mobile, right side on desktop */}
-            <div className="flex items-center gap-1.5 md:gap-4 flex-wrap">
+            {/* Coins, Wins, Losses - Mobile & Desktop */}
+            <div className="flex md:grid md:grid-cols-3 items-center justify-around md:gap-2 py-1 md:py-0">
               {/* Coins */}
-              <div className="flex items-center gap-1 md:gap-2">
-                <svg className="w-3.5 h-3.5 md:w-5 md:h-5 text-yellow-400 drop-shadow-md flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+              <div className="flex md:bg-black/30 md:backdrop-blur-sm md:rounded-md md:px-3 md:py-2.5 md:border md:border-white/10 items-center md:flex-col gap-0.5 md:gap-1">
+                <svg className="w-3.5 h-3.5 md:w-5 md:h-5 text-yellow-400 drop-shadow-md" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z" />
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clipRule="evenodd" />
                 </svg>
-                <span className="text-sm md:text-lg font-dk-display font-bold text-white drop-shadow-sm whitespace-nowrap">{coins?.toLocaleString() || '0'}</span>
-                <span className="hidden sm:inline text-[10px] md:text-xs text-white/70 font-dk uppercase tracking-wide drop-shadow-sm">Coins</span>
+                <span className="text-sm md:text-base font-dk-display font-bold text-white drop-shadow-sm leading-none">{coins?.toLocaleString() || '0'}</span>
+                <span className="text-[9px] md:text-[9px] text-white/70 font-dk uppercase tracking-wide md:hidden">Coins</span>
               </div>
-
-              <div className="h-3 md:h-5 w-px bg-white/20"></div>
 
               {/* Wins */}
-              <div className="flex items-center gap-1 md:gap-2">
-                <svg className="w-3 h-3 md:w-4 md:h-4 text-green-400 drop-shadow-md flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+              <div className="flex md:bg-black/30 md:backdrop-blur-sm md:rounded-md md:px-3 md:py-2.5 md:border md:border-white/10 items-center md:flex-col gap-0.5 md:gap-1">
+                <svg className="w-3.5 h-3.5 md:w-5 md:h-5 text-green-400 drop-shadow-md" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                 </svg>
-                <span className="text-sm md:text-lg font-dk-display font-bold text-white drop-shadow-sm whitespace-nowrap">{wins || 0}</span>
-                <span className="hidden sm:inline text-[10px] md:text-xs text-white/70 font-dk uppercase tracking-wide drop-shadow-sm">Wins</span>
+                <span className="text-sm md:text-base font-dk-display font-bold text-white drop-shadow-sm leading-none">{wins || 0}</span>
+                <span className="text-[9px] md:text-[9px] text-white/70 font-dk uppercase tracking-wide md:hidden">Wins</span>
               </div>
 
-              <div className="h-3 md:h-5 w-px bg-white/20"></div>
-
-              {/* Losses Until Elimination */}
-              <div className="flex items-center gap-1 md:gap-2">
-                <svg className="w-3 h-3 md:w-4 md:h-4 text-red-400 drop-shadow-md flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+              {/* Losses Until Elim */}
+              <div className="flex md:bg-black/30 md:backdrop-blur-sm md:rounded-md md:px-3 md:py-2.5 md:border md:border-white/10 items-center md:flex-col gap-0.5 md:gap-1">
+                <svg className="w-3.5 h-3.5 md:w-5 md:h-5 text-red-400 drop-shadow-md" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
                 </svg>
-                <span className="text-sm md:text-lg font-dk-display font-bold text-white drop-shadow-sm whitespace-nowrap">{(team?.contest_type?.max_losses || 3) - (losses || 0)}</span>
-                <span className="hidden sm:inline text-[10px] md:text-xs text-white/70 font-dk uppercase tracking-wide drop-shadow-sm">Until Elim</span>
+                <span className="text-sm md:text-base font-dk-display font-bold text-white drop-shadow-sm leading-none">{(team?.contest_type?.max_losses || 3) - (losses || 0)}</span>
+                <span className="text-[9px] md:text-[9px] text-white/70 font-dk uppercase tracking-wide leading-tight text-center md:block">Until<br className="md:hidden" /> Elim</span>
               </div>
             </div>
           </div>
