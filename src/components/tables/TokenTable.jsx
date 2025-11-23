@@ -297,7 +297,7 @@ const TokenTable = ({
               onDragStart={handleDragStart}
               onDragEnd={onRowDragEnd}
               onClick={handleClick}
-              className={`grid md:hidden ${customClassName} py-2 px-1 border-b border-primary-black-700 last:border-b-0`}
+              className={`grid md:hidden ${customClassName} py-2 px-3 mb-2 rounded-lg bg-primary-black-900`}
               style={{ 
                 gridTemplateColumns: mobileGridTemplate,
                 gap: '4px',
