@@ -2,8 +2,8 @@ import { useState } from 'react';
 import PropTypes from 'prop-types';
 import PlayerTable from './tables/PlayerTable';
 import TokenTable from './tables/TokenTable';
-import { enrichPlayerData, enrichTokenData } from '../utils/index';
-import { useIsMobile } from '../hooks/ui';
+import { enrichPlayerData, enrichTokenData } from './tables/tableHelpers.jsx';
+import { useIsMobile } from '../hooks';
 
 /**
  * BenchAndTokensPanel Component
@@ -58,26 +58,24 @@ export default function BenchAndTokensPanel({
   // Filter players by position if filter is active
   const filteredPlayers = filterPosition 
     ? safeBenchPlayers.filter(p => {
-        // Handle FLEX position - RB, WR, or TE
+        const playerPos = p.player_card.position;
         if (filterPosition === 'FLEX') {
-          return ['Running Back', 'Wide Receiver', 'Tight End'].includes(p.player_card.position);
+          return ['Running Back', 'Wide Receiver', 'Tight End'].includes(playerPos);
         }
-        // Handle RB position
-        if (filterPosition === 'RB1' || filterPosition === 'RB2') {
-          return p.player_card.position === 'Running Back';
-        }
-        // Handle WR position
-        if (filterPosition === 'WR1' || filterPosition === 'WR2' || filterPosition === 'WR3') {
-          return p.player_card.position === 'Wide Receiver';
-        }
-        // Direct position match
-        return p.player_card.position === filterPosition;
+        // Map position abbreviations to full names
+        const positionMap = {
+          'QB': 'Quarterback',
+          'RB': 'Running Back',
+          'WR': 'Wide Receiver',
+          'TE': 'Tight End'
+        };
+        return playerPos === positionMap[filterPosition];
       })
     : safeBenchPlayers;
 
   // Filter tokens by player if filter is active
   const filteredTokens = tokenFilterPlayerId 
-    ? safeTokens.filter(t => !t.is_active) // Only show unapplied tokens when filtering
+    ? safeTokens.filter(t => !t.is_active)
     : safeTokens.filter(t => !t.is_active); // Always filter to unapplied tokens
 
   // Enrich player data with live game info and projections
@@ -98,27 +96,29 @@ export default function BenchAndTokensPanel({
           <div className="flex items-center gap-2">
             {filterPosition ? (
               <>
-                <span className="text-xs font-dk-display font-bold text-dk-white-muted">Filtering:</span>
-                <span className="px-2 py-1 bg-dk-green-primary/20 text-dk-green-primary rounded text-xs font-bold">
-                  {filterPosition} Players
+                <svg className="w-4 h-4 text-dk-green-primary" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L12 11.414V15a1 1 0 01-.293.707l-2 2A1 1 0 018 17v-5.586L3.293 6.707A1 1 0 013 6V3z" clipRule="evenodd" />
+                </svg>
+                <span className="text-sm font-dk-display font-bold text-dk-white">
+                  Showing {filterPosition} Players
                 </span>
               </>
             ) : (
               <>
-                <span className="text-xs font-dk-display font-bold text-dk-white-muted">Selecting token for:</span>
-                <span className="px-2 py-1 bg-dk-green-primary/20 text-dk-green-primary rounded text-xs font-bold">
-                  {tokenFilterPlayer?.player_card?.player_name || 'Unknown Player'}
+                <svg className="w-4 h-4 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                </svg>
+                <span className="text-sm font-dk-display font-bold text-dk-white">
+                  Tokens for {tokenFilterPlayer?.player_card?.player_name}
                 </span>
               </>
             )}
           </div>
           <button
             onClick={onClearFilter}
-            className="p-1.5 rounded bg-dk-black-light hover:bg-dk-black-primary transition-colors"
+            className="text-xs font-dk font-semibold text-dk-white-muted hover:text-dk-white transition-colors"
           >
-            <svg className="w-4 h-4 text-dk-white-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            Clear Filter
           </button>
         </div>
       )}
@@ -130,17 +130,17 @@ export default function BenchAndTokensPanel({
           className={`flex-1 px-4 py-2 rounded text-sm font-dk-display font-bold transition-all duration-200 ${
             activeTab === 'all'
               ? 'bg-dk-green-primary text-dk-black-primary'
-              : 'text-dk-white-muted hover:text-dk-white-primary'
+              : 'text-dk-white-muted hover:text-dk-white hover:bg-dk-black-light'
           }`}
         >
-          ALL
+          ALL ({enrichedPlayers.length + enrichedTokens.length})
         </button>
         <button
           onClick={() => setActiveTab('players')}
           className={`flex-1 px-4 py-2 rounded text-sm font-dk-display font-bold transition-all duration-200 ${
             activeTab === 'players'
               ? 'bg-dk-green-primary text-dk-black-primary'
-              : 'text-dk-white-muted hover:text-dk-white-primary'
+              : 'text-dk-white-muted hover:text-dk-white hover:bg-dk-black-light'
           }`}
         >
           PLAYERS ({enrichedPlayers.length})
@@ -150,7 +150,7 @@ export default function BenchAndTokensPanel({
           className={`flex-1 px-4 py-2 rounded text-sm font-dk-display font-bold transition-all duration-200 ${
             activeTab === 'tokens'
               ? 'bg-dk-green-primary text-dk-black-primary'
-              : 'text-dk-white-muted hover:text-dk-white-primary'
+              : 'text-dk-white-muted hover:text-dk-white hover:bg-dk-black-light'
           }`}
         >
           TOKENS ({enrichedTokens.length})
@@ -208,31 +208,29 @@ export default function BenchAndTokensPanel({
             onRowDragStart={onTokenDragStart}
             onDragEnd={onTokenDragEnd}
             onRowClick={(token) => {
-              if (isMobile) {
-                // Mobile: Open modal
-                if (onTokenClick) {
-                  onTokenClick(token);
-                }
-              } else {
-                // Desktop: Show selection
-                if (onSelectTokenForPlayer) {
-                  onSelectTokenForPlayer(token);
-                }
+              // If filtering for a specific player, apply token immediately (mobile or desktop)
+              if (tokenFilterPlayerId && onApplyTokenToPlayer) {
+                onApplyTokenToPlayer(token, tokenFilterPlayerId);
+              }
+              // Mobile without filter: Open modal to select player
+              else if (isMobile && onTokenClick) {
+                onTokenClick(token);
+              }
+              // Desktop without filter: Select token for later application
+              else if (onSelectTokenForPlayer) {
+                onSelectTokenForPlayer(token);
               }
             }}
-            getRowClassName={(token, index) => {
-              const isSelected = selectedTokenForPlayer?.id === token.id;
-              const baseClassName = `
-                grid md:py-2 md:px-2 transition-all md:border-l-4 min-h-[64px] md:min-h-[48px]
-                ${
-                  isSelected
-                    ? 'cursor-pointer bg-dk-green-primary/10 md:border-dk-green-primary'
-                    : 'cursor-move hover:bg-primary-green-500/10 md:hover:border-primary-green-500 md:border-transparent'
-                }
-                ${index % 2 === 0 ? 'bg-primary-black-800/20' : 'bg-primary-black-800/40'}
-              `;
-              return baseClassName;
+            onAddButtonClick={(token) => {
+              if (tokenFilterPlayerId && onApplyTokenToPlayer) {
+                onApplyTokenToPlayer(token, tokenFilterPlayerId);
+              } else if (onSelectTokenForPlayer) {
+                onSelectTokenForPlayer(token);
+              }
             }}
+            inventory={inventory}
+            onRemove={onRemoveToken}
+            selectedTokenId={selectedTokenForPlayer?.id}
             emptyMessage={tokenFilterPlayerId ? "No available tokens for this player" : "No tokens available"}
             emptyIcon="💎"
           />
@@ -241,20 +239,21 @@ export default function BenchAndTokensPanel({
         )}
 
         {/* Empty State */}
-        {((shouldShowPlayers && enrichedPlayers.length === 0) || (shouldShowTokens && enrichedTokens.length === 0)) && 
-         !(shouldShowPlayers && enrichedPlayers.length > 0) && 
-         !(shouldShowTokens && enrichedTokens.length > 0) && (
-          <div className="text-center py-12 text-dk-white-muted">
-            <div className="text-4xl mb-2 opacity-30">
-              {filterPosition ? '🏈' : tokenFilterPlayerId ? '💎' : '📦'}
-            </div>
-            <p className="font-semibold">
+        {enrichedPlayers.length === 0 && enrichedTokens.length === 0 && (
+          <div className="text-center py-12">
+            <div className="text-6xl mb-3 opacity-20">🏈</div>
+            <p className="text-dk-white-muted font-dk">
               {filterPosition 
-                ? `No ${filterPosition} players available` 
-                : tokenFilterPlayerId 
-                  ? 'No tokens available for this player'
-                  : 'No items available'}
+                ? `No ${filterPosition} players available`
+                : tokenFilterPlayerId
+                ? "No tokens available for this player"
+                : "No items in your bench"}
             </p>
+            {!filterPosition && !tokenFilterPlayerId && (
+              <p className="text-dk-white-muted text-sm mt-2 font-dk">
+                Open packs to add more players and tokens!
+              </p>
+            )}
           </div>
         )}
       </div>
