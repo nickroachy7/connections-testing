@@ -15,4 +15,4 @@ export * from './useSupabase';
 export * from './fantasy';
 
 // UI hooks
-export * from './ui/useMediaQuery';
+export { useMediaQuery, useIsMobile, useIsTablet, useIsDesktop } from './ui/useMediaQuery';
