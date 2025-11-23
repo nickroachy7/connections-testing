@@ -175,8 +175,15 @@ export default function BenchAndTokensPanel({
                 onSelectPlayerForSlot(player);
               }
             }}
+            onAddButtonClick={(player) => {
+              if (onMoveToSlot && filterPosition) {
+                onMoveToSlot(player, filterPosition);
+              } else if (onSelectPlayerForSlot) {
+                onSelectPlayerForSlot(player);
+              }
+            }}
             selectedPlayerId={selectedPlayerForSlot?.id}
-            emptyMessage="No players on bench"
+            emptyMessage="No bench players"
             emptyIcon="🏈"
           />
         )}
@@ -204,6 +211,13 @@ export default function BenchAndTokensPanel({
               }
               // Desktop without filter: Select token for later application
               else if (onSelectTokenForPlayer) {
+                onSelectTokenForPlayer(token);
+              }
+            }}
+            onAddButtonClick={(token) => {
+              if (tokenFilterPlayerId && onApplyTokenToPlayer) {
+                onApplyTokenToPlayer(token, tokenFilterPlayerId);
+              } else if (onSelectTokenForPlayer) {
                 onSelectTokenForPlayer(token);
               }
             }}

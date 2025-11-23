@@ -459,17 +459,36 @@ export default function PlayerCard({
       <div className="flex-grow min-h-0"></div>
 
       {/* Small Token + Button - Bottom Left Corner (mobile - small size without name inside) */}
-      {size === 'small' && !isLocked && onAddToken && !appliedToken && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onAddToken(player);
-          }}
-          className="md:hidden absolute bottom-1 left-1 w-5 h-5 flex items-center justify-center border border-dashed border-primary-black-600 hover:border-primary-green-500 rounded-full transition-all duration-200 cursor-pointer hover:scale-110 bg-primary-black-800/50 hover:bg-primary-green-500/10 group z-30"
-          title="Add token"
-        >
-          <span className="text-xs text-primary-black-600 group-hover:text-primary-green-400 font-bold">+</span>
-        </button>
+      {size === 'small' && !isLocked && (
+        <>
+          {appliedToken ? (
+            <div
+              className="md:hidden absolute bottom-1 left-1 w-5 h-5 flex items-center justify-center bg-primary-green-500/20 border border-primary-green-500/50 rounded-full cursor-pointer hover:scale-110 transition-all duration-200 z-30"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (onRemoveToken) {
+                  onRemoveToken(appliedToken.id);
+                }
+              }}
+              title={`${appliedToken.token_card.token_name} (+${appliedToken.token_card.bonus_points})`}
+            >
+              <span className="text-xs">{appliedToken.token_card.emoji || '💎'}</span>
+            </div>
+          ) : (
+            onAddToken && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onAddToken(player);
+                }}
+                className="md:hidden absolute bottom-1 left-1 w-5 h-5 flex items-center justify-center border border-dashed border-primary-black-600 hover:border-primary-green-500 rounded-full transition-all duration-200 cursor-pointer hover:scale-110 bg-primary-black-800/50 hover:bg-primary-green-500/10 group z-30"
+                title="Add token"
+              >
+                <span className="text-xs text-primary-black-600 group-hover:text-primary-green-400 font-bold">+</span>
+              </button>
+            )
+          )}
+        </>
       )}
 
       {/* Token Badge - Centered (desktop for small size) */}

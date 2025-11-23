@@ -79,13 +79,13 @@ const PlayerTable = ({
     return columns.join(' ');
   };
 
-  // Mobile grid template - hide Pull % and Tier columns
+  // Mobile grid template - hide Pull % and Tier columns, NO + button
   const getMobileGridTemplate = () => {
     let columns = [];
     
-    // Checkbox/Add button column (conditional)
-    if (showBulkSelect || showAddButton) {
-      columns.push('28px'); // Smaller add button for mobile
+    // Checkbox or empty column (NO add button on mobile)
+    if (showBulkSelect) {
+      columns.push('28px'); // Checkbox
     } else {
       columns.push('20px'); // Empty/drag handle
     }
@@ -424,27 +424,9 @@ const PlayerTableRow = ({
           minHeight: '56px'
         }}
       >
-        {/* COLUMN 1: Add Button, Checkbox, or Drag Handle */}
+        {/* COLUMN 1: Checkbox or Drag Handle (NO + button on mobile) */}
         <div className="flex items-center justify-center">
-          {showAddButton ? (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                if (onAddButtonClick && !isLocked) {
-                  onAddButtonClick(player);
-                }
-              }}
-              disabled={isLocked}
-              className={`w-5 h-5 cursor-pointer rounded-full appearance-none border transition-all flex items-center justify-center text-xs font-bold leading-none disabled:opacity-50 disabled:cursor-not-allowed ${
-                isSelectedForAction
-                  ? 'border-primary-green-500 bg-primary-green-500 text-white'
-                  : 'border-primary-black-600 bg-primary-black-800 text-primary-black-400'
-              }`}
-              title={isSelectedForAction ? "Selected for swap" : "Add to lineup"}
-            >
-              +
-            </button>
-          ) : showBulkSelect ? (
+          {showBulkSelect ? (
             <div className="relative flex items-center justify-center">
               <input
                 type="checkbox"

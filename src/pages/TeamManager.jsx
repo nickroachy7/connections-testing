@@ -4,10 +4,14 @@ import { getUserInventory, quickSellCard, supabase } from '../services/supabase'
 import { calculateBatchProjections, getInstantBaselineProjections } from '../utils/projections';
 import { shouldBlockLineupChanges, shouldBlockTokenActions, getRosterLimitErrorMessage } from '../utils/rosterLimits';
 import { calculatePlayerSellValue, calculateTokenSellValue } from '../utils/sellValueCalculator';
+import { useIsMobile } from '../hooks';
 import PlayerCard from '../components/PlayerCard';
 import LineupGrid from '../components/LineupGrid';
 import BenchAndTokensPanel from '../components/BenchAndTokensPanel';
 import PlayerSelectionModal from '../components/PlayerSelectionModal';
+import BenchPlayerSwapModal from '../components/BenchPlayerSwapModal';
+import TokenApplicationModal from '../components/TokenApplicationModal';
+import TokenSelectionModal from '../components/TokenSelectionModal';
 import RosterCount from '../components/RosterCount';
 
 // Helper function for baseline projections
@@ -26,6 +30,7 @@ export default function TeamManager() {
   const navigate = useNavigate();
   const revalidator = useRevalidator();
   const location = useLocation();
+  const isMobile = useIsMobile();
   
   // Team & Inventory state - use context inventory as primary source (always fresh)
   const [activeTeam, setActiveTeam] = useState(initialActiveTeam);
@@ -164,6 +169,22 @@ export default function TeamManager() {
     isOpen: false,
     currentCount: 0,
     overBy: 0
+  });
+  
+  // Bench player swap modal state
+  const [benchPlayerSwapModal, setBenchPlayerSwapModal] = useState({
+    isOpen: false,
+    benchPlayer: null
+  });
+  
+  // Token application modal state
+  const [tokenApplicationModal, setTokenApplicationModal] = useState({
+    isOpen: false,
+    selectedToken: null
+  });
+  const [tokenSelectionModal, setTokenSelectionModal] = useState({
+    isOpen: false,
+    targetPlayer: null
   });
   
   // Projections state
@@ -556,7 +577,7 @@ export default function TeamManager() {
 
   const handlePlayerDrop = async (e, targetSlot) => {
     console.log('🎯 === PLAYER DROP START ===', { targetSlot, draggedPlayer });
-    e.preventDefault();
+    e.preventDefault?.();
     
     if (!draggedPlayer) {
       console.log('❌ No dragged player');
@@ -896,6 +917,11 @@ export default function TeamManager() {
       
       // Clear token filter
       setTokenFilterPlayerId(null);
+      
+      // Close token selection modal if open
+      if (tokenSelectionModal.isOpen) {
+        setTokenSelectionModal({ isOpen: false, targetPlayer: null });
+      }
     } catch (err) {
       console.error('Error applying token:', err);
       setError('Failed to apply token');
@@ -1211,17 +1237,35 @@ export default function TeamManager() {
     }, 100); // Small delay to ensure state updates first
   };
 
-  // Handle click to add token to player - filters tokens in bench panel
+  // Handle click to add token to player
   const handleClickToAddToken = (player) => {
-    setTokenFilterPlayerId(player.id);
-    setBenchFilterPosition(null); // Clear player filter
-    // Scroll to bench section smoothly with centered positioning
-    setTimeout(() => {
-      const benchSection = document.querySelector('[data-bench-section]');
-      if (benchSection) {
-        benchSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    // Mobile: Open token selection modal
+    if (isMobile) {
+      const availableTokens = inventory?.tokens?.filter(t => !t.is_active) || [];
+      
+      if (availableTokens.length === 0) {
+        setError('No tokens available');
+        setTimeout(() => setError(''), 3000);
+        return;
       }
-    }, 100);
+      
+      setTokenSelectionModal({
+        isOpen: true,
+        targetPlayer: player
+      });
+    }
+    // Desktop: Filter tokens for this player and scroll to tokens section
+    else {
+      setTokenFilterPlayerId(player.id);
+      setBenchFilterPosition(null); // Clear player filter
+      // Scroll to bench section smoothly with centered positioning
+      setTimeout(() => {
+        const benchSection = document.querySelector('[data-bench-section]');
+        if (benchSection) {
+          benchSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 100);
+    }
   };
 
   // Get the player object for the token filter
@@ -1321,6 +1365,113 @@ export default function TeamManager() {
     // The handleSaveLineup will run automatically after lineup state updates
     
     setBenchFilterPosition(null); // Clear the filter after moving
+  };
+
+  // Handle opening bench player swap modal
+  const handleBenchPlayerClick = (player) => {
+    // Check if player's game is live
+    const gameData = liveGameData?.get(player.player_card.player_id);
+    const isGameLive = gameData && (gameData.gameStatus?.toLowerCase() === 'live' || gameData.gameStatus?.toLowerCase() === 'halftime');
+    
+    if (player.is_locked || isGameLive) {
+      setError(`${player.player_card.player_name} is locked and cannot be added to lineup (game in progress)`);
+      setTimeout(() => setError(''), 3000);
+      return;
+    }
+    
+    setBenchPlayerSwapModal({
+      isOpen: true,
+      benchPlayer: player
+    });
+  };
+
+  // Get eligible lineup slots for a bench player
+  const getEligibleSlotsForBenchPlayer = (player) => {
+    if (!player) return [];
+    
+    const positionMap = {
+      'Quarterback': ['QB'],
+      'Running Back': ['RB1', 'RB2', 'FLEX'],
+      'Wide Receiver': ['WR1', 'WR2', 'WR3', 'FLEX'],
+      'Tight End': ['TE', 'FLEX']
+    };
+    
+    const eligibleSlots = positionMap[player.player_card.position] || [];
+    
+    // Filter out locked slots
+    return eligibleSlots.filter(slotKey => {
+      const currentPlayer = lineup[slotKey];
+      if (!currentPlayer) return true; // Empty slot is eligible
+      
+      // Check if current player is locked
+      const gameData = liveGameData?.get(currentPlayer.player_card.player_id);
+      const isGameLive = gameData && (gameData.gameStatus?.toLowerCase() === 'live' || gameData.gameStatus?.toLowerCase() === 'halftime');
+      
+      return !currentPlayer.is_locked && !isGameLive;
+    });
+  };
+
+  // Handle swap from bench player modal
+  const handleBenchPlayerSwap = async (slotKey) => {
+    const benchPlayer = benchPlayerSwapModal.benchPlayer;
+    if (!benchPlayer || !slotKey) return;
+    
+    // Use existing handleMoveToSlot logic
+    await handleMoveToSlot(benchPlayer, slotKey);
+    
+    // Close modal
+    setBenchPlayerSwapModal({
+      isOpen: false,
+      benchPlayer: null
+    });
+  };
+
+  // Handle opening token application modal (mobile)
+  const handleTokenClick = (token) => {
+    setTokenApplicationModal({
+      isOpen: true,
+      selectedToken: token
+    });
+  };
+
+  // Get eligible players for token application
+  const getEligiblePlayersForToken = (token) => {
+    if (!token) return [];
+    
+    // Get all lineup players (not bench)
+    const lineupPlayers = Object.entries(lineup)
+      .filter(([key, player]) => key !== 'BENCH' && player)
+      .map(([_, player]) => player);
+    
+    return lineupPlayers.filter(player => {
+      // Check if player is locked
+      const gameData = liveGameData?.get(player.player_card.player_id);
+      const isGameLive = gameData && (gameData.gameStatus?.toLowerCase() === 'live' || gameData.gameStatus?.toLowerCase() === 'halftime');
+      
+      if (player.is_locked || isGameLive) return false;
+      
+      // Check if player already has an active token
+      const hasActiveToken = inventory?.tokens?.some(t => 
+        t.applied_to_player_id === player.id && t.is_active
+      );
+      
+      return !hasActiveToken;
+    });
+  };
+
+  // Handle token application from modal
+  const handleTokenApplication = async (player) => {
+    const token = tokenApplicationModal.selectedToken;
+    if (!token || !player) return;
+    
+    // Apply token directly (no drag/drop involved)
+    await handleApplyTokenToPlayer(token, player.id);
+    
+    // Close modal
+    setTokenApplicationModal({
+      isOpen: false,
+      selectedToken: null
+    });
   };
 
   // Handle player selection from modal
@@ -1693,6 +1844,7 @@ export default function TeamManager() {
             onClickToAdd={handleClickToAdd}
             onClickToAddToken={handleClickToAddToken}
             onRemovePlayer={handleRemovePlayer}
+            onMoveToSlot={handleMoveToSlot}
             liveGameData={isPreviewMode ? new Map() : liveGameData}
             projections={projections}
             inventory={inventory}
@@ -1748,6 +1900,8 @@ export default function TeamManager() {
             onSelectTokenForPlayer={setSelectedTokenForPlayer}
             selectedPlayerForSlot={selectedPlayerForSlot}
             selectedTokenForPlayer={selectedTokenForPlayer}
+            onBenchPlayerClick={handleBenchPlayerClick}
+            onTokenClick={handleTokenClick}
           />
         </div>
       </section>
@@ -1763,6 +1917,41 @@ export default function TeamManager() {
         projections={projections}
         inventory={inventory}
       />
+
+      {/* Bench Player Swap Modal */}
+      {benchPlayerSwapModal.isOpen && benchPlayerSwapModal.benchPlayer && (
+        <BenchPlayerSwapModal
+          benchPlayer={benchPlayerSwapModal.benchPlayer}
+          eligibleSlots={getEligibleSlotsForBenchPlayer(benchPlayerSwapModal.benchPlayer)}
+          lineup={lineup}
+          onSwap={handleBenchPlayerSwap}
+          onClose={() => setBenchPlayerSwapModal({ isOpen: false, benchPlayer: null })}
+          liveGameData={isPreviewMode ? new Map() : liveGameData}
+          projections={projections}
+        />
+      )}
+
+      {/* Token Application Modal */}
+      {tokenApplicationModal.isOpen && tokenApplicationModal.selectedToken && (
+        <TokenApplicationModal
+          selectedToken={tokenApplicationModal.selectedToken}
+          eligiblePlayers={getEligiblePlayersForToken(tokenApplicationModal.selectedToken)}
+          onApply={handleTokenApplication}
+          onClose={() => setTokenApplicationModal({ isOpen: false, selectedToken: null })}
+          liveGameData={isPreviewMode ? new Map() : liveGameData}
+          projections={projections}
+        />
+      )}
+
+      {/* Token Selection Modal (for adding token to specific player) */}
+      {tokenSelectionModal.isOpen && tokenSelectionModal.targetPlayer && (
+        <TokenSelectionModal
+          targetPlayer={tokenSelectionModal.targetPlayer}
+          availableTokens={inventory?.tokens?.filter(t => !t.is_active) || []}
+          onApply={handleApplyTokenToPlayer}
+          onClose={() => setTokenSelectionModal({ isOpen: false, targetPlayer: null })}
+        />
+      )}
 
       {/* No Players Available Modal */}
       {noPlayersModal.isOpen && (

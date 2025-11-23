@@ -2,6 +2,8 @@ import { useState } from 'react';
 import PropTypes from 'prop-types';
 import PlayerCard from './PlayerCard';
 import PlayerCardModal from './PlayerCardModal';
+import PlayerSwapModal from './PlayerSwapModal';
+import { useIsMobile } from '../hooks';
 
 /**
  * LineupGrid Component
@@ -21,6 +23,7 @@ export default function LineupGrid({
   onClickToAdd,
   onClickToAddToken,
   onRemovePlayer,
+  onMoveToSlot,
   liveGameData,
   projections,
   inventory,
@@ -37,6 +40,8 @@ export default function LineupGrid({
   const [hoveredSlot, setHoveredSlot] = useState(null);
   const [modalPlayer, setModalPlayer] = useState(null);
   const [modalSlot, setModalSlot] = useState(null);
+  const [mobileSwapSlot, setMobileSwapSlot] = useState(null);
+  const isMobile = useIsMobile();
 
   // Position slots configuration - single horizontal row
   const positionSlots = [
@@ -265,8 +270,11 @@ export default function LineupGrid({
         onSlotClickWithSelection(slot.key);
       } else if (selectedTokenForPlayer && isEligibleForSelectedToken && onPlayerClickWithTokenSelection) {
         onPlayerClickWithTokenSelection(player);
+      } else if (isMobile) {
+        // Mobile: Open swap modal (works for both empty slots and filled slots)
+        setMobileSwapSlot(slot.key);
       } else if (player && !isLocked) {
-        // Open modal for player actions
+        // Desktop: Open modal for player actions
         setModalPlayer(player);
         setModalSlot(slot.key);
       }
@@ -388,8 +396,8 @@ export default function LineupGrid({
                     {slot.key}
                   </p>
                   
-                  {/* Add Button - Hidden when this slot is being filtered */}
-                  {onClickToAdd && !isFilteredSlot && (
+                  {/* Add Button - Hidden on mobile and when slot is being filtered */}
+                  {onClickToAdd && !isFilteredSlot && !isMobile && (
                     <button
                       onClick={() => onClickToAdd(slot.key)}
                       className="w-5 h-5 md:w-6 md:h-6 bg-primary-black-700 hover:bg-primary-black-600 border border-primary-black-500 text-primary-black-300 hover:text-primary-black-100 rounded-full text-sm md:text-base font-light transition-all hover:scale-110 flex items-center justify-center"
@@ -465,6 +473,40 @@ export default function LineupGrid({
   const gapClass = 'gap-2 md:gap-4';
   const paddingClass = 'mb-1';
 
+  // Get eligible bench players for mobile swap modal
+  const getEligiblePlayersForSlot = (slotKey) => {
+    if (!inventory?.players) return [];
+    
+    const posAbbr = getPositionAbbreviation(slotKey);
+    
+    // Map position abbreviations to full names
+    const positionMap = {
+      'QB': ['Quarterback'],
+      'RB': ['Running Back'],
+      'WR': ['Wide Receiver'],
+      'TE': ['Tight End'],
+      'FLEX': ['Running Back', 'Wide Receiver', 'Tight End']
+    };
+    
+    const allowedPositions = positionMap[posAbbr] || [];
+    
+    return inventory.players.filter(p => {
+      if (p.is_in_lineup) return false;
+      return allowedPositions.some(pos => pos === p.player_card.position);
+    });
+  };
+
+  // Handle mobile swap - use direct move function instead of drag/drop pattern
+  const handleMobileSwap = async (selectedPlayer) => {
+    if (!mobileSwapSlot || !selectedPlayer) return;
+    
+    // Use onMoveToSlot which handles swapping, token removal, and state updates
+    await onMoveToSlot(selectedPlayer, mobileSwapSlot);
+    
+    // Close modal
+    setMobileSwapSlot(null);
+  };
+
   return (
     <div className={paddingClass}>
       {/* Mobile: 4 on top, 4 on bottom */}
@@ -477,8 +519,8 @@ export default function LineupGrid({
         {positionSlots.map(renderPositionSlot)}
       </div>
       
-      {/* Player Card Modal */}
-      {modalPlayer && modalSlot && (
+      {/* Desktop: Player Card Modal */}
+      {modalPlayer && modalSlot && !isMobile && (
         <PlayerCardModal
           player={modalPlayer}
           slotKey={modalSlot}
@@ -490,6 +532,19 @@ export default function LineupGrid({
             onRemovePlayer(modalSlot);
           }}
           onSwap={handleSwap}
+        />
+      )}
+      
+      {/* Mobile: Player Swap Modal */}
+      {mobileSwapSlot && isMobile && (
+        <PlayerSwapModal
+          currentPlayer={lineup[mobileSwapSlot]}
+          slotKey={mobileSwapSlot}
+          eligiblePlayers={getEligiblePlayersForSlot(mobileSwapSlot)}
+          onSwap={handleMobileSwap}
+          onClose={() => setMobileSwapSlot(null)}
+          liveGameData={liveGameData}
+          projections={projections}
         />
       )}
     </div>
@@ -504,6 +559,7 @@ LineupGrid.propTypes = {
   onClickToAdd: PropTypes.func,
   onClickToAddToken: PropTypes.func,
   onRemovePlayer: PropTypes.func,
+  onMoveToSlot: PropTypes.func.isRequired,
   liveGameData: PropTypes.instanceOf(Map),
   projections: PropTypes.instanceOf(Map),
   inventory: PropTypes.object,
