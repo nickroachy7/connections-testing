@@ -13,3 +13,6 @@ export * from './useSupabase';
 
 // Fantasy hooks
 export * from './fantasy';
+
+// UI hooks
+export * from './ui/useMediaQuery';
