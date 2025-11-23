@@ -26,8 +26,11 @@ export default function InventoryPanel({
   onFilterChange,
   inventory
 }) {
-  const [activeTab, setActiveTab] = useState('all');
   const [selectedForBulkAction, setSelectedForBulkAction] = useState([]);
+  
+  // Determine active tab based on filters.tokenType from parent
+  const activeTab = filters.tokenType === 'none' ? 'players' : 
+                    filters.tokenType === 'tokens-only' ? 'tokens' : 'all';
 
   // Sort players by position
   const getPositionOrder = (position) => {
@@ -65,7 +68,9 @@ export default function InventoryPanel({
 
   // Filter tokens
   const filteredTokens = enrichedTokens.filter(token => {
-    const matchesType = filters.tokenType === 'all' || token.token_card.token_type === filters.tokenType;
+    const matchesType = filters.tokenType === 'all' || 
+                       filters.tokenType === 'tokens-only' || 
+                       token.token_card.token_type === filters.tokenType;
     const matchesSearch = filters.search === '' || 
       token.token_card.token_name.toLowerCase().includes(filters.search.toLowerCase());
     return matchesType && matchesSearch;
@@ -155,130 +160,93 @@ export default function InventoryPanel({
   const selectedTokenIds = selectedForBulkAction.filter(s => s.type === 'token').map(s => s.id);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      {/* Header */}
-      <div className="sticky top-0 z-20 bg-primary-black-900 border-2 border-primary-black-700 rounded-xl mb-4">
-        <div className="px-4 py-4">
-          <div className="flex items-center justify-between gap-6">
-            {/* Title */}
-            <div className="flex-shrink-0">
-              <h1 className="text-xl font-bold text-primary-black-50">Inventory</h1>
-              <p className="text-xs text-primary-black-400 mt-0.5">
-                Roster: {inventory ? getRosterCount(inventory) : (players.length + tokens.length)}/{ROSTER_LIMIT}
-              </p>
-            </div>
-
-            {/* Actions */}
-            <div className="flex gap-2">
-              {selectedForBulkAction.length > 0 && (
-                <>
-                  <div className="flex items-center gap-3 px-3 py-1.5 bg-primary-black-800 rounded-lg">
-                    <div className="text-xs">
-                      <span className="text-primary-black-400">Selected:</span>{' '}
-                      <span className="font-bold text-primary-green-400">{selectedForBulkAction.length}</span>{' '}
-                      <span className="text-primary-black-500">•</span>{' '}
-                      <span className="font-bold text-primary-green-400">
-                        💰 {selectedForBulkAction.reduce((sum, s) => sum + s.value, 0)}
-                      </span>
-                    </div>
-                  </div>
-                  <button
-                    onClick={handleDeselectAll}
-                    className="px-4 py-2 bg-primary-black-700 hover:bg-primary-black-600 text-primary-black-300 rounded-lg text-sm font-semibold transition-colors"
-                  >
-                    Clear
-                  </button>
-                  <button
-                    onClick={handleBulkQuickSell}
-                    disabled={selling}
-                    className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg text-sm font-semibold transition-colors disabled:opacity-50"
-                  >
-                    {selling ? 'Selling...' : 'Sell Selected'}
-                  </button>
-                </>
-              )}
-              
-              {/* Tab buttons */}
-              <button
-                onClick={() => setActiveTab('all')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                  activeTab === 'all'
-                    ? 'bg-primary-green-500 text-primary-black-950'
-                    : 'bg-primary-black-800 text-primary-black-400 hover:bg-primary-black-700'
-                }`}
-              >
-                All
-              </button>
-              <button
-                onClick={() => setActiveTab('players')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                  activeTab === 'players'
-                    ? 'bg-primary-green-500 text-primary-black-950'
-                    : 'bg-primary-black-800 text-primary-black-400 hover:bg-primary-black-700'
-                }`}
-              >
-                Players
-              </button>
-              <button
-                onClick={() => setActiveTab('tokens')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                  activeTab === 'tokens'
-                    ? 'bg-primary-green-500 text-primary-black-950'
-                    : 'bg-primary-black-800 text-primary-black-400 hover:bg-primary-black-700'
-                }`}
-              >
-                Tokens
-              </button>
+    <>
+      {/* Bulk Actions Bar - Only shown when items are selected */}
+      {selectedForBulkAction.length > 0 && (
+        <div className="sticky top-0 z-20 bg-primary-black-900 border-2 border-primary-black-700 rounded-lg sm:rounded-xl mb-3 sm:mb-4">
+          <div className="px-3 sm:px-4 py-2 sm:py-4">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3 px-3 py-1.5 bg-primary-black-800 rounded-lg">
+                <div className="text-xs">
+                  <span className="text-primary-black-400">Selected:</span>{' '}
+                  <span className="font-bold text-primary-green-400">{selectedForBulkAction.length}</span>{' '}
+                  <span className="text-primary-black-500">•</span>{' '}
+                  <span className="font-bold text-primary-green-400">
+                    💰 {selectedForBulkAction.reduce((sum, s) => sum + s.value, 0)}
+                  </span>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleDeselectAll}
+                  className="px-4 py-2 bg-primary-black-700 hover:bg-primary-black-600 text-primary-black-300 rounded-lg text-sm font-semibold transition-colors"
+                >
+                  Clear
+                </button>
+                <button
+                  onClick={handleBulkQuickSell}
+                  disabled={selling}
+                  className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg text-sm font-semibold transition-colors disabled:opacity-50"
+                >
+                  {selling ? 'Selling...' : 'Sell Selected'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
 
-      {/* Players Section */}
+      {/* Players Section - Wrapped in container matching header style */}
       {(activeTab === 'all' || activeTab === 'players') && filteredPlayers.length > 0 && (
-        <div className="mb-6">
-          <PlayerTable
-            players={filteredPlayers}
-            showBulkSelect={true}
-            showTierLevel={true}
-            selectedIds={selectedPlayerIds}
-            onBulkSelectChange={handlePlayerBulkSelect}
-            isRowLocked={(player) => player.is_locked}
-            emptyMessage="No players in inventory"
-            emptyIcon="🏈"
-          />
+        <div className="bg-primary-black-900 border-2 border-primary-black-700 rounded-lg sm:rounded-xl mb-3 sm:mb-4">
+          <div className="md:px-3 lg:px-4 md:py-3 lg:py-4">
+            <PlayerTable
+              players={filteredPlayers}
+              showBulkSelect={true}
+              showTierLevel={true}
+              selectedIds={selectedPlayerIds}
+              onBulkSelectChange={handlePlayerBulkSelect}
+              isRowLocked={(player) => player.is_locked}
+              emptyMessage="No players in inventory"
+              emptyIcon="🏈"
+            />
+          </div>
         </div>
       )}
 
-      {/* Tokens Section */}
+      {/* Tokens Section - Wrapped in container matching header style */}
       {(activeTab === 'all' || activeTab === 'tokens') && filteredTokens.length > 0 && (
-        <div>
-          <TokenTable
-            tokens={filteredTokens}
-            showBulkSelect={true}
-            selectedIds={selectedTokenIds}
-            onBulkSelectChange={handleTokenBulkSelect}
-            emptyMessage="No tokens available"
-            emptyIcon="💎"
-          />
+        <div className="bg-primary-black-900 border-2 border-primary-black-700 rounded-lg sm:rounded-xl mb-3 sm:mb-4">
+          <div className="md:px-3 lg:px-4 md:py-3 lg:py-4">
+            <TokenTable
+              tokens={filteredTokens}
+              showBulkSelect={true}
+              selectedIds={selectedTokenIds}
+              onBulkSelectChange={handleTokenBulkSelect}
+              emptyMessage="No tokens available"
+              emptyIcon="💎"
+            />
+          </div>
         </div>
       )}
 
       {/* Empty State */}
       {filteredPlayers.length === 0 && filteredTokens.length === 0 && (
-        <div className="text-center py-12">
-          <div className="text-4xl mb-2 opacity-30">
-            {filters.search ? '🔍' : '📦'}
+        <div className="bg-primary-black-900 border-2 border-primary-black-700 rounded-lg sm:rounded-xl">
+          <div className="px-3 sm:px-4 py-12 text-center">
+            <div className="text-4xl mb-2 opacity-30">
+              {filters.search ? '🔍' : '📦'}
+            </div>
+            <p className="text-primary-black-400 font-semibold">
+              {filters.search ? 'No matches found' : 'Your inventory is empty'}
+            </p>
+            <p className="text-primary-black-500 text-sm mt-2">
+              {filters.search ? 'Try a different search' : 'Open packs to get players and tokens'}
+            </p>
           </div>
-          <p className="text-primary-black-400 font-semibold">
-            {filters.search ? 'No matches found' : 'Your inventory is empty'}
-          </p>
-          <p className="text-primary-black-500 text-sm mt-2">
-            {filters.search ? 'Try a different search' : 'Open packs to get players and tokens'}
-          </p>
         </div>
       )}
-    </div>
+    </>
   );
 }
 

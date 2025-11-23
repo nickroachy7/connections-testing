@@ -1809,27 +1809,27 @@ export default function TeamManager() {
         )}
 
         {/* Starting Lineup Display Section */}
-        <section className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-0 ${error ? 'mt-0' : 'mt-6'}`} aria-label="Starting Lineup">
+        <section className={`max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 pb-0 ${error ? 'mt-0' : 'mt-3 sm:mt-6'}`} aria-label="Starting Lineup">
           {/* Page Header */}
-          <div className="bg-primary-black-900 border-2 border-primary-black-700 rounded-xl mb-4 px-4 py-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-xl font-bold text-primary-black-50">Starting Lineup</h1>
-                <p className="text-xs text-primary-black-400 mt-0.5">Set your Starting Lineup</p>
+          <div className="bg-primary-black-900 border-2 border-primary-black-700 rounded-lg sm:rounded-xl mb-3 sm:mb-4 px-3 sm:px-4 py-2 sm:py-4">
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <h1 className="text-sm sm:text-xl font-bold text-primary-black-50 truncate">Starting Lineup</h1>
+                <p className="text-[10px] sm:text-xs text-primary-black-400 mt-0.5 truncate">Set your Starting Lineup</p>
               </div>
-              <div className="flex items-center gap-2 text-xs text-primary-black-400">
+              <div className="flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs text-primary-black-400 flex-shrink-0">
                 {autoSaving && (
-                  <div className="flex items-center gap-1.5">
-                    <div className="animate-spin h-3 w-3 border-2 border-primary-green-500 border-t-transparent rounded-full"></div>
-                    <span>Saving...</span>
+                  <div className="flex items-center gap-1 sm:gap-1.5">
+                    <div className="animate-spin h-2.5 w-2.5 sm:h-3 sm:w-3 border-2 border-primary-green-500 border-t-transparent rounded-full"></div>
+                    <span className="hidden sm:inline">Saving...</span>
                   </div>
                 )}
                 {!autoSaving && lastSaved && (
-                  <div className="flex items-center gap-1.5">
-                    <svg className="w-3 h-3 text-primary-green-500" fill="currentColor" viewBox="0 0 20 20">
+                  <div className="flex items-center gap-1 sm:gap-1.5">
+                    <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-primary-green-500" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                     </svg>
-                    <span>All changes saved</span>
+                    <span className="hidden sm:inline">All changes saved</span>
                   </div>
                 )}
               </div>

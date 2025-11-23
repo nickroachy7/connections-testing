@@ -302,41 +302,89 @@ export default function Inventory() {
     <>
       {/* Alerts and Team Selector - Only shown when needed */}
       {(error || success) && (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6 mb-6">
+        <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 mt-3 sm:mt-6 mb-3 sm:mb-6">
             {/* Team Selector - Removed */}
 
             {/* Alerts */}
             {error && (
-              <div className="p-4 bg-red-900/50 border border-red-600 text-red-300 rounded-lg">
+              <div className="p-3 sm:p-4 bg-red-900/50 border border-red-600 text-red-300 rounded-lg text-sm">
                 {error}
               </div>
             )}
             
             {success && (
-              <div className="p-4 bg-green-900/50 border border-green-600 text-green-300 rounded-lg">
+              <div className="p-3 sm:p-4 bg-green-900/50 border border-green-600 text-green-300 rounded-lg text-sm">
                 {success}
               </div>
             )}
         </div>
       )}
 
-        {/* Inventory Panel Section */}
-        <div className={error || success ? 'mt-0' : 'mt-6'}>
-          <InventoryPanel
-            players={inventory.players}
-            tokens={inventory.tokens}
-            projections={projections}
-            loadingProjections={loadingProjections}
-            liveGameData={liveGameData}
-            onQuickSell={handleQuickSell}
-            onBulkSellComplete={loadInventory}
-            onReloadProfile={refreshProfile}
-            selling={selling}
-            filters={filters}
-            onFilterChange={setFilters}
-            inventory={inventory}
-          />
+      <div className="min-h-screen bg-primary-black-950">
+        <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 py-3 sm:py-8">
+          {/* Page Header */}
+          <div className="bg-primary-black-900 border-2 border-primary-black-700 rounded-lg sm:rounded-xl mb-3 sm:mb-4 px-3 sm:px-4 py-2 sm:py-4">
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0 flex-shrink">
+                <h1 className="text-sm sm:text-xl font-bold text-primary-black-50">Inventory</h1>
+                <p className="text-[10px] sm:text-xs text-primary-black-400 mt-0.5">Roster: {inventory.players?.length || 0}/20</p>
+              </div>
+              
+              {/* Filter Tabs */}
+              <div className="flex gap-1 sm:gap-2 flex-shrink-0">
+                <button
+                  onClick={() => setFilters({ position: 'all', rarity: 'all', tokenType: 'all', search: '' })}
+                  className={`px-2 sm:px-4 py-1.5 sm:py-2 rounded-md sm:rounded-lg text-[10px] sm:text-sm font-semibold transition-all ${
+                    filters.tokenType === 'all'
+                      ? 'bg-primary-green-500 text-white'
+                      : 'bg-primary-black-800 text-primary-black-300 hover:bg-primary-black-700'
+                  }`}
+                >
+                  All
+                </button>
+                <button
+                  onClick={() => setFilters({ position: 'all', rarity: 'all', tokenType: 'none', search: '' })}
+                  className={`px-2 sm:px-4 py-1.5 sm:py-2 rounded-md sm:rounded-lg text-[10px] sm:text-sm font-semibold transition-all ${
+                    filters.tokenType === 'none'
+                      ? 'bg-primary-green-500 text-white'
+                      : 'bg-primary-black-800 text-primary-black-300 hover:bg-primary-black-700'
+                  }`}
+                >
+                  Players
+                </button>
+                <button
+                  onClick={() => setFilters({ position: 'all', rarity: 'all', tokenType: 'tokens-only', search: '' })}
+                  className={`px-2 sm:px-4 py-1.5 sm:py-2 rounded-md sm:rounded-lg text-[10px] sm:text-sm font-semibold transition-all ${
+                    filters.tokenType === 'tokens-only'
+                      ? 'bg-primary-green-500 text-white'
+                      : 'bg-primary-black-800 text-primary-black-300 hover:bg-primary-black-700'
+                  }`}
+                >
+                  Tokens
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Inventory Panel Section */}
+          <div className={error || success ? 'mt-0' : 'mt-3 sm:mt-6'}>
+            <InventoryPanel
+              players={inventory.players}
+              tokens={inventory.tokens}
+              projections={projections}
+              loadingProjections={loadingProjections}
+              liveGameData={liveGameData}
+              onQuickSell={handleQuickSell}
+              onBulkSellComplete={loadInventory}
+              onReloadProfile={refreshProfile}
+              selling={selling}
+              filters={filters}
+              onFilterChange={setFilters}
+              inventory={inventory}
+            />
+          </div>
         </div>
+      </div>
     </>
   );
 }

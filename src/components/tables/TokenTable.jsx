@@ -104,14 +104,14 @@ const TokenTable = ({
   }
 
   return (
-    <div className="md:bg-primary-black-900 md:border-2 md:border-primary-black-700 md:rounded-xl overflow-hidden relative w-full">
+    <div className="overflow-hidden relative w-full">
       {/* Continuous vertical divider lines - absolute positioned to span full height - SAME position as PlayerTable */}
       <div className="absolute top-0 bottom-0 hidden lg:block pointer-events-none" style={{ left: 'calc(24px + 8px + 40px + 8px + 50px + 8px + 400px + 8px - 1px)', width: '1px', backgroundColor: 'rgb(64, 64, 64)' }}></div>
       <div className="absolute top-0 bottom-0 hidden lg:block pointer-events-none" style={{ left: 'calc(24px + 8px + 40px + 8px + 50px + 8px + 400px + 8px + 90px + 8px + 90px + 8px)', width: '1px', backgroundColor: 'rgb(64, 64, 64)' }}></div>
 
       {/* Header Row - Desktop */}
       <div 
-        className="hidden md:grid bg-primary-black-800 border-b border-primary-black-700 py-2 px-2"
+        className="hidden md:grid bg-primary-black-800/30 border-b border-primary-black-700 py-2 px-2"
         style={{ 
           gridTemplateColumns: gridTemplate,
           gap: '8px'
@@ -150,7 +150,7 @@ const TokenTable = ({
               ? 'cursor-not-allowed opacity-60'
               : 'cursor-move hover:bg-primary-green-500/10 md:hover:border-primary-green-500'
           }
-          ${index % 2 === 0 ? 'bg-primary-black-900' : 'bg-primary-black-800/50'}
+          ${index % 2 === 0 ? 'bg-primary-black-800/20' : 'bg-primary-black-800/40'}
         `;
 
         const customClassName = getRowClassName ? getRowClassName(token, index) : defaultClassName;
@@ -297,7 +297,7 @@ const TokenTable = ({
               onDragStart={handleDragStart}
               onDragEnd={onRowDragEnd}
               onClick={handleClick}
-              className={`grid md:hidden ${customClassName} py-2 px-3 mb-2 rounded-lg bg-primary-black-900`}
+              className={`grid md:hidden ${customClassName} py-2 px-2`}
               style={{ 
                 gridTemplateColumns: mobileGridTemplate,
                 gap: '4px',
