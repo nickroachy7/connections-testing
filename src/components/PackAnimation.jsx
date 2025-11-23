@@ -155,14 +155,15 @@ export default function PackAnimation({ pack, onOpenComplete }) {
   };
 
   return (
-    <div className="relative flex flex-col items-center justify-center min-h-[100vh] gap-4 py-4">
-      {/* Pack Container */}
-      <div
-        className={`
-          relative transition-all duration-700 ease-out
-          ${isOpened ? 'opacity-0 scale-95 pointer-events-none' : 'opacity-100 scale-100'}
-        `}
-      >
+    <div className="fixed inset-0 flex flex-col bg-primary-black-950">
+      {/* Pack Container - Absolutely centered */}
+      <div className="absolute inset-0 flex items-center justify-center">
+        <div
+          className={`
+            transition-opacity duration-700
+            ${isOpened ? 'opacity-0 pointer-events-none' : 'opacity-100'}
+          `}
+        >
         {/* Simple slice instruction */}
         {showPrompt && !isSlicing && sliceProgress === 0 && (
           <div className="absolute top-[12%] left-1/2 transform -translate-x-1/2 z-20 pointer-events-none">
@@ -172,96 +173,66 @@ export default function PackAnimation({ pack, onOpenComplete }) {
           </div>
         )}
 
-        {/* Pack Wrapper with Canvas Overlay */}
-        <div className="relative">
-          {/* Pack Image */}
-          <div className="relative w-64 h-96">
-            <img 
-              src="/green-pack.png" 
-              alt={pack.pack.pack_name}
-              className={`
-                w-full h-full object-contain
-                transition-all duration-500
-                ${isOpened ? 'translate-y-8 rotate-12' : ''}
-              `}
-              style={{
-                filter: isSlicing 
-                  ? 'drop-shadow(0 0 40px rgba(16, 185, 129, 0.8))' 
-                  : 'drop-shadow(0 20px 40px rgba(0, 0, 0, 0.5))',
-              }}
-            />
-            
-            {/* Canvas for drawing slice line */}
-            <canvas
-              ref={canvasRef}
-              width={256}
-              height={384}
-              className="absolute inset-0 pointer-events-auto cursor-crosshair"
-              onMouseDown={handleMouseDown}
-              onMouseUp={handleMouseUp}
-              onMouseMove={handleMouseMove}
-              onMouseLeave={() => {
-                setIsSlicing(false);
-              }}
-              onTouchStart={handleTouchStart}
-              onTouchEnd={handleTouchEnd}
-              onTouchMove={handleTouchMove}
-            />
-
-            {/* Simple dashed slice line */}
+          {/* Pack Wrapper with Canvas Overlay */}
+          <div className="relative">
+            {/* Pack Image - Optimized size */}
+            <div className="relative" style={{ width: '320px', height: '480px' }}>
+              <img 
+                src="/green-pack.png" 
+                alt={pack.pack.pack_name}
+                className="w-full h-full object-contain"
+                style={{
+                  filter: isSlicing 
+                    ? 'drop-shadow(0 0 50px rgba(16, 185, 129, 0.9))' 
+                    : 'drop-shadow(0 30px 60px rgba(0, 0, 0, 0.6))',
+                  transition: 'filter 0.3s ease-out'
+                }}
+              />              {/* Canvas for drawing slice line */}
+              <canvas
+                ref={canvasRef}
+                width={320}
+                height={480}
+                className="absolute inset-0 pointer-events-auto cursor-crosshair"
+                onMouseDown={handleMouseDown}
+                onMouseUp={handleMouseUp}
+                onMouseMove={handleMouseMove}
+                onMouseLeave={() => {
+                  setIsSlicing(false);
+                }}
+                onTouchStart={handleTouchStart}
+                onTouchEnd={handleTouchEnd}
+                onTouchMove={handleTouchMove}
+              />            {/* Simple dashed slice line */}
             {showPrompt && sliceProgress === 0 && (
               <div className="absolute top-[12%] left-0 right-0 pointer-events-none">
                 <div className="mx-4 border-t-2 border-dashed border-white/60 animate-pulse" />
               </div>
             )}
 
-            {/* Pack Info Overlay - On the pack itself */}
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="bg-black/50 backdrop-blur-sm rounded-lg px-6 py-4 border-2 border-white/40">
-                <h2 className="text-2xl font-bold text-white mb-2 text-center drop-shadow-lg">
-                  {pack.pack.pack_name}
-                </h2>
-                <div className="flex items-center justify-center gap-4 text-white">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xl">🏈</span>
-                    <span className="font-bold">{pack.pack.player_count}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xl">🎯</span>
-                    <span className="font-bold">{pack.pack.token_count}</span>
+              {/* Pack Info Overlay - On the pack itself */}
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div className="bg-black/50 backdrop-blur-sm rounded-lg px-6 py-4 border-2 border-white/40">
+                  <h2 className="text-2xl font-bold text-white mb-2 text-center drop-shadow-lg">
+                    {pack.pack.pack_name}
+                  </h2>
+                  <div className="flex items-center justify-center gap-4 text-white">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xl">🏈</span>
+                      <span className="font-bold">{pack.pack.player_count}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xl">🎯</span>
+                      <span className="font-bold">{pack.pack.token_count}</span>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-
-            {/* Glow Effect When Slicing - REMOVED */}
-
           </div>
-
-          {/* Progress Bar */}
-          {sliceProgress > 0 && !isOpened && (
-            <div className="absolute -bottom-12 left-1/2 transform -translate-x-1/2 w-48">
-              <div className="bg-primary-black-800 rounded-full h-2 overflow-hidden border border-primary-green-500/50">
-                <div 
-                  className="h-full bg-gradient-to-r from-primary-green-600 to-primary-green-400 transition-all duration-200 ease-out"
-                  style={{ width: `${sliceProgress}%` }}
-                />
-              </div>
-              <div className="text-center mt-1 text-primary-green-400 font-bold text-xs">
-                {sliceProgress < 50 ? `${Math.round(sliceProgress)}%` : 'Opening! 🎉'}
-              </div>
-            </div>
-          )}
         </div>
-
-
-
-
-      </div>
-
-      {/* Skip Button */}
+      </div>      {/* Skip Button - Absolute bottom */}
       {!isOpened && (
-        <div className="flex flex-col items-center gap-1">
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1">
           <button
             onClick={handleSkipSlicing}
             className="
@@ -279,11 +250,9 @@ export default function PackAnimation({ pack, onOpenComplete }) {
               <span className="transform group-hover:translate-x-1 transition-transform">→</span>
             </span>
           </button>
-          {sliceProgress === 0 && (
-            <p className="text-primary-gray-400 text-xs">
-              Too excited? Click to open instantly!
-            </p>
-          )}
+          <p className="text-primary-gray-400 text-xs">
+            Too excited? Click to open instantly!
+          </p>
         </div>
       )}
     </div>

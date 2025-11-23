@@ -6,6 +6,7 @@ import LoadingSpinner from '../components/LoadingSpinner'
 import TierAssignment from '../components/TierAssignment'
 import PackAnimation from '../components/PackAnimation'
 import CardReveal from '../components/CardReveal'
+import Header from '../components/Header'
 
 export default function PackOpening() {
   const navigate = useNavigate()
@@ -342,7 +343,7 @@ export default function PackOpening() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-primary-black-950 flex items-center justify-center">
+      <div className="fixed inset-0 bg-primary-black-950 flex items-center justify-center">
         <LoadingSpinner size="lg" />
       </div>
     )
@@ -353,12 +354,15 @@ export default function PackOpening() {
     const playerCards = revealedItems.filter(item => item.type === 'player')
     
     return (
-      <div className="min-h-screen bg-primary-black-950 py-12">
-        <TierAssignment
-          cards={playerCards}
-          tierConfig={tierConfig}
-          onConfirm={handleTierAssignments}
-        />
+      <div className="fixed inset-0 bg-primary-black-950 overflow-hidden flex flex-col">
+        <Header />
+        <div className="flex-1 overflow-hidden">
+          <TierAssignment
+            cards={playerCards}
+            tierConfig={tierConfig}
+            onConfirm={handleTierAssignments}
+          />
+        </div>
       </div>
     )
   }
@@ -366,71 +370,38 @@ export default function PackOpening() {
   // Show card reveal screen
   if (showCardReveal) {
     return (
-      <div className="min-h-screen bg-primary-black-950 py-12">
-        <div className="max-w-7xl mx-auto">
-          <CardReveal 
-            items={revealedItems} 
-            onRevealComplete={handleRevealComplete}
-            isStarterPack={pack?.pack?.pack_type === 'starter'}
-            tierConfig={tierConfig}
-          />
-
-          {/* Continue Button */}
-          {allCardsRevealed && (
-            <div className="text-center mt-12 animate-fade-in">
-              {needsTierAssignment ? (
-                <div className="space-y-4">
-                  <p className="text-primary-black-300 text-lg mb-4">
-                    Your starter pack includes tier boosts! Assign them to your best players.
-                  </p>
-                  <button
-                    onClick={handleProceedToTierAssignment}
-                    className="px-8 py-4 bg-primary-green-500 hover:bg-primary-green-400 text-primary-black-950 text-xl font-bold rounded-xl transition-all shadow-glow-green hover:scale-105"
-                  >
-                    Assign Tiers →
-                  </button>
-                </div>
-              ) : (
-                <div className="flex gap-4 justify-center flex-wrap">
-                  <button
-                    onClick={goToDashboard}
-                    className="px-8 py-4 bg-primary-green-500 hover:bg-primary-green-400 text-primary-black-950 text-xl font-bold rounded-xl transition-all shadow-glow-green hover:scale-105"
-                  >
-                    Continue to Dashboard
-                  </button>
-                  <button
-                    onClick={() => navigate(`/teams/${teamId}/pack-shop`)}
-                    className="px-8 py-4 bg-primary-black-700 hover:bg-primary-black-600 text-primary-black-50 text-xl font-bold rounded-xl transition-all hover:scale-105"
-                  >
-                    Back to Pack Shop
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+      <div className="fixed inset-0 bg-primary-black-950 overflow-hidden">
+        <CardReveal 
+          items={revealedItems} 
+          onRevealComplete={handleRevealComplete}
+          isStarterPack={pack?.pack?.pack_type === 'starter'}
+          tierConfig={tierConfig}
+        />
       </div>
     )
   }
 
   // Show pack animation and opening
   return (
-    <div className="min-h-screen bg-primary-black-950">
-      {showPackAnimation && !opening ? (
-        <PackAnimation 
-          pack={pack} 
-          onOpenComplete={openPack}
-        />
-      ) : (
-        <div className="flex items-center justify-center min-h-screen">
-          <div className="text-center">
-            <LoadingSpinner size="lg" />
-            <div className="mt-6 text-2xl font-bold text-primary-green-400 animate-pulse">
-              Opening your pack...
+    <div className="fixed inset-0 bg-primary-black-950 overflow-hidden flex flex-col">
+      <Header />
+      <div className="flex-1 overflow-hidden">
+        {showPackAnimation && !opening ? (
+          <PackAnimation 
+            pack={pack} 
+            onOpenComplete={openPack}
+          />
+        ) : (
+          <div className="flex items-center justify-center h-full">
+            <div className="text-center">
+              <LoadingSpinner size="lg" />
+              <div className="mt-6 text-2xl font-bold text-primary-green-400 animate-pulse">
+                Opening your pack...
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   )
 }

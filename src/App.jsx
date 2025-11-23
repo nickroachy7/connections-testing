@@ -67,6 +67,15 @@ function RootLayout() {
 
 // Create router with loaders
 const router = createBrowserRouter([
+  // Pack Opening Page - Completely standalone (no layout wrapper)
+  {
+    path: '/teams/:teamId/open-pack/:packId',
+    element: (
+      <Suspense fallback={<PageLoader />}>
+        <PackOpening />
+      </Suspense>
+    )
+  },
   {
     element: <RootLayout />,
     errorElement: <ErrorBoundary />,
@@ -99,11 +108,6 @@ const router = createBrowserRouter([
       {
         path: '/fantasy/simulated/:seasonId',
         element: <SimulatedSeason />
-      },
-      // Pack Opening Page
-      {
-        path: '/teams/:teamId/open-pack/:packId',
-        element: <PackOpening />
       },
       // View Team Page - Read-only view wrapped in FantasyLayout
       {

@@ -1,7 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import PropTypes from 'prop-types';
+import Header from './Header';
 
 function CardReveal({ items, onRevealComplete, isStarterPack = false, tierConfig = null }) {
+  const navigate = useNavigate();
+  const { teamId } = useParams();
   const [revealedIndices, setRevealedIndices] = useState(new Set());
   const [hoveredIndex, setHoveredIndex] = useState(null);
   const [isShuffling, setIsShuffling] = useState(true);
@@ -9,6 +13,8 @@ function CardReveal({ items, onRevealComplete, isStarterPack = false, tierConfig
   const [tierAssignments, setTierAssignments] = useState({});
   const [showTierUI, setShowTierUI] = useState(false);
   const [selectedTier, setSelectedTier] = useState(null);
+  const [centerCardIndex, setCenterCardIndex] = useState(0);
+  const scrollContainerRef = useRef(null);
 
   useEffect(() => {
     // Trigger shuffle animation on mount
@@ -17,6 +23,55 @@ function CardReveal({ items, onRevealComplete, isStarterPack = false, tierConfig
     }, 100);
     return () => clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    // Detect which card is in the center
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const handleScroll = () => {
+      const containerRect = container.getBoundingClientRect();
+      const containerCenter = containerRect.left + containerRect.width / 2;
+      
+      const cards = container.querySelectorAll('[data-card-index]');
+      let closestIndex = 0;
+      let closestDistance = Infinity;
+      
+      cards.forEach((card, idx) => {
+        const cardRect = card.getBoundingClientRect();
+        const cardCenter = cardRect.left + cardRect.width / 2;
+        const distance = Math.abs(containerCenter - cardCenter);
+        
+        if (distance < closestDistance) {
+          closestDistance = distance;
+          closestIndex = idx;
+        }
+      });
+      
+      setCenterCardIndex(closestIndex);
+    };
+
+    container.addEventListener('scroll', handleScroll, { passive: true });
+    
+    // Center first card after animation completes
+    const scrollTimer = setTimeout(() => {
+      const firstCard = container.querySelector('[data-card-index="0"]');
+      if (firstCard) {
+        firstCard.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'nearest', 
+          inline: 'center' 
+        });
+        // Trigger initial center detection
+        setTimeout(handleScroll, 100);
+      }
+    }, 200);
+    
+    return () => {
+      container.removeEventListener('scroll', handleScroll);
+      clearTimeout(scrollTimer);
+    };
+  }, [items.length]);
 
   useEffect(() => {
     // Check if all cards are revealed
@@ -153,33 +208,36 @@ function CardReveal({ items, onRevealComplete, isStarterPack = false, tierConfig
   };
 
   return (
-    <div className="w-full h-screen flex flex-col justify-center px-4 py-8 pb-20 max-w-7xl mx-auto">
+    <div className="fixed inset-0 bg-primary-black-950 flex flex-col">
       {/* Header */}
-      <div className="text-center mb-6">
-        <h2 className="text-2xl font-bold text-white mb-3">
+      <Header />
+      
+      {/* Title Section - Minimal padding */}
+      <div className="flex-shrink-0 text-center pt-2 pb-1 px-4">
+        <h2 className="text-xl font-bold text-white">
           {showTierUI ? 'Assign Your Tier Boosts!' : 'Your Pull!'}
         </h2>
-        <p className="text-primary-black-300 mb-3">
+        <p className="text-xs text-primary-black-300 mt-0.5">
           {showTierUI 
             ? selectedTier 
-              ? `Click on a player to assign them to ${selectedTier} tier`
-              : 'Select a tier below, then click on players to assign them'
-            : 'Click each card to reveal what you got'
+              ? `Click a player for ${selectedTier}`
+              : 'Select tier, then click players'
+            : 'Click cards to reveal'
           }
         </p>
-        {!allRevealed && (
-          <button
-            onClick={handleRevealAll}
-            className="px-5 py-2 bg-primary-green-500 hover:bg-primary-green-400 text-primary-black-950 font-bold rounded-lg transition-all shadow-glow-green hover:scale-105"
-          >
-            Reveal All
-          </button>
-        )}
       </div>
 
-      {/* Cards Container */}
-      <div className="flex-1 flex items-center justify-center min-h-0">
-        <div className="flex gap-4 justify-center flex-wrap max-w-full mb-12">
+      {/* Cards Container - Horizontal scroll carousel - Fixed position */}
+      <div className="flex-shrink-0 flex items-center overflow-hidden" style={{ height: '60vh', maxHeight: '550px', marginTop: '5vh' }}>
+        <div 
+          ref={scrollContainerRef}
+          className="w-full h-full overflow-x-auto overflow-y-hidden scrollbar-hide snap-x snap-mandatory scroll-smooth"
+          style={{
+            scrollPaddingLeft: 'calc(50% - 110px)',
+            scrollPaddingRight: 'calc(50% - 110px)'
+          }}
+        >
+          <div className="inline-flex items-center gap-8 h-full px-[calc(50vw-110px)]">
           {items.map((item, index) => {
             const isRevealed = revealedIndices.has(index);
             const isHovered = hoveredIndex === index;
@@ -187,19 +245,21 @@ function CardReveal({ items, onRevealComplete, isStarterPack = false, tierConfig
             const assignedTier = Object.keys(tierAssignments).find(tier => 
               tierAssignments[tier]?.includes(index)
             );
+            const isCenterCard = index === centerCardIndex;
               
             return (
               <div
                 key={index}
+                data-card-index={index}
                 className={`
-                  relative flex-shrink-0 transition-all duration-700 ease-out
-                  ${isShuffling ? 'opacity-0 translate-y-[-50px] scale-50' : 'opacity-100 translate-y-0 scale-100'}
+                  flex-shrink-0 snap-center transition-all duration-500 ease-out flex flex-col items-center gap-2
+                  ${isShuffling ? 'opacity-0 translate-y-[-50px]' : 'opacity-100 translate-y-0'}
                   ${showTierUI && selectedTier && item.type === 'player' && isRevealed ? 'cursor-pointer' : ''}
                 `}
                 style={{
-                  transitionDelay: `${index * 80}ms`,
-                  width: '160px',
-                  perspective: '1000px'
+                  transitionDelay: isShuffling ? `${index * 80}ms` : '0ms',
+                  transform: isCenterCard ? 'scale(1.2)' : 'scale(1)',
+                  transition: 'transform 0.3s ease-out'
                 }}
                 onMouseEnter={() => setHoveredIndex(index)}
                 onMouseLeave={() => setHoveredIndex(null)}
@@ -207,10 +267,12 @@ function CardReveal({ items, onRevealComplete, isStarterPack = false, tierConfig
                 {/* Card Flip Container */}
                 <div
                   className={`
-                    relative w-full transition-transform duration-700 cursor-pointer
+                    relative transition-transform duration-700 cursor-pointer
                     ${isRevealed ? '[transform:rotateY(180deg)]' : ''}
                   `}
                   style={{ 
+                    width: '220px',
+                    perspective: '1000px',
                     transformStyle: 'preserve-3d',
                     aspectRatio: '0.64'
                   }}
@@ -386,37 +448,110 @@ function CardReveal({ items, onRevealComplete, isStarterPack = false, tierConfig
                   </div>
                 </div>
 
-                {/* Pull Percentage Info (appears after reveal) */}
-                {isRevealed && item.data.pull_percentage && (
-                  <div className="absolute -bottom-6 left-0 right-0 text-center animate-fade-in">
-                    <div className={`text-[10px] font-bold ${glowStyle.textColor}`}>
+                {/* Pull Percentage Info (appears after reveal) - Now outside card, scales with parent */}
+                {isRevealed && item.data.pull_percentage ? (
+                  <div className="text-center animate-fade-in">
+                    <div className={`text-xs font-bold ${glowStyle.textColor}`}>
                       {item.data.pull_percentage.toFixed(1)}%
                     </div>
                   </div>
+                ) : (
+                  <div className="h-5" /> 
                 )}
               </div>
             );
           })}
+          </div>
         </div>
       </div>
 
-      {/* Continue Button */}
-      {allRevealed && !showTierUI && (
-        <div className="text-center mt-6">
-          <button
-            onClick={handleContinue}
-            className="px-6 py-3 bg-primary-green-500 hover:bg-primary-green-400 text-primary-black-950 font-bold rounded-lg transition-all shadow-glow-green hover:scale-105"
-          >
-            Continue
-          </button>
+      {/* Pack Stats Section */}
+      {!showTierUI && (
+        <div className="flex-shrink-0 py-4 px-4">
+          <div className="max-w-md mx-auto">
+            {/* Progress Bar */}
+            <div className="mb-3">
+              <div className="flex justify-between items-center mb-1.5">
+                <span className="text-sm font-medium text-primary-black-300">Cards Revealed</span>
+                <span className="text-sm font-bold text-primary-green-400">{revealedIndices.size} / {items.length}</span>
+              </div>
+              <div className="h-2 bg-primary-black-800 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-gradient-to-r from-primary-green-500 to-primary-green-400 rounded-full transition-all duration-500 ease-out"
+                  style={{ width: `${(revealedIndices.size / items.length) * 100}%` }}
+                />
+              </div>
+            </div>
+            
+            {/* Rarity Distribution */}
+            {revealedIndices.size > 0 && (
+              <div className="flex gap-3 justify-center text-xs">
+                {(() => {
+                  const rarities = { legendary: 0, epic: 0, rare: 0, common: 0 };
+                  Array.from(revealedIndices).forEach(index => {
+                    const item = items[index];
+                    if (item?.type === 'player' && item.data?.pull_percentage) {
+                      const pct = item.data.pull_percentage;
+                      if (pct <= 5) rarities.legendary++;
+                      else if (pct <= 15) rarities.epic++;
+                      else if (pct <= 40) rarities.rare++;
+                      else rarities.common++;
+                    }
+                  });
+                  return (
+                    <>
+                      {rarities.legendary > 0 && (
+                        <div className="flex items-center gap-1">
+                          <div className="w-2.5 h-2.5 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500"/>
+                          <span className="text-primary-black-300">Legendary: {rarities.legendary}</span>
+                        </div>
+                      )}
+                      {rarities.epic > 0 && (
+                        <div className="flex items-center gap-1">
+                          <div className="w-2.5 h-2.5 rounded-full bg-gradient-to-br from-purple-400 to-purple-600"/>
+                          <span className="text-primary-black-300">Epic: {rarities.epic}</span>
+                        </div>
+                      )}
+                      {rarities.rare > 0 && (
+                        <div className="flex items-center gap-1">
+                          <div className="w-2.5 h-2.5 rounded-full bg-gradient-to-br from-blue-400 to-blue-600"/>
+                          <span className="text-primary-black-300">Rare: {rarities.rare}</span>
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
+              </div>
+            )}
+          </div>
         </div>
       )}
 
+      {/* Bottom Buttons */}
+      <div className="text-center py-3 flex-shrink-0 bg-primary-black-950">
+        {!allRevealed && (
+          <button
+            onClick={handleRevealAll}
+            className="px-6 py-2.5 bg-primary-green-500 hover:bg-primary-green-400 text-primary-black-950 font-bold rounded-lg transition-all hover:scale-105 text-sm"
+          >
+            Reveal All
+          </button>
+        )}
+        {allRevealed && !showTierUI && (
+          <button
+            onClick={handleContinue}
+            className="px-6 py-2.5 bg-primary-green-500 hover:bg-primary-green-400 text-primary-black-950 font-bold rounded-lg transition-all hover:scale-105 text-sm"
+          >
+            Continue
+          </button>
+        )}
+      </div>
+
       {/* Tier Assignment UI */}
       {showTierUI && tierConfig && (
-        <div className="mt-8 space-y-4">
+        <div className="mt-1 space-y-1.5 flex-shrink-0">
           {/* Tier Selection Buttons */}
-          <div className="flex gap-3 justify-center flex-wrap">
+          <div className="flex gap-1.5 justify-center flex-wrap">
             {Object.keys(tierConfig).map(tier => {
               const config = tierConfig[tier];
               const assigned = tierAssignments[tier] || [];
@@ -428,7 +563,7 @@ function CardReveal({ items, onRevealComplete, isStarterPack = false, tierConfig
                   onClick={() => setSelectedTier(selectedTier === tier ? null : tier)}
                   disabled={isFull}
                   className={`
-                    px-4 py-2 rounded-lg font-bold text-sm transition-all
+                    px-3 py-2 rounded-lg font-bold text-xs transition-all
                     ${selectedTier === tier
                       ? 'bg-primary-green-500 text-white scale-105 shadow-glow-green'
                       : isFull
@@ -438,10 +573,10 @@ function CardReveal({ items, onRevealComplete, isStarterPack = false, tierConfig
                   `}
                 >
                   <div className="flex items-center gap-2">
-                    <span className="text-2xl">{config.icon}</span>
+                    <span className="text-xl">{config.icon}</span>
                     <div className="text-left">
                       <div>{tier} Tier</div>
-                      <div className="text-xs text-primary-black-400">
+                      <div className="text-[10px] text-primary-black-400">
                         {assigned.length}/{config.slots} assigned
                       </div>
                     </div>
@@ -453,7 +588,7 @@ function CardReveal({ items, onRevealComplete, isStarterPack = false, tierConfig
 
           {/* Progress Bar */}
           <div className="max-w-md mx-auto">
-            <div className="h-2 bg-primary-black-700 rounded-full overflow-hidden">
+            <div className="h-1.5 bg-primary-black-700 rounded-full overflow-hidden">
               <div 
                 className="h-full bg-primary-green-500 transition-all duration-300"
                 style={{
@@ -470,7 +605,7 @@ function CardReveal({ items, onRevealComplete, isStarterPack = false, tierConfig
               onClick={handleContinue}
               disabled={!canConfirmTiers()}
               className={`
-                px-8 py-3 rounded-lg font-bold text-lg transition-all
+                px-6 py-2.5 rounded-lg font-bold text-base transition-all
                 ${canConfirmTiers()
                   ? 'bg-primary-green-500 hover:bg-primary-green-400 text-primary-black-950 hover:scale-105 shadow-glow-green'
                   : 'bg-gray-700 text-gray-500 cursor-not-allowed'
