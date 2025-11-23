@@ -1,11 +1,11 @@
 import PropTypes from 'prop-types';
-import TeamInfoBanner from './TeamInfoBanner';
+import TeamMatchupBanner from './TeamMatchupBanner';
 import FantasyNavigation from './FantasyNavigation';
 
 /**
  * FantasyNavBanner - Wrapper Component
  * 
- * Composes TeamInfoBanner and FantasyNavigation into a single unit.
+ * Composes TeamMatchupBanner and FantasyNavigation into a single unit.
  * This keeps the parent component simple and delegates to focused sub-components.
  */
 export default function FantasyNavBanner({ 
@@ -20,7 +20,7 @@ export default function FantasyNavBanner({
 }) {
   return (
     <>
-      <TeamInfoBanner
+      <TeamMatchupBanner
         username={username}
         teamName={teamName}
         wins={wins}
