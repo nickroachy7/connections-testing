@@ -194,11 +194,6 @@ Deno.serve(async (req) => {
         .eq('game_id', game.id.toString())
         .single()
       
-      // If already final in our DB, keep it final (don't let API revert it)
-      if (existingGame?.game_status === 'final') {
-        continue // Skip this game, already finalized
-      }
-      
       let gameStatus = 'scheduled'
       const statusLower = game.status.toLowerCase()
       
@@ -226,6 +221,11 @@ Deno.serve(async (req) => {
         gameStatus = 'final'
       }
       
+      // If game was already final in DB, keep it final (don't let API revert it)
+      if (existingGame?.game_status === 'final' && gameStatus !== 'final') {
+        gameStatus = 'final'
+      }
+      
       await supabase
         .from('game_scores')
         .upsert({
@@ -246,25 +246,60 @@ Deno.serve(async (req) => {
       gamesUpdated++
 
       // Step 2: Fetch player stats for live/final games only
+      // Always fetch for final games to ensure stats are populated (even if game was previously finalized)
       if (gameStatus === 'live' || gameStatus === 'halftime' || gameStatus === 'final') {
-        const statsResponse = await fetchWithRetry(
-          `https://api.balldontlie.io/nfl/v1/stats?game_ids[]=${game.id}`,
-          { headers: { 'Authorization': apiKey } }
-        )
+        // Fetch all pages of player stats using cursor pagination
+        let allPlayerStats: any[] = []
+        let cursor: number | null = null
+        let pageCount = 0
         
-        if (!statsResponse.ok) {
-          console.error(`Failed to fetch stats for game ${game.id}`)
-          continue
-        }
+        do {
+          const url = cursor 
+            ? `https://api.balldontlie.io/nfl/v1/stats?game_ids[]=${game.id}&cursor=${cursor}`
+            : `https://api.balldontlie.io/nfl/v1/stats?game_ids[]=${game.id}`
+          
+          const statsResponse = await fetchWithRetry(url, { headers: { 'Authorization': apiKey } })
+          
+          if (!statsResponse.ok) {
+            console.error(`Failed to fetch stats for game ${game.id} (page ${pageCount + 1})`)
+            break
+          }
+          
+          const statsData = await statsResponse.json()
+          allPlayerStats = allPlayerStats.concat(statsData.data || [])
+          cursor = statsData.meta?.next_cursor || null
+          pageCount++
+          
+          console.log(`Game ${game.id}: Fetched page ${pageCount} (${statsData.data?.length || 0} players, next_cursor: ${cursor})`)
+        } while (cursor)
         
-        const statsData = await statsResponse.json()
+        console.log(`Game ${game.id}: Total ${allPlayerStats.length} player stats across ${pageCount} pages`)
         
-        for (const playerStat of statsData.data || []) {
-          const { data: playerCard } = await supabase
+        for (const playerStat of allPlayerStats) {
+          // Try to match by player_id first
+          let { data: playerCard } = await supabase
             .from('player_cards')
-            .select('id')
+            .select('id, player_id')
             .eq('player_id', playerStat.player.id.toString())
             .single()
+          
+          // If not found by ID, try matching by name + team
+          if (!playerCard && playerStat.player.first_name && playerStat.player.last_name) {
+            const fullName = `${playerStat.player.first_name} ${playerStat.player.last_name}`
+            const teamAbbr = playerStat.team.abbreviation
+            
+            const { data: playerByName } = await supabase
+              .from('player_cards')
+              .select('id, player_id, player_name')
+              .eq('team_abbreviation', teamAbbr)
+              .ilike('player_name', fullName)
+              .single()
+            
+            if (playerByName) {
+              playerCard = playerByName
+              console.log(`Matched by name: ${fullName} (API ID: ${playerStat.player.id}, DB ID: ${playerByName.player_id})`)
+            }
+          }
           
           if (!playerCard) continue
 

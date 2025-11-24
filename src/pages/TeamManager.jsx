@@ -27,15 +27,17 @@ function getBaselineProjection(position) {
 }
 
 export default function TeamManager() {
-  const { user, profile, teams, activeTeam: initialActiveTeam, inventory: contextInventory, loadInventory: reloadInventoryFromContext, projections: contextProjections, liveGameData: contextLiveGameData, currentWeek: contextCurrentWeek } = useOutletContext();
+  const { user, profile, teams, activeTeam: initialActiveTeam, inventory: contextInventory, updateInventory, loadInventory: reloadInventoryFromContext, projections: contextProjections, liveGameData: contextLiveGameData, currentWeek: contextCurrentWeek } = useOutletContext();
   const navigate = useNavigate();
   const revalidator = useRevalidator();
   const location = useLocation();
   const isMobile = useIsMobile();
   
-  // Team & Inventory state - use context inventory as primary source (always fresh)
+  // Team state
   const [activeTeam, setActiveTeam] = useState(initialActiveTeam);
-  const [inventory, setInventory] = useState(contextInventory || { players: [], tokens: [] });
+  
+  // Use context inventory directly - SINGLE SOURCE OF TRUTH
+  const inventory = contextInventory || { players: [], tokens: [] };
 
   // Handle case where user is null (loader error or not logged in)
   useEffect(() => {
@@ -51,14 +53,10 @@ export default function TeamManager() {
     }
   }, [initialActiveTeam?.id]); // Only depend on the ID to detect actual team changes
   
-  // Update inventory when context inventory changes (e.g., after pack opening)
+  // Reload lineup when context inventory changes (e.g., after pack opening, team switch)
   useEffect(() => {
-    if (contextInventory && contextInventory.players) {
-      setInventory(contextInventory);
-      
-      // Reload lineup from new inventory
-      const startingPlayers = contextInventory.players.filter(p => p.is_in_lineup);
-      const bench = contextInventory.players.filter(p => !p.is_in_lineup);
+    if (inventory && inventory.players) {
+      const startingPlayers = inventory.players.filter(p => p.is_in_lineup);
       
       const newLineup = {
         QB: null,
@@ -69,7 +67,7 @@ export default function TeamManager() {
         WR3: null,
         TE: null,
         FLEX: null,
-        BENCH: bench
+        SUPERFLEX: null
       };
       
       startingPlayers.forEach(player => {
@@ -79,12 +77,10 @@ export default function TeamManager() {
       });
       
       setLineup(newLineup);
-      
-      // Projections now come from FantasyContext via outlet
     }
-  }, [contextInventory]);
+  }, [inventory]);
   
-  // Lineup state
+  // Lineup state - NO BENCH array, derive from inventory
   const [lineup, setLineup] = useState({
     QB: null,
     RB1: null,
@@ -94,8 +90,7 @@ export default function TeamManager() {
     WR3: null,
     TE: null,
     FLEX: null,
-    SUPERFLEX: null,
-    BENCH: []
+    SUPERFLEX: null
   });
   
   // View mode state
@@ -217,80 +212,16 @@ export default function TeamManager() {
   };
 
   // REMOVED: loadLiveGameData - now using shared FantasyContext data
-
-  // Load inventory when active team changes (simplified - projections from context)
-  const loadInventory = useCallback(async () => {
-    if (!activeTeam) return;
-    
-    try {
-      setError('');
-      const data = await getUserInventory(user?.id, activeTeam.id);
-      setInventory(data);
-      
-      // Load lineup from inventory
-      const startingPlayers = data.players.filter(p => p.is_in_lineup);
-      const bench = data.players.filter(p => !p.is_in_lineup);
-      
-      const newLineup = {
-        QB: null,
-        RB1: null,
-        RB2: null,
-        WR1: null,
-        WR2: null,
-        WR3: null,
-        TE: null,
-        FLEX: null,
-        BENCH: bench
-      };
-      
-      startingPlayers.forEach(player => {
-        if (player.lineup_position) {
-          newLineup[player.lineup_position] = player;
-        }
-      });
-      
-      setLineup(newLineup);
-      
-      // Projections and game data now come from FantasyContext
-    } catch (err) {
-      console.error('Error loading inventory:', err);
-      setError('Failed to load inventory');
-    }
-  }, [user?.id, activeTeam]);
-
-  // Sync lineup when context inventory changes
-  useEffect(() => {
-    if (contextInventory && contextInventory.players) {
-      const startingPlayers = contextInventory.players.filter(p => p.is_in_lineup);
-      const bench = contextInventory.players.filter(p => !p.is_in_lineup);
-      
-      const newLineup = {
-        QB: null,
-        RB1: null,
-        RB2: null,
-        WR1: null,
-        WR2: null,
-        WR3: null,
-        TE: null,
-        FLEX: null,
-        BENCH: bench
-      };
-      
-      startingPlayers.forEach(player => {
-        if (player.lineup_position) {
-          newLineup[player.lineup_position] = player;
-        }
-      });
-      
-      setLineup(newLineup);
-    }
-  }, [contextInventory]);
+  // REMOVED: loadInventory - now handled by context only
 
   // REMOVED: useEffect for auth redirect - handled by loader
   // REMOVED: useEffect for loading teams - handled by loader
   // REMOVED: useEffect for loading inventory on activeTeam change - now manual
   // REMOVED: Live game data subscriptions - handled by FantasyContext globally
   // REMOVED: Projection loading - now using shared FantasyContext data
+
+  // Derive bench players from inventory (no BENCH in lineup state)
+  const benchPlayers = inventory?.players?.filter(p => !p.is_in_lineup) || [];
 
   // Drag and Drop Handlers for Players
   const handlePlayerDragStart = (e, player, source) => {
@@ -414,8 +345,8 @@ export default function TeamManager() {
     
     // Validate position (FLEX can accept RB, WR, TE)
     const isValidPosition = 
-      targetSlot === 'BENCH' ||
       (targetSlot === 'FLEX' && ['RB', 'WR', 'TE'].includes(playerPosAbbr)) ||
+      (targetSlot === 'SUPERFLEX') || // SUPERFLEX accepts any position
       (targetSlot.startsWith(playerPosAbbr));
     
     if (!isValidPosition) {
@@ -437,8 +368,8 @@ export default function TeamManager() {
             .update({ applied_to_player_id: null, is_active: false })
             .eq('id', appliedToken.id);
           
-          // Update token inventory locally
-          setInventory(prev => ({
+          // Update token inventory via context
+          updateInventory(prev => ({
             ...prev,
             tokens: prev.tokens.map(token => 
               token.id === appliedToken.id 
@@ -454,24 +385,21 @@ export default function TeamManager() {
     };
     
     try {
-      // Remove player from source and handle token removal
+      // Remove player from source
       if (source === 'BENCH' || source === 'INVENTORY') {
         // Player is coming from bench/inventory - no action needed on source
-        // Inventory state will be updated below
       } else {
-        // Player is being moved from a lineup slot - remove token if moving to bench
-        if (targetSlot === 'BENCH') {
-          await handleTokenRemoval(player);
-        }
+        // Player is being moved from a lineup slot
         newLineup[source] = null;
       }
       
-      // If target slot is occupied, swap to bench and remove token from swapped player
-      if (newLineup[targetSlot] && targetSlot !== 'BENCH') {
+      // If target slot is occupied, remove token from displaced player
+      if (newLineup[targetSlot]) {
         await handleTokenRemoval(newLineup[targetSlot]);
         const swappedPlayer = newLineup[targetSlot];
+        
         // Update inventory to mark swapped player as not in lineup
-        setInventory(prev => ({
+        updateInventory(prev => ({
           ...prev,
           players: prev.players.map(p => 
             p.id === swappedPlayer.id 
@@ -481,33 +409,22 @@ export default function TeamManager() {
         }));
       }
       
-      // Place player in target
-      if (targetSlot === 'BENCH') {
-        newLineup[targetSlot] = null; // Ensure target is null if moving to bench
-        // Update inventory to mark player as not in lineup
-        setInventory(prev => ({
-          ...prev,
-          players: prev.players.map(p => 
-            p.id === player.id 
-              ? { ...p, is_in_lineup: false, lineup_position: null }
-              : p
-          )
-        }));
-      } else {
-        newLineup[targetSlot] = player;
-        // Update inventory to mark player as in lineup
-        setInventory(prev => ({
-          ...prev,
-          players: prev.players.map(p => 
-            p.id === player.id 
-              ? { ...p, is_in_lineup: true, lineup_position: targetSlot }
-              : p
-          )
-        }));
-        // Clear filter if player was dropped into a filtered position
-        if (benchFilterPosition && targetSlot === benchFilterPosition) {
-          setBenchFilterPosition(null);
-        }
+      // Place player in target slot
+      newLineup[targetSlot] = player;
+      
+      // Update inventory to mark player as in lineup
+      updateInventory(prev => ({
+        ...prev,
+        players: prev.players.map(p => 
+          p.id === player.id 
+            ? { ...p, is_in_lineup: true, lineup_position: targetSlot }
+            : p
+        )
+      }));
+      
+      // Clear filter if player was dropped into a filtered position
+      if (benchFilterPosition && targetSlot === benchFilterPosition) {
+        setBenchFilterPosition(null);
       }
       
       setLineup(newLineup);
@@ -573,8 +490,8 @@ export default function TeamManager() {
         })
         .eq('id', tokenToUse.id);
       
-      // Update token inventory locally instead of calling loadInventory
-      setInventory(prev => ({
+      // Update token inventory via context
+      updateInventory(prev => ({
         ...prev,
         tokens: prev.tokens.map(token => 
           token.id === tokenToUse.id 
@@ -601,10 +518,9 @@ export default function TeamManager() {
 
   // Handle one-click token application from filtered list
   const handleApplyTokenToPlayer = async (token, playerId) => {
-    // Find the player
-    const player = [...Object.values(lineup), ...lineup.BENCH]
-      .flat()
-      .find(p => p && p.id === playerId);
+    // Find the player in lineup or bench
+    const allPlayers = [...Object.values(lineup).filter(p => p && typeof p === 'object'), ...benchPlayers];
+    const player = allPlayers.find(p => p && p.id === playerId);
     
     if (!player || player.is_locked) {
       setError('Cannot apply token to locked player');
@@ -628,8 +544,8 @@ export default function TeamManager() {
         })
         .eq('id', token.id);
       
-      // Update token inventory locally
-      setInventory(prev => ({
+      // Update token inventory via context
+      updateInventory(prev => ({
         ...prev,
         tokens: prev.tokens.map(t => 
           t.id === token.id 
@@ -672,7 +588,7 @@ export default function TeamManager() {
       // Get all player IDs currently in starting lineup
       const lineupPlayerIds = new Set();
       Object.entries(lineup).forEach(([position, player]) => {
-        if (player && position !== 'BENCH') {
+        if (player) {
           lineupPlayerIds.add(player.id);
           updates.push({
             id: player.id,
@@ -904,8 +820,8 @@ export default function TeamManager() {
         .update({ applied_to_player_id: null, is_active: false })
         .eq('id', tokenId);
       
-      // Update token inventory locally instead of calling loadInventory
-      setInventory(prev => ({
+      // Update token inventory via context
+      updateInventory(prev => ({
         ...prev,
         tokens: prev.tokens.map(token => 
           token.id === tokenId 
@@ -999,7 +915,7 @@ export default function TeamManager() {
     if (!tokenFilterPlayerId) return null;
     
     // Search in lineup and bench
-    const allPlayers = [...Object.values(lineup).filter(p => p && typeof p === 'object'), ...lineup.BENCH].flat();
+    const allPlayers = [...Object.values(lineup).filter(p => p && typeof p === 'object'), ...benchPlayers];
     return allPlayers.find(p => p && p.id === tokenFilterPlayerId);
   };
 
@@ -1029,10 +945,7 @@ export default function TeamManager() {
     
     const newLineup = { ...lineup };
     
-    // Remove player from bench
-    newLineup.BENCH = newLineup.BENCH.filter(p => p.id !== player.id);
-    
-    // If target slot is occupied, swap to bench and remove token from swapped player
+    // If target slot is occupied, remove token from swapped player
     if (newLineup[targetPosition]) {
       const swappedPlayer = newLineup[targetPosition];
       const appliedToken = inventory?.tokens?.find(t => t.applied_to_player_id === swappedPlayer.id && t.is_active);
@@ -1044,8 +957,8 @@ export default function TeamManager() {
             .update({ applied_to_player_id: null, is_active: false })
             .eq('id', appliedToken.id);
           
-          // Update token inventory locally
-          setInventory(prev => ({
+          // Update token inventory via context
+          updateInventory(prev => ({
             ...prev,
             tokens: prev.tokens.map(token => 
               token.id === appliedToken.id 
@@ -1060,9 +973,6 @@ export default function TeamManager() {
           return;
         }
       }
-      
-      // Add swapped player to bench
-      newLineup.BENCH = [...newLineup.BENCH, swappedPlayer];
     }
     
     // Place player in target position
@@ -1071,24 +981,21 @@ export default function TeamManager() {
     // Update lineup state
     setLineup(newLineup);
     
-    // Update inventory to reflect is_in_lineup changes immediately
-    setInventory(prev => ({
+    // Update inventory to reflect is_in_lineup changes via context
+    updateInventory(prev => ({
       ...prev,
       players: prev.players.map(p => {
         if (p.id === player.id) {
           // Player being added to lineup
           return { ...p, is_in_lineup: true, lineup_position: targetPosition };
         }
-        if (newLineup.BENCH.find(bp => bp.id === p.id) && p.id !== player.id) {
-          // Player being swapped to bench
+        // Swapped player automatically becomes bench (is_in_lineup = false)
+        if (newLineup[targetPosition] && p.id !== player.id && Object.values(newLineup).find(lp => lp?.id === p.id) === undefined) {
           return { ...p, is_in_lineup: false, lineup_position: null };
         }
         return p;
       })
     }));
-    
-    // Save to database (will be triggered by auto-save via useEffect)
-    // The handleSaveLineup will run automatically after lineup state updates
     
     setBenchFilterPosition(null); // Clear the filter after moving
   };
@@ -1199,15 +1106,10 @@ export default function TeamManager() {
     }
     
     const updatedLineup = { ...lineup };
+    const swappedPlayer = updatedLineup[slotKey];
     
-    // Remove player from bench
-    updatedLineup.BENCH = updatedLineup.BENCH.filter(p => p.id !== benchPlayer.id);
-    
-    // If slot has a player, swap them to bench
-    if (updatedLineup[slotKey]) {
-      const swappedPlayer = updatedLineup[slotKey];
-      
-      // Remove any token from swapped player before moving to bench
+    // If slot has a player, remove their token before swapping
+    if (swappedPlayer) {
       const appliedToken = inventory?.tokens?.find(t => t.applied_to_player_id === swappedPlayer.id && t.is_active);
       
       if (appliedToken) {
@@ -1217,8 +1119,8 @@ export default function TeamManager() {
             .update({ applied_to_player_id: null, is_active: false })
             .eq('id', appliedToken.id);
           
-          // Update token inventory locally
-          setInventory(prev => ({
+          // Update token inventory via context
+          updateInventory(prev => ({
             ...prev,
             tokens: prev.tokens.map(token => 
               token.id === appliedToken.id 
@@ -1230,8 +1132,6 @@ export default function TeamManager() {
           console.error('Error removing token from swapped player:', err);
         }
       }
-      
-      updatedLineup.BENCH.push(swappedPlayer);
     }
     
     // Place bench player in lineup slot
@@ -1239,14 +1139,14 @@ export default function TeamManager() {
     
     setLineup(updatedLineup);
     
-    // Update inventory to reflect lineup changes
-    setInventory(prev => ({
+    // Update inventory to reflect lineup changes via context
+    updateInventory(prev => ({
       ...prev,
       players: prev.players.map(p => {
         if (p.id === benchPlayer.id) {
           return { ...p, is_in_lineup: true, lineup_position: slotKey };
         }
-        if (updatedLineup.BENCH.find(bp => bp.id === p.id)) {
+        if (swappedPlayer && p.id === swappedPlayer.id) {
           return { ...p, is_in_lineup: false, lineup_position: null };
         }
         return p;
@@ -1268,11 +1168,23 @@ export default function TeamManager() {
     const { currentPlayer, slotKey } = playerSwapModal;
     if (!currentPlayer || !benchPlayer || !slotKey) return;
 
-    // Move current player to bench
+    // Swap: put bench player in lineup, current player goes to bench
     const updatedLineup = { ...lineup };
     updatedLineup[slotKey] = benchPlayer;
-    updatedLineup.BENCH = updatedLineup.BENCH.filter(p => p.id !== benchPlayer.id);
-    updatedLineup.BENCH.push(currentPlayer);
+    
+    // Update inventory via context
+    updateInventory(prev => ({
+      ...prev,
+      players: prev.players.map(p => {
+        if (p.id === benchPlayer.id) {
+          return { ...p, is_in_lineup: true, lineup_position: slotKey };
+        }
+        if (p.id === currentPlayer.id) {
+          return { ...p, is_in_lineup: false, lineup_position: null };
+        }
+        return p;
+      })
+    }));
     
     setLineup(updatedLineup);
     
@@ -1294,7 +1206,7 @@ export default function TeamManager() {
     const position = currentPlayer.player_card.position;
     
     // Filter bench players by position compatibility
-    return lineup.BENCH.filter(benchPlayer => {
+    return benchPlayers.filter(benchPlayer => {
       // Check position compatibility
       if (slotKey === 'QB') return benchPlayer.player_card.position === 'Quarterback';
       if (slotKey === 'TE') return benchPlayer.player_card.position === 'Tight End';
@@ -1328,9 +1240,7 @@ export default function TeamManager() {
     if (!token) return [];
     
     // Get all lineup players (not bench)
-    const lineupPlayers = Object.entries(lineup)
-      .filter(([key, player]) => key !== 'BENCH' && player)
-      .map(([_, player]) => player);
+    const lineupPlayers = Object.values(lineup).filter(p => p && typeof p === 'object');
     
     return lineupPlayers.filter(player => {
       // Check if player is locked
@@ -1392,23 +1302,27 @@ export default function TeamManager() {
     }
     
     const newLineup = { ...lineup };
-    
-    // Remove player from bench if exists there
-    newLineup.BENCH = newLineup.BENCH.filter(p => p.id !== player.id);
-    
-    // If target slot is occupied, swap to bench
-    if (newLineup[position] && position !== 'BENCH') {
-      newLineup.BENCH = [...newLineup.BENCH, newLineup[position]];
-    }
+    const swappedPlayer = newLineup[position];
     
     // Place player in target position
-    if (position === 'BENCH') {
-      newLineup.BENCH = [...newLineup.BENCH, player];
-    } else {
-      newLineup[position] = player;
-    }
+    newLineup[position] = player;
     
     setLineup(newLineup);
+    
+    // Update inventory via context
+    updateInventory(prev => ({
+      ...prev,
+      players: prev.players.map(p => {
+        if (p.id === player.id) {
+          return { ...p, is_in_lineup: true, lineup_position: position };
+        }
+        if (swappedPlayer && p.id === swappedPlayer.id) {
+          return { ...p, is_in_lineup: false, lineup_position: null };
+        }
+        return p;
+      })
+    }));
+    
     setPlayerSelectionModal({ isOpen: false, position: null, slotKey: null });
   };
 
@@ -1426,8 +1340,8 @@ export default function TeamManager() {
           .update({ applied_to_player_id: null, is_active: false })
           .eq('id', appliedToken.id);
         
-        // Update token inventory locally instead of calling loadInventory
-        setInventory(prev => ({
+        // Update token inventory via context
+        updateInventory(prev => ({
           ...prev,
           tokens: prev.tokens.map(token => 
             token.id === appliedToken.id 
@@ -1448,8 +1362,8 @@ export default function TeamManager() {
     
     setLineup(newLineup);
     
-    // Update inventory to mark player as not in lineup
-    setInventory(prev => ({
+    // Update inventory to mark player as not in lineup via context
+    updateInventory(prev => ({
       ...prev,
       players: prev.players.map(p => 
         p.id === player.id 
