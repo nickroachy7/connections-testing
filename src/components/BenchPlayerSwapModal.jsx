@@ -214,7 +214,7 @@ export default function BenchPlayerSwapModal({
                   <span className="text-red-400 font-bold">🔴 LIVE</span>
                 )}
                 {gameData.gameStatus === 'final' && (
-                  <span className="text-green-400 font-bold">✓ FINAL</span>
+                  <span className="text-primary-black-400">Final</span>
                 )}
                 {/* Matchup and time */}
                 {gameData.gameStartTime && gameData.gameStatus === 'scheduled' && (

@@ -7,7 +7,7 @@ import { useLineupStats } from '../hooks/fantasy/useLineupStats';
 
 const FantasyContext = createContext(null);
 
-export function FantasyProvider({ children, user, activeTeam }) {
+export function FantasyProvider({ children, user, activeTeam, initialInventory }) {
   // Track previous team ID to detect team changes BEFORE render
   const prevTeamIdRef = useRef(null);
   const isTeamChanging = prevTeamIdRef.current !== null && prevTeamIdRef.current !== activeTeam?.id;
@@ -29,8 +29,8 @@ export function FantasyProvider({ children, user, activeTeam }) {
   // Current week - initialize immediately
   const [currentWeek, setCurrentWeek] = useState(null);
   
-  // Inventory state - initialize with empty structure to prevent null errors
-  const [inventory, setInventory] = useState({ players: [], tokens: [] });
+  // Inventory state - initialize with loader data to prevent API call
+  const [inventory, setInventory] = useState(initialInventory || { players: [], tokens: [] });
   
   // Loading states
   const [loading, setLoading] = useState(true);
@@ -62,16 +62,13 @@ export function FantasyProvider({ children, user, activeTeam }) {
     loadCurrentWeek();
   }, []); // Run once on mount
 
-  // Clear ALL data when switching teams to prevent stale data flash
+  // Sync inventory when initialInventory changes (team switch or revalidation)
   useEffect(() => {
-    console.log('🔄 [FantasyContext] Active team changed, clearing ALL data. Team:', activeTeam?.team_name, 'Week:', activeTeam?.current_week);
-    // Clear everything to prevent any stale data from showing during team switch
-    setLiveGameData(new Map());
-    setProjections(new Map());
-    setLineup(createEmptyLineup());
-    setInventory({ players: [], tokens: [] });
-    setLoading(true); // Set loading state while switching
-  }, [activeTeam?.id]); // Clear when team changes
+    if (initialInventory && initialInventory.players) {
+      console.log('🔄 [FantasyContext] Syncing inventory from loader:', initialInventory.players.length, 'players');
+      setInventory(initialInventory);
+    }
+  }, [initialInventory]);
 
   // Load live game data
   const loadLiveGameData = useCallback(async (inventoryData = null) => {
@@ -184,10 +181,50 @@ export function FantasyProvider({ children, user, activeTeam }) {
             currentPoints: stat.fantasy_points || 0,
             stats: stat.stats,
             lastUpdated: stat.last_updated,
-            weekNumber: teamWeek // Add week number for validation
+            weekNumber: teamWeek,
+            homeTeam: game.home_team,
+            awayTeam: game.away_team,
+            homeScore: game.home_score,
+            awayScore: game.away_score,
+            gameStartTime: game.game_start_time
           });
         }
       });
+      
+      // Also add game info for all players whose teams have games (even without stats)
+      if (playersData && playersData.length > 0) {
+        for (const playerCard of playersData) {
+          // Skip if we already have data for this player
+          if (gameDataMap.has(playerCard.player_card.player_id)) continue;
+          
+          const playerTeamAbbr = playerCard.player_card.team_abbreviation;
+          
+          // Find if this player's team has a game this week
+          const teamGame = displayGames.find(g => 
+            g.home_team === playerTeamAbbr || g.away_team === playerTeamAbbr
+          );
+          
+          if (teamGame) {
+            const isHome = teamGame.home_team === playerTeamAbbr;
+            const opponent = isHome ? teamGame.away_team : teamGame.home_team;
+            
+            gameDataMap.set(playerCard.player_card.player_id, {
+              gameStatus: teamGame.game_status,
+              currentPoints: 0,
+              quarter: teamGame.quarter,
+              timeRemaining: teamGame.time_remaining,
+              gameStartTime: teamGame.game_start_time,
+              homeTeam: teamGame.home_team,
+              awayTeam: teamGame.away_team,
+              homeScore: teamGame.home_score,
+              awayScore: teamGame.away_score,
+              opponent: opponent,
+              isHome: isHome,
+              weekNumber: teamWeek
+            });
+          }
+        }
+      }
       
       setLiveGameData(gameDataMap);
       console.log('🎮 [FantasyContext] Live game data loaded:', gameDataMap.size, 'players');
@@ -196,7 +233,53 @@ export function FantasyProvider({ children, user, activeTeam }) {
     }
   }, [currentWeek]); // Include currentWeek as dependency
 
-  // Load inventory and lineup
+  // Helper: Load projections and game data (without fetching inventory)
+  const loadProjectionsAndGameData = useCallback(async (inventoryData) => {
+    if (!currentWeek || !inventoryData?.players) return;
+    
+    try {
+      const isSimulated = false;
+      const { data: projectionsData, error: projError } = await supabase
+        .from('weekly_projections')
+        .select('*')
+        .eq('week_number', currentWeek.week)
+        .eq('season_year', currentWeek.year)
+        .eq('is_simulated', isSimulated);
+      
+      if (projError) console.error('Error loading projections:', projError);
+      
+      const dbProjections = new Map();
+      inventoryData.players.forEach(p => {
+        const weeklyProj = projectionsData?.find(proj => proj.player_card_id === p.player_card_id);
+        if (weeklyProj) {
+          dbProjections.set(p.player_card.player_id, {
+            projected: weeklyProj.projected_points || 0,
+            seasonAvg: weeklyProj.season_average || 0,
+            gamesPlayed: weeklyProj.games_played || 0,
+            injuryStatus: p.player_card.injury_status || 'healthy',
+            isFromDatabase: true
+          });
+        } else {
+          const baseline = getBaselineProjection(p.player_card.position);
+          dbProjections.set(p.player_card.player_id, {
+            projected: baseline,
+            seasonAvg: baseline,
+            gamesPlayed: 0,
+            injuryStatus: p.player_card.injury_status || 'healthy',
+            isFromDatabase: false
+          });
+        }
+      });
+      setProjections(dbProjections);
+      await loadLiveGameData(inventoryData);
+      setLoading(false);
+    } catch (err) {
+      console.error('Error loading projections:', err);
+      setLoading(false);
+    }
+  }, [currentWeek?.week, currentWeek?.year]);
+
+  // Load inventory and lineup (only called when explicitly needed, e.g., after pack opening)
   const loadInventory = useCallback(async () => {
     if (!user?.id || !activeTeam?.id) {
       console.log('⏸️ [FantasyContext] No user or active team');
@@ -205,7 +288,7 @@ export function FantasyProvider({ children, user, activeTeam }) {
     }
     
     try {
-      console.log('📦 [FantasyContext] Loading inventory for team:', activeTeam.id);
+      console.log('📦 [FantasyContext] Reloading inventory from API for team:', activeTeam.id);
       const data = await getUserInventory(user.id, activeTeam.id);
       setInventory(data);
       
@@ -221,77 +304,36 @@ export function FantasyProvider({ children, user, activeTeam }) {
       });
       
       setLineup(newLineup);
-      console.log('✅ [FantasyContext] Lineup loaded');
+      console.log('✅ [FantasyContext] Lineup reloaded from API');
       
-      // Load projections from database
-      if (currentWeek) {
-        const isSimulated = false; // We're in real NFL mode
-        
-        console.log('📊 [FantasyContext] Loading projections for week:', currentWeek.week);
-        
-        const { data: projectionsData, error: projError } = await supabase
-          .from('weekly_projections')
-          .select('*')
-          .eq('week_number', currentWeek.week)
-          .eq('season_year', currentWeek.year)
-          .eq('is_simulated', isSimulated);
-        
-        if (projError) {
-          console.error('Error loading projections:', projError);
-        }
-        
-        const dbProjections = new Map();
-        
-        data.players.forEach(p => {
-          const weeklyProj = projectionsData?.find(
-            proj => proj.player_card_id === p.player_card_id
-          );
-          
-          if (weeklyProj) {
-            const seasonAvg = weeklyProj.season_average || 0;
-            const gamesPlayed = weeklyProj.games_played || 0;
-            
-            dbProjections.set(p.player_card.player_id, {
-              projected: weeklyProj.projected_points || 0,
-              seasonAvg: seasonAvg,
-              gamesPlayed: gamesPlayed,
-              injuryStatus: p.player_card.injury_status || 'healthy',
-              isFromDatabase: true
-            });
-          } else {
-            // Fallback to baseline if no projection exists
-            const baseline = getBaselineProjection(p.player_card.position);
-            
-            dbProjections.set(p.player_card.player_id, {
-              projected: baseline,
-              seasonAvg: baseline,
-              gamesPlayed: 0,
-              injuryStatus: p.player_card.injury_status || 'healthy',
-              isFromDatabase: false
-            });
-          }
-        });
-        
-        setProjections(dbProjections);
-        console.log('⚡ [FantasyContext] Projections loaded:', dbProjections.size, 'players', isSimulated ? '(SIMULATED)' : '(REAL)');
-      }
-      
-      // Load live game data
-      await loadLiveGameData(data);
-      
-      setLoading(false);
+      // Reload projections and game data
+      await loadProjectionsAndGameData(data);
     } catch (err) {
-      console.error('Error loading inventory:', err);
+      console.error('Error reloading inventory:', err);
       setLoading(false);
     }
-  }, [user?.id, activeTeam?.id, currentWeek?.week, currentWeek?.year]); // Use primitive values
+  }, [user?.id, activeTeam?.id, currentWeek?.week, currentWeek?.year, loadProjectionsAndGameData]);
 
-  // Initial load
-  // Initial load
+  // Load projections and game data from initial inventory on mount
   useEffect(() => {
-    if (!user?.id || !activeTeam?.id) return;
-    loadInventory();
-  }, [user?.id, activeTeam?.id]); // Direct dependencies only
+    if (!user?.id || !activeTeam?.id || !currentWeek || !inventory?.players?.length) return;
+    
+    console.log('📊 [FantasyContext] Initial setup with loader data:', inventory.players.length, 'players');
+    
+    // Build lineup from inventory
+    const newLineup = createEmptyLineup();
+    inventory.players.forEach(player => {
+      if (player.is_in_lineup && player.lineup_position) {
+        newLineup[player.lineup_position] = player;
+      } else if (!player.is_in_lineup) {
+        newLineup.BENCH.push(player);
+      }
+    });
+    setLineup(newLineup);
+    
+    // Load projections and game data from inventory
+    loadProjectionsAndGameData(inventory);
+  }, [currentWeek?.week, inventory?.players?.length, loadProjectionsAndGameData]); // Trigger when week OR inventory changes
 
   // Subscribe to live updates
   useEffect(() => {
@@ -406,7 +448,8 @@ export function FantasyProvider({ children, user, activeTeam }) {
 FantasyProvider.propTypes = {
   children: PropTypes.node.isRequired,
   user: PropTypes.object,
-  activeTeam: PropTypes.object
+  activeTeam: PropTypes.object,
+  initialInventory: PropTypes.object
 };
 
 export function useFantasy() {

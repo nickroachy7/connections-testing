@@ -57,10 +57,10 @@ function FantasyLayoutInner() {
 // Outer component that provides the context
 export default function FantasyLayout() {
   const loaderData = useLoaderData();
-  const { user, activeTeam } = loaderData;
+  const { user, activeTeam, inventory } = loaderData;
 
   return (
-    <FantasyProvider user={user} activeTeam={activeTeam}>
+    <FantasyProvider user={user} activeTeam={activeTeam} initialInventory={inventory}>
       <FantasyLayoutInner />
     </FantasyProvider>
   );

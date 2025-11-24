@@ -356,11 +356,11 @@ const PlayerTableRow = ({
           )}
           {/* Final game - show result, score, opponent */}
           {!player.isBye && player.gameStatus === 'final' && (
-            <span className="text-primary-black-50 font-semibold">
+            <span className="text-primary-black-400">
               {(() => {
                 if (player.homeScore === undefined || player.awayScore === undefined) {
                   const opponent = player.opponent || (player.isHome ? player.awayTeam : player.homeTeam);
-                  return `FINAL${opponent ? ` ${player.isHome ? 'vs' : '@'} ${opponent}` : ''}`;
+                  return `Final${opponent ? ` ${player.isHome ? 'vs' : '@'} ${opponent}` : ''}`;
                 }
                 const playerScore = player.isHome ? player.homeScore : player.awayScore;
                 const opponentScore = player.isHome ? player.awayScore : player.homeScore;
@@ -369,7 +369,7 @@ const PlayerTableRow = ({
                 const resultColor = result === 'W' ? 'text-green-400' : result === 'L' ? 'text-red-400' : 'text-yellow-400';
                 return (
                   <>
-                    FINAL <span className={resultColor}>{result}</span> {playerScore}-{opponentScore}{opponent ? ` ${player.isHome ? 'vs' : '@'} ${opponent}` : ''}
+                    Final <span className={resultColor}>{result}</span> {playerScore}-{opponentScore}{opponent ? ` ${player.isHome ? 'vs' : '@'} ${opponent}` : ''}
                   </>
                 );
               })()}
@@ -495,11 +495,11 @@ const PlayerTableRow = ({
                 )}
                 {/* Final game - show result, score, opponent */}
                 {player.gameStatus === 'final' && (
-                  <span className="text-primary-black-50 font-semibold">
+                  <span className="text-primary-black-400">
                     {(() => {
                       if (player.homeScore === undefined || player.awayScore === undefined) {
                         const opponent = player.opponent || (player.isHome ? player.awayTeam : player.homeTeam);
-                        return `FINAL${opponent ? ` ${player.isHome ? 'vs' : '@'} ${opponent}` : ''}`;
+                        return `Final${opponent ? ` ${player.isHome ? 'vs' : '@'} ${opponent}` : ''}`;
                       }
                       const playerScore = player.isHome ? player.homeScore : player.awayScore;
                       const opponentScore = player.isHome ? player.awayScore : player.homeScore;
@@ -508,7 +508,7 @@ const PlayerTableRow = ({
                       const resultColor = result === 'W' ? 'text-green-400' : result === 'L' ? 'text-red-400' : 'text-yellow-400';
                       return (
                         <>
-                          FINAL <span className={resultColor}>{result}</span> {playerScore}-{opponentScore}{opponent ? ` ${player.isHome ? 'vs' : '@'} ${opponent}` : ''}
+                          Final <span className={resultColor}>{result}</span> {playerScore}-{opponentScore}{opponent ? ` ${player.isHome ? 'vs' : '@'} ${opponent}` : ''}
                         </>
                       );
                     })()}

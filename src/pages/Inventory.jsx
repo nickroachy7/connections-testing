@@ -1,14 +1,15 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { getUserInventory, quickSellCard, supabase } from '../services/supabase';
+import { quickSellCard } from '../services/supabase';
 import { calculatePlayerSellValue, calculateTokenSellValue } from '../utils/sellValueCalculator';
 import InventoryPanel from '../components/InventoryPanel';
 import RosterLimitBanner from '../components/RosterLimitBanner';
 import RosterCount from '../components/RosterCount';
 
 export default function Inventory() {
-  const { user, profile, activeTeam, inventory: loaderInventory, refreshProfile } = useOutletContext();
-  const [inventory, setInventory] = useState(loaderInventory || { players: [], tokens: [] });
+  // Use shared data from FantasyContext via outlet
+  const { user, profile, activeTeam, inventory: contextInventory, refreshProfile, projections, liveGameData, currentWeek, loadInventory: reloadInventory } = useOutletContext();
+  const [inventory, setInventory] = useState(contextInventory || { players: [], tokens: [] });
   const [filters, setFilters] = useState({
     position: 'all',
     rarity: 'all',
@@ -18,240 +19,15 @@ export default function Inventory() {
   const [selling, setSelling] = useState({});
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [projections, setProjections] = useState(new Map());
-  const [loadingProjections, setLoadingProjections] = useState(false);
-  const [liveGameData, setLiveGameData] = useState(new Map());
-  const [currentWeek, setCurrentWeek] = useState(null);
   const [viewMode, setViewMode] = useState('list'); // 'list' or 'grid'
 
-  // Load live game data
-  const loadLiveGameData = useCallback(async (inventoryData = null) => {
-    console.log('🎮 Inventory loadLiveGameData called!');
-    try {
-      // Use passed inventory data or fall back to state
-      const playersData = inventoryData?.players || inventory?.players;
-      console.log('Players data available:', playersData?.length || 0);
-      
-      // Calculate current week
-      const today = new Date();
-      const seasonYear = today.getFullYear();
-      const weekNumber = Math.floor((today.getTime() - new Date(seasonYear, 8, 1).getTime()) / (7 * 24 * 60 * 60 * 1000)) + 1;
-      
-      setCurrentWeek({ week: weekNumber, year: seasonYear });
-      
-      // Load games for current week
-      const { data: gamesData, error: gamesError } = await supabase
-        .from('game_scores')
-        .select('*')
-        .eq('week_number', weekNumber)
-        .eq('season_year', seasonYear);
-      
-      console.log('Games query result:', { weekNumber, seasonYear, gamesCount: gamesData?.length, error: gamesError });
-      
-      if (gamesError) throw gamesError;
-      
-      // If no games found, log a warning
-      if (!gamesData || gamesData.length === 0) {
-        console.warn(`⚠️ No games found in database for Week ${weekNumber}, ${seasonYear}`);
-        setLiveGameData(new Map());
-        return;
-      }
-      
-      // Load player stats for current week
-      if (gamesData && gamesData.length > 0) {
-        const gameIds = gamesData.map(g => g.game_id);
-        
-        // Join player_game_stats with player_cards to get player_id
-        const { data: statsData, error: statsError } = await supabase
-          .from('player_game_stats')
-          .select(`
-            *,
-            player_cards!inner(player_id)
-          `)
-          .in('game_id', gameIds);
-        
-        if (statsError) {
-          console.error('Error loading player stats:', statsError);
-        }
-        
-        console.log('📊 Loaded stats for', statsData?.length || 0, 'player records');
-        
-        // Create a map of player_id -> game data for players with stats
-        const gameDataMap = new Map();
-        
-        statsData?.forEach(stat => {
-          const game = gamesData.find(g => g.game_id === stat.game_id);
-          if (game && stat.player_cards) {
-            const playerId = stat.player_cards.player_id;
-            
-            gameDataMap.set(playerId, {
-              gameStatus: game.game_status,
-              currentPoints: stat.fantasy_points || 0,
-              quarter: game.quarter,
-              timeRemaining: game.time_remaining,
-              gameStartTime: game.game_start_time,
-              homeTeam: game.home_team,
-              awayTeam: game.away_team,
-              homeScore: game.home_score,
-              awayScore: game.away_score
-            });
-          }
-        });
-        
-        // Also check for scheduled games and add player entries for those
-        if (playersData && playersData.length > 0) {
-          console.log('Processing', playersData.length, 'players for game matching');
-          console.log('Available games this week:', gamesData.length);
-          
-          for (const playerCard of playersData) {
-            // Skip if we already have data for this player
-            if (gameDataMap.has(playerCard.player_card.player_id)) continue;
-            
-            const playerTeamAbbr = playerCard.player_card.team_abbreviation;
-            
-            // Find if this player's team has a game this week
-            const teamGame = gamesData.find(g => 
-              g.home_team === playerTeamAbbr || g.away_team === playerTeamAbbr
-            );
-            
-            if (teamGame) {
-              const isHome = teamGame.home_team === playerTeamAbbr;
-              const opponent = isHome ? teamGame.away_team : teamGame.home_team;
-              
-              gameDataMap.set(playerCard.player_card.player_id, {
-                gameStatus: teamGame.game_status,
-                currentPoints: 0,
-                quarter: teamGame.quarter,
-                timeRemaining: teamGame.time_remaining,
-                gameStartTime: teamGame.game_start_time,
-                homeTeam: teamGame.home_team,
-                awayTeam: teamGame.away_team,
-                homeScore: teamGame.home_score,
-                awayScore: teamGame.away_score,
-                opponent: opponent,
-                isHome: isHome
-              });
-            }
-          }
-        }
-        
-        setLiveGameData(gameDataMap);
-        console.log('Live game data loaded:', gameDataMap.size, 'players with game data');
-      }
-    } catch (err) {
-      console.error('Error loading live game data:', err);
-    }
-  }, []);
-
-  const loadInventory = useCallback(async () => {
-    if (!user?.id || !activeTeam?.id) return;
-    
-    try {
-      setError('');
-      const data = await getUserInventory(user.id, activeTeam.id);
-      setInventory(data);
-      
-      // Calculate projections for all players - USE DATABASE PROJECTIONS (same as TeamManager)
-      if (data.players && data.players.length > 0) {
-        setLoadingProjections(true);
-        
-        // Create projections Map directly from database values (instant!)
-        const dbProjections = new Map();
-        data.players.forEach(p => {
-          if (p.player_card) {
-            // Parse numeric values from database (they come as strings)
-            // Use explicit null checks to preserve 0 values
-            const weeklyProjValue = p.player_card.weekly_projected_points != null ? parseFloat(p.player_card.weekly_projected_points) : null;
-            const projValue = p.player_card.projected_points != null ? parseFloat(p.player_card.projected_points) : null;
-            const weeklyProj = weeklyProjValue ?? projValue ?? getBaselineProjection(p.player_card.position);
-            
-            dbProjections.set(p.player_card.player_id, {
-              projected: weeklyProj,
-              source: weeklyProjValue != null ? 'weekly_db' : (projValue != null ? 'season_db' : 'baseline')
-            });
-          }
-        });
-        setProjections(dbProjections);
-        setLoadingProjections(false);
-      }
-      
-      // Load live game data after inventory is loaded
-      await loadLiveGameData(data);
-    } catch (err) {
-      console.error('Error loading inventory:', err);
-      setError('Failed to load inventory');
-      setLoadingProjections(false);
-    }
-  }, [user?.id, activeTeam?.id, loadLiveGameData]);
-  
-  // Helper function for baseline projections (same as TeamManager)
-  const getBaselineProjection = (position) => {
-    const baselines = {
-      'Quarterback': 18,
-      'Running Back': 12,
-      'Wide Receiver': 10,
-      'Tight End': 8,
-    };
-    return baselines[position] || 8;
-  };
-
-  // Load inventory when component mounts or activeTeam changes
+  // Sync inventory when context changes
   useEffect(() => {
-    if (user && activeTeam) {
-      loadInventory();
+    if (contextInventory && contextInventory.players) {
+      setInventory(contextInventory);
     }
-  }, [user, activeTeam?.id, loadInventory]);
+  }, [contextInventory]);
 
-  // Subscribe to live game updates - ONLY if we have a current week
-  useEffect(() => {
-    if (!user || !currentWeek) return;
-    
-    // Subscribe to game_scores changes
-    const gamesChannel = supabase
-      .channel('inventory-games')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'game_scores',
-          filter: `week_number=eq.${currentWeek.week}`
-        },
-        (payload) => {
-          console.log('Game score update in Inventory:', payload);
-          loadLiveGameData(inventory);
-        }
-      )
-      .subscribe();
-    
-    // Subscribe to player stats changes
-    const statsChannel = supabase
-      .channel('inventory-stats')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'player_game_stats'
-        },
-        (payload) => {
-          console.log('Player stats update in Inventory:', payload);
-          loadLiveGameData(inventory);
-        }
-      )
-      .subscribe();
-    
-    // Auto-refresh every 30 seconds
-    const interval = setInterval(() => {
-      loadLiveGameData(inventory);
-    }, 30000);
-    
-    return () => {
-      clearInterval(interval);
-      supabase.removeChannel(gamesChannel);
-      supabase.removeChannel(statsChannel);
-    };
-  }, [user, currentWeek]);
 
   const handleQuickSell = async (inventoryId, cardType, baseValue, skipConfirm = false) => {
     if (!skipConfirm && !window.confirm(`Are you sure you want to sell this card for ${baseValue} coins?`)) {
@@ -403,15 +179,15 @@ export default function Inventory() {
           {/* Inventory Panel Section */}
           <div className={error || success ? 'mt-0' : 'mt-3 sm:mt-6'}>
             <InventoryPanel
-              players={inventory.players}
-              tokens={inventory.tokens}
-              projections={projections}
-              loadingProjections={loadingProjections}
-              liveGameData={liveGameData}
+              players={inventory.players || []}
+              tokens={inventory.tokens || []}
+              projections={projections || new Map()}
+              loadingProjections={false}
+              liveGameData={liveGameData || new Map()}
               onQuickSell={handleQuickSell}
-              onBulkSellComplete={loadInventory}
+              onBulkSellComplete={reloadInventory}
               onReloadProfile={refreshProfile}
-              selling={selling}
+              selling={Object.keys(selling).length > 0}
               filters={filters}
               onFilterChange={setFilters}
               inventory={inventory}

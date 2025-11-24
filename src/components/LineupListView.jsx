@@ -150,7 +150,7 @@ export default function LineupListView({
                     )}
                     {/* Final game - show result, score, opponent */}
                     {gameStatus === 'final' && gameData && (
-                      <span className="text-primary-black-50 font-semibold">
+                      <span className="text-primary-black-400">
                         {(() => {
                           const playerScore = gameData.isHome ? gameData.homeScore : gameData.awayScore;
                           const opponentScore = gameData.isHome ? gameData.awayScore : gameData.homeScore;
@@ -159,7 +159,7 @@ export default function LineupListView({
                           const resultColor = result === 'W' ? 'text-green-400' : result === 'L' ? 'text-red-400' : 'text-yellow-400';
                           return (
                             <>
-                              FINAL <span className={resultColor}>{result}</span> {playerScore}-{opponentScore}{opponent ? ` ${gameData.isHome ? 'vs' : '@'} ${opponent}` : ''}
+                              Final <span className={resultColor}>{result}</span> {playerScore}-{opponentScore}{opponent ? ` ${gameData.isHome ? 'vs' : '@'} ${opponent}` : ''}
                             </>
                           );
                         })()}

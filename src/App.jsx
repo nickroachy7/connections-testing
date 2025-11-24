@@ -127,6 +127,16 @@ const router = createBrowserRouter([
         path: '/teams/:teamId',
         element: <FantasyLayout />,
         loader: teamManagerLoader,
+        // Prevent loader from rerunning when navigating between child routes (inventory, lineup, etc.)
+        // Only revalidate when teamId changes or when explicitly requested
+        shouldRevalidate: ({ currentParams, nextParams, defaultShouldRevalidate, formAction }) => {
+          // Always revalidate on form submissions
+          if (formAction) return true;
+          // Revalidate if teamId changes
+          if (currentParams.teamId !== nextParams.teamId) return true;
+          // Don't revalidate when just switching between child routes
+          return false;
+        },
         children: [
           {
             index: true,
