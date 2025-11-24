@@ -61,7 +61,7 @@ export default function LineupListView({
 
   const defaultClassName = (index, isLocked) => `
     grid transition-all min-h-[56px]
-    ${isLocked ? 'cursor-not-allowed opacity-60 bg-primary-black-900/60' : 'cursor-pointer'}
+    ${isLocked ? 'cursor-not-allowed opacity-60 bg-primary-black-900/60' : ''}
     ${index % 2 === 0 && !isLocked ? 'bg-primary-black-800/20' : !isLocked ? 'bg-primary-black-800/40' : ''}
   `;
 
@@ -79,17 +79,6 @@ export default function LineupListView({
         return (
           <div
             key={slot.key}
-            onClick={() => {
-              if (!isLocked) {
-                if (player && onPlayerClick) {
-                  // Filled slot - pass player and slot key to open swap modal
-                  onPlayerClick(player, slot.key);
-                } else if (!player && onPlayerClick) {
-                  // Empty slot - pass position to filter bench
-                  onPlayerClick(slot.key);
-                }
-              }
-            }}
             className={`${defaultClassName(index, isLocked)} py-2 px-2`}
             style={{ 
               gridTemplateColumns: '32px 40px 1fr 24px 60px',
@@ -97,8 +86,21 @@ export default function LineupListView({
               alignItems: 'center'
             }}
           >
-            {/* COLUMN 1: Position Badge - exact match to modal */}
-            <div className="flex items-center justify-center">
+            {/* COLUMN 1: Position Badge - clickable to open modal */}
+            <div 
+              className="flex items-center justify-center cursor-pointer"
+              onClick={() => {
+                if (!isLocked) {
+                  if (player && onPlayerClick) {
+                    // Filled slot - pass player and slot key to open swap modal
+                    onPlayerClick(player, slot.key);
+                  } else if (!player && onPlayerClick) {
+                    // Empty slot - pass position to filter bench
+                    onPlayerClick(slot.key);
+                  }
+                }
+              }}
+            >
               <span className={`px-1 py-0.5 rounded text-[9px] font-semibold text-center ${getPositionColor(slot.key)}`}>
                 {getPositionLabel(slot.key)}
               </span>
