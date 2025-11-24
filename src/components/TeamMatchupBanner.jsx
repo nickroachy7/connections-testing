@@ -324,7 +324,7 @@ export default function TeamMatchupBanner({
 
   return (
     <>
-      <div className={`${getCurrentTheme().bg} transition-all duration-300`}>
+      <div className={`${getCurrentTheme().bg} transition-all duration-300 border-b-2 border-primary-black-700/50 shadow-lg shadow-black/40`}>
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-3 md:py-4">
           
           {/* Mobile Layout */}

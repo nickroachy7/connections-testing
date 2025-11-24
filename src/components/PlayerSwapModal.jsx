@@ -122,7 +122,7 @@ export default function PlayerSwapModal({
           grid py-2 px-1 transition-all border-l-4 min-h-[56px]
           ${isCurrentPlayer 
             ? 'bg-primary-black-800/50 border-primary-green-500/50 cursor-default' 
-            : 'bg-primary-black-900 border-transparent cursor-pointer hover:bg-primary-green-500/10 hover:border-primary-green-500 active:bg-primary-green-500/20'
+            : 'bg-primary-black-900 border-transparent cursor-pointer'
           }
         `}
         style={{ 

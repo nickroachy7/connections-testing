@@ -148,7 +148,7 @@ const TokenTable = ({
           ${
             isLocked
               ? 'cursor-not-allowed opacity-60'
-              : 'cursor-move hover:bg-primary-green-500/10 md:hover:border-primary-green-500'
+              : 'cursor-move'
           }
           ${index % 2 === 0 ? 'bg-primary-black-800/20' : 'bg-primary-black-800/40'}
         `;

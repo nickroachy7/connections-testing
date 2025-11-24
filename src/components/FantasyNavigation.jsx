@@ -48,21 +48,22 @@ export default function FantasyNavigation({ teamId }) {
   };
 
   return (
-    <div className="bg-dk-black-secondary border-b border-dk-black-light">
-      <div className="max-w-7xl mx-auto px-2 sm:px-3 md:px-6 lg:px-8 py-2 md:py-3">
+    <div className="max-w-7xl mx-auto px-2 sm:px-3 md:px-6 lg:px-8 pt-3 md:pt-4">
+      {/* Rounded Container */}
+      <div className="bg-primary-black-800/60 backdrop-blur-sm rounded-xl overflow-hidden">
         {/* Mobile: Icon Navigation */}
-        <div className="flex md:hidden justify-around items-center px-2">
+        <div className="flex md:hidden justify-around items-center px-2 py-2">
           {navItems.map(item => (
             <button
               key={item.path}
               onClick={() => navigate(item.path)}
               className="flex flex-col items-center gap-1 py-1 flex-1 transition-all duration-200"
             >
-              <div className={location.pathname === item.path ? 'text-dk-green-primary' : 'text-dk-white-muted'}>
+              <div className={location.pathname === item.path ? 'text-primary-green-500' : 'text-primary-black-400'}>
                 {navIcons[item.label]}
               </div>
-              <span className={`text-[10px] font-dk font-medium ${
-                location.pathname === item.path ? 'text-dk-green-primary' : 'text-dk-white-muted'
+              <span className={`text-[10px] font-medium ${
+                location.pathname === item.path ? 'text-primary-green-500' : 'text-primary-black-400'
               }`}>
                 {item.label === 'STARTING LINEUP' ? 'Lineup' : 
                  item.label === 'INVENTORY' ? 'Inventory' :
@@ -75,15 +76,15 @@ export default function FantasyNavigation({ teamId }) {
         </div>
 
         {/* Desktop: Original Button Layout */}
-        <div className="hidden md:flex flex-wrap gap-2">
+        <div className="hidden md:flex flex-wrap gap-2 p-2">
           {navItems.map(item => (
             <button
               key={item.path}
               onClick={() => navigate(item.path)}
-              className={`px-4 py-2 rounded text-sm font-dk-display font-bold transition-all duration-200 whitespace-nowrap ${
+              className={`px-4 py-2.5 rounded-lg text-sm font-bold transition-all duration-200 whitespace-nowrap ${
                 location.pathname === item.path
-                  ? 'bg-dk-green-primary text-dk-black-primary'
-                  : 'bg-dk-black-tertiary text-dk-white-secondary border border-dk-black-light hover:bg-dk-black-light'
+                  ? 'bg-primary-green-500 text-primary-black-950'
+                  : 'bg-primary-black-700 text-primary-black-300 hover:bg-primary-black-600 hover:text-primary-black-100'
               }`}
             >
               {item.label}

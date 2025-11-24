@@ -59,7 +59,7 @@ export default function LineupListView({
 
   const defaultClassName = (index, isLocked) => `
     grid transition-all min-h-[56px]
-    ${isLocked ? 'cursor-not-allowed opacity-60 bg-red-900/20' : 'cursor-pointer hover:bg-primary-green-500/10'}
+    ${isLocked ? 'cursor-not-allowed opacity-60 bg-red-900/20' : 'cursor-pointer'}
     ${index % 2 === 0 && !isLocked ? 'bg-primary-black-800/20' : !isLocked ? 'bg-primary-black-800/40' : ''}
   `;
 

@@ -96,7 +96,7 @@ export default function RecentActivityFeed({ teamId, userId, limit = 10 }) {
             className={`
               flex items-center gap-3 px-4 py-3 transition-all
               ${index % 2 === 0 ? 'bg-primary-black-900' : 'bg-primary-black-800/50'}
-              hover:bg-primary-green-500/10 border-l-4 border-transparent hover:border-primary-green-500
+              border-l-4 border-transparent
             `}
           >
             {/* Icon */}

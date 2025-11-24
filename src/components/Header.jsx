@@ -159,7 +159,19 @@ const Header = () => {
       <header className="md:hidden bg-primary-black-900/95 backdrop-blur-md border-b border-primary-black-700 sticky top-0 z-[110]">
         <div className="px-4 py-3">
           <div className="flex items-center justify-between">
-            {/* Burger Menu - Left */}
+            {/* Logo - Left */}
+            <Link 
+              to="/" 
+              className="flex items-center z-[111]"
+            >
+              <img 
+                src="/yapsports-logo.webp" 
+                alt="YapSports" 
+                className="h-8 w-auto"
+              />
+            </Link>
+
+            {/* Burger Menu - Right */}
             <button 
               className="text-primary-black-300 hover:text-primary-black-50 p-2 transition-colors duration-200 relative z-[111]"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -178,21 +190,6 @@ const Header = () => {
                 )}
               </svg>
             </button>
-
-            {/* Logo - Center */}
-            <Link 
-              to="/" 
-              className="absolute left-1/2 -translate-x-1/2 flex items-center z-[111]"
-            >
-              <img 
-                src="/yapsports-logo.webp" 
-                alt="YapSports" 
-                className="h-8 w-auto"
-              />
-            </Link>
-
-            {/* Spacer for balance */}
-            <div className="w-10"></div>
           </div>
         </div>
       </header>
@@ -200,14 +197,14 @@ const Header = () => {
       {/* Full-Page Mobile Menu Overlay */}
       {isMobileMenuOpen && (
         <>
-          {/* Backdrop blur - right side */}
+          {/* Backdrop blur */}
           <div 
-            className="md:hidden fixed inset-0 left-1/2 bg-black/60 backdrop-blur-sm z-[101]"
+            className="md:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-[101]"
             onClick={() => setIsMobileMenuOpen(false)}
           />
           
-          {/* Menu Panel - left side */}
-          <div className="md:hidden fixed inset-y-0 left-0 w-1/2 bg-primary-black-900 z-[105] overflow-y-auto pt-[57px] border-r border-primary-black-700 shadow-[4px_0_24px_rgba(0,0,0,0.5)]">
+          {/* Menu Panel - Full Width */}
+          <div className="md:hidden fixed inset-0 bg-primary-black-900 z-[105] overflow-y-auto pt-[57px]">
             <div className="min-h-full p-6">
               {/* Fantasy Home */}
               {user && teams.length > 0 && (

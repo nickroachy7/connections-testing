@@ -107,7 +107,7 @@ export default function BenchPlayerSwapModal({
         <div
           key={slotKey}
           onClick={() => onSwap(slotKey)}
-          className="grid py-2 px-1 transition-all border-l-4 min-h-[56px] bg-primary-black-900 border-transparent cursor-pointer hover:bg-primary-green-500/10 hover:border-primary-green-500 active:bg-primary-green-500/20"
+          className="grid py-2 px-1 transition-all border-l-4 min-h-[56px] bg-primary-black-900 border-transparent cursor-pointer"
           style={{ 
             gridTemplateColumns: '32px 40px 1fr 60px',
             gap: '4px',
@@ -156,7 +156,7 @@ export default function BenchPlayerSwapModal({
           grid py-2 px-1 transition-all border-l-4 min-h-[56px]
           ${isSelected 
             ? 'bg-primary-black-800/50 border-primary-green-500/50 cursor-default' 
-            : 'bg-primary-black-900 border-transparent cursor-pointer hover:bg-primary-green-500/10 hover:border-primary-green-500 active:bg-primary-green-500/20'
+            : 'bg-primary-black-900 border-transparent cursor-pointer'
           }
         `}
         style={{ 

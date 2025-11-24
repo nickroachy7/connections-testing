@@ -1229,7 +1229,7 @@ export default function Dashboard() {
                             onClick={() => !entry.isEmpty && entry.team?.id && navigate(`/teams/${entry.team.id}/view`)}
                             className={`
                               flex items-center gap-3 px-3 py-3 transition-all cursor-pointer
-                              hover:bg-primary-green-500/10 border-l-4 border-transparent hover:border-primary-green-500
+                              border-l-4 border-transparent
                               ${index % 2 === 0 ? 'bg-primary-black-900' : 'bg-primary-black-800/50'}
                               ${isCurrentUser ? 'bg-green-900/20 !border-green-500' : ''}
                               ${entry.isEmpty ? 'opacity-30 !cursor-default' : ''}
@@ -1432,7 +1432,7 @@ export default function Dashboard() {
                                 key={player.id}
                                 className={`
                                   flex items-center gap-3 px-3 py-3 transition-all cursor-pointer
-                                  hover:bg-primary-green-500/10 border-l-4 border-transparent hover:border-primary-green-500
+                                  border-l-4 border-transparent
                                   ${index % 2 === 0 ? 'bg-primary-black-900' : 'bg-primary-black-800/50'}
                                 `}
                               >
@@ -1554,7 +1554,7 @@ export default function Dashboard() {
                                 key={player.id}
                                 className={`
                                   flex items-center gap-3 px-3 py-3 transition-all cursor-pointer
-                                  hover:bg-primary-green-500/10 border-l-4 border-transparent hover:border-primary-green-500
+                                  border-l-4 border-transparent
                                   ${index % 2 === 0 ? 'bg-primary-black-900' : 'bg-primary-black-800/50'}
                                 `}
                               >
@@ -1665,7 +1665,7 @@ export default function Dashboard() {
                                 key={player.id}
                                 className={`
                                   flex items-center gap-3 px-3 py-3 transition-all cursor-pointer
-                                  hover:bg-primary-green-500/10 border-l-4 border-red-500
+                                  border-l-4 border-red-500
                                   ${index % 2 === 0 ? 'bg-primary-black-900' : 'bg-primary-black-800/50'}
                                 `}
                               >
