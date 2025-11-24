@@ -46,6 +46,7 @@ export default function PackOpening() {
         .select(`
           id,
           pack_id,
+          is_opened,
           pack:pack_id (
             pack_name,
             pack_type,
@@ -57,13 +58,13 @@ export default function PackOpening() {
         .eq('id', packId)
         .eq('team_id', teamId)
         .eq('user_id', user.id)
-        .eq('is_opened', false)
         .single()
 
       if (packError) throw packError
-      if (!userPack) {
-        showError('Pack not found or already opened')
-        navigate(`/teams/${teamId}/starting-lineup`)
+      
+      // If pack is already opened, silently redirect (cards are already in inventory)
+      if (!userPack || userPack.is_opened) {
+        navigate(`/teams/${teamId}/starting-lineup`, { replace: true })
         return
       }
 
@@ -78,8 +79,8 @@ export default function PackOpening() {
       setPack(userPack)
     } catch (error) {
       console.error('Error loading pack:', error)
-      showError('Failed to load pack')
-      navigate(`/teams/${teamId}/starting-lineup`)
+      // Silently redirect to lineup - pack may already be opened
+      navigate(`/teams/${teamId}/starting-lineup`, { replace: true })
     } finally {
       setLoading(false)
     }
@@ -334,6 +335,15 @@ export default function PackOpening() {
   }
 
   if (loading) {
+    return (
+      <div className="fixed inset-0 bg-primary-black-950 flex items-center justify-center">
+        <LoadingSpinner size="lg" />
+      </div>
+    )
+  }
+
+  // If pack is null (already opened/redirecting), show loading
+  if (!pack) {
     return (
       <div className="fixed inset-0 bg-primary-black-950 flex items-center justify-center">
         <LoadingSpinner size="lg" />
