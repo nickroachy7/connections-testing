@@ -166,6 +166,7 @@ export default function BenchAndTokensPanel({
               <PlayerTable
                 players={enrichedPlayers}
                 showAddButton={true}
+                showBenchBadge={true}
                 onRowDragStart={onPlayerDragStart}
                 onRowClick={(player) => {
                   // On mobile, always open the swap modal

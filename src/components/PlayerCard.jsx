@@ -12,6 +12,17 @@ import PropTypes from 'prop-types';
  * - Drag-and-drop support
  * - Lock status
  */
+// Helper function to get position abbreviation
+const getPositionAbbreviation = (position) => {
+  const abbrevMap = {
+    'Quarterback': 'QB',
+    'Running Back': 'RB',
+    'Wide Receiver': 'WR',
+    'Tight End': 'TE'
+  };
+  return abbrevMap[position] || position;
+};
+
 export default function PlayerCard({
   player,
   onDragStart,
@@ -219,10 +230,10 @@ export default function PlayerCard({
         spacing: 'space-y-0.5'
       },
       small: {
-        container: 'p-2 pb-2',
-        name: 'text-sm',
-        stats: 'text-xs',
-        badge: 'text-[10px] px-1 py-0.5',
+        container: 'p-1',
+        name: 'text-[11px]',
+        stats: 'text-[9px]',
+        badge: 'text-[9px] px-1 py-0.5',
         spacing: 'space-y-1'
       },
       medium: {
@@ -318,7 +329,7 @@ export default function PlayerCard({
       onMouseLeave={() => setIsHovered(false)}
       className={`
         relative transition-all duration-200 flex flex-col
-        ${size === 'small' ? `border-2 ${tierStyles.border} rounded-lg h-full overflow-visible` : `rounded-lg border-2 ${tierStyles.border} ${tierStyles.bg} overflow-visible`}
+        ${size === 'small' ? `border-2 ${tierStyles.border} rounded-lg overflow-visible w-full h-full` : `rounded-lg border-2 ${tierStyles.border} ${tierStyles.bg} overflow-visible`}
         ${size === 'tiny' ? `border ${tierStyles.border} rounded h-full` : ''}
         ${isHovered && !isDisabled ? tierStyles.glow : ''}
         ${!draggable ? 'cursor-not-allowed' : 'cursor-pointer hover:scale-[1.02]'}
@@ -327,15 +338,17 @@ export default function PlayerCard({
         ${className}
       `}
     >
-      {/* Lock Indicator - Bottom Left Corner */}
-      {isLocked && (
-        <div className={`absolute bottom-1 left-1 ${size === 'small' ? 'text-lg' : 'text-2xl'} z-20 bg-black/60 rounded px-1`}>
-          🔒
+      {/* Position Badge - Top Left Corner (mobile small size only) */}
+      {size === 'small' && (
+        <div className="absolute top-1 left-1.5 z-10">
+          <span className="px-1 py-0.5 bg-primary-black-700 text-primary-black-300 rounded text-[9px] font-semibold">
+            {getPositionAbbreviation(player.player_card.position)}
+          </span>
         </div>
       )}
 
       {/* Points Display - Top Right Corner */}
-      <div className={`absolute ${size === 'tiny' ? 'top-1 right-1' : 'top-2 right-2'} z-10`}>
+      <div className={`absolute ${size === 'tiny' ? 'top-1 right-1' : size === 'small' ? 'top-1.5 right-1.5' : 'top-2 right-2'} z-10`}>
         {(() => {
           // IMPORTANT: Don't render stats until BOTH projection AND gameData are ready
           // This prevents the flash of showing only projection before gameData loads
@@ -400,11 +413,11 @@ export default function PlayerCard({
             const finalPoints = gameData.currentPoints !== undefined ? gameData.currentPoints : 0;
             return (
               <div className="text-center">
-                <div className={`${size === 'small' ? 'text-lg' : 'text-2xl'} text-white font-bold leading-none mb-0.5`}>
+                <div className={`${size === 'small' ? 'text-sm' : 'text-2xl'} text-white font-bold leading-tight mb-0.5`}>
                   {finalPoints.toFixed(1)}
                 </div>
                 {projection && projection.projected !== undefined && (
-                  <div className={`${size === 'small' ? 'text-xs' : 'text-sm'} text-primary-black-400 font-semibold opacity-60`}>
+                  <div className={`${size === 'small' ? 'text-[7px]' : 'text-sm'} text-primary-black-400 font-semibold opacity-60`}>
                     {projection.projected.toFixed(1)}
                   </div>
                 )}
@@ -416,11 +429,11 @@ export default function PlayerCard({
           if (isLive && gameData && gameData.currentPoints !== undefined) {
             return (
               <div className="text-center">
-                <div className={`${size === 'small' ? 'text-lg' : 'text-2xl'} text-white font-bold leading-none mb-0.5`}>
+                <div className={`${size === 'small' ? 'text-sm' : 'text-2xl'} text-white font-bold leading-tight mb-0.5`}>
                   {gameData.currentPoints.toFixed(1)}
                 </div>
                 {projection && projection.projected !== undefined && (
-                  <div className={`${size === 'small' ? 'text-xs' : 'text-sm'} text-primary-green-400 font-semibold`}>
+                  <div className={`${size === 'small' ? 'text-[7px]' : 'text-sm'} text-primary-green-400 font-semibold`}>
                     {projection.projected.toFixed(1)}
                   </div>
                 )}
@@ -432,10 +445,10 @@ export default function PlayerCard({
           if (projection && projection.projected !== undefined) {
             return (
               <div className="text-center">
-                <div className={`${size === 'small' ? 'text-lg' : 'text-2xl'} text-primary-black-500 font-bold leading-none mb-0.5`}>
-                  -
+                <div className={`${size === 'small' ? 'text-[10px]' : 'text-2xl'} text-primary-black-500 font-bold leading-tight mb-0.5`}>
+                  --
                 </div>
-                <div className={`${size === 'small' ? 'text-xs' : 'text-sm'} text-primary-green-400 font-semibold`}>
+                <div className={`${size === 'small' ? 'text-[7px]' : 'text-sm'} text-primary-green-400 font-semibold`}>
                   {projection.projected.toFixed(1)}
                 </div>
               </div>
@@ -446,24 +459,12 @@ export default function PlayerCard({
         })()}
       </div>
 
-      {/* Game Status Badge - Compact (small size only) */}
-      {size === 'small' && (
-        <>
-          {gameData && gameData.gameStatus === 'live' && (
-            <div className="absolute top-1 right-1 w-2 h-2 bg-red-600 rounded-full animate-pulse"></div>
-          )}
-        </>
-      )}
-
-      {/* Spacer to push content to bottom */}
-      <div className="flex-grow min-h-0"></div>
-
-      {/* Small Token + Button - Bottom Left Corner (mobile - small size without name inside) */}
+      {/* Token Button - Below Points Display (small size only) */}
       {size === 'small' && !isLocked && (
-        <>
+        <div className="absolute top-11 right-1.5 z-10">
           {appliedToken ? (
             <div
-              className="md:hidden absolute bottom-1 left-1 w-5 h-5 flex items-center justify-center bg-primary-green-500/20 border border-primary-green-500/50 rounded-full cursor-pointer hover:scale-110 transition-all duration-200 z-30"
+              className="w-5 h-5 flex items-center justify-center bg-primary-green-500/20 border border-primary-green-500/50 rounded-full cursor-pointer hover:scale-110 transition-all duration-200"
               onClick={(e) => {
                 e.stopPropagation();
                 if (onRemoveToken) {
@@ -481,15 +482,18 @@ export default function PlayerCard({
                   e.stopPropagation();
                   onAddToken(player);
                 }}
-                className="md:hidden absolute bottom-1 left-1 w-5 h-5 flex items-center justify-center border border-dashed border-primary-black-600 hover:border-primary-green-500 rounded-full transition-all duration-200 cursor-pointer hover:scale-110 bg-primary-black-800/50 hover:bg-primary-green-500/10 group z-30"
+                className="w-5 h-5 flex items-center justify-center border border-dashed border-primary-black-600 hover:border-primary-green-500 rounded-full transition-all duration-200 cursor-pointer hover:scale-110 bg-primary-black-800/50 hover:bg-primary-green-500/10 group"
                 title="Add token"
               >
                 <span className="text-xs text-primary-black-600 group-hover:text-primary-green-400 font-bold">+</span>
               </button>
             )
           )}
-        </>
+        </div>
       )}
+
+      {/* Spacer to push content to bottom */}
+      <div className="flex-grow min-h-0"></div>
 
       {/* Token Badge - Centered (desktop for small size) */}
       {size !== 'tiny' && (
@@ -564,10 +568,12 @@ export default function PlayerCard({
         </div>
       )}
 
-      {/* Bottom Stack - Player Name (hidden on mobile for small size) */}
+      {/* Bottom Stack - Player Name and Matchup (inside card for mobile small size) */}
       {!showNameOutside && (
-      <div className={`flex-shrink-0 ${size === 'small' ? 'hidden md:block' : ''} ${size === 'tiny' ? 'mt-0.5' : size === 'small' ? 'mt-1 mb-1 px-1' : 'mt-2 mb-2 px-1'}`}>
-        <div className={`${sizeClasses.name} font-bold text-primary-black-50 text-center leading-tight`}>
+      <div className={`flex-shrink-0 ${size === 'tiny' ? 'mt-0.5' : size === 'small' ? 'mt-auto px-1.5 pb-1' : 'mt-2 mb-2 px-1'} ${size === 'small' ? 'block' : ''}`}>
+        {/* Player Name - always show for small size */}
+        <div className={`${sizeClasses.name} font-bold text-primary-black-50 ${size === 'small' ? 'text-left' : 'text-center'} leading-tight flex items-center gap-1`}>
+          <span>
           {(() => {
             const name = player.player_card.player_name;
             const parts = name.split(' ');
@@ -583,7 +589,39 @@ export default function PlayerCard({
             }
             return name;
           })()}
+          </span>
         </div>
+        
+        {/* Matchup info - show for small size */}
+        {size === 'small' && (
+          <div className="mt-0.5">
+            {/* Show game status for live/final games */}
+            {gameData && (gameData.gameStatus === 'live' || gameData.gameStatus === 'halftime') ? (
+              <div className={`${sizeClasses.stats} text-red-400 font-bold leading-tight text-left`}>
+                LIVE
+              </div>
+            ) : gameData && gameData.gameStatus === 'final' ? (
+              <div className={`${sizeClasses.stats} text-green-400 font-bold leading-tight text-left`}>
+                FINAL
+              </div>
+            ) : gameData && gameData.gameStatus === 'scheduled' && gameData.opponent ? (
+              gameData.gameStartTime && (
+                <div className={`${sizeClasses.stats} text-primary-black-400 font-medium leading-tight text-left`}>
+                  {gameData.isHome ? 'vs' : '@'} {gameData.opponent} · {new Date(gameData.gameStartTime).toLocaleDateString('en-US', { 
+                    weekday: 'short'
+                  })} {new Date(gameData.gameStartTime).toLocaleTimeString('en-US', { 
+                    hour: 'numeric',
+                    hour12: true 
+                  }).replace(' ', '')}
+                </div>
+              )
+            ) : !gameData ? (
+              <div className={`${sizeClasses.stats} text-primary-black-500 font-medium leading-tight text-left`}>
+                On Bye Week
+              </div>
+            ) : null}
+          </div>
+        )}
         
         {/* Tier Badge - Below Name - Skip for tiny/small size, tier shown via border color */}
         {size !== 'tiny' && size !== 'small' && player.card_tier && player.card_level && (

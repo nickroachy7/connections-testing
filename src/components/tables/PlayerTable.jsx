@@ -27,6 +27,7 @@ const PlayerTable = ({
   showBulkSelect = false,
   showTierLevel = false,
   showAddButton = false,
+  showBenchBadge = false,
   
   // Custom column rendering
   renderExtraHeaderColumns = null,
@@ -156,6 +157,7 @@ const PlayerTable = ({
           showBulkSelect={showBulkSelect}
           showAddButton={showAddButton}
           showTierLevel={showTierLevel}
+          showBenchBadge={showBenchBadge}
           isSelected={selectedIds.includes(player.id)}
           isLocked={isRowLocked ? isRowLocked(player) : false}
           onBulkSelectChange={onBulkSelectChange}
@@ -184,6 +186,7 @@ const PlayerTableRow = ({
   showBulkSelect,
   showAddButton,
   showTierLevel,
+  showBenchBadge,
   isSelected,
   isLocked,
   onBulkSelectChange,
@@ -286,7 +289,7 @@ const PlayerTableRow = ({
       {/* COLUMN 2: Position Badge */}
       <div className="flex items-center justify-center">
         <span className="px-2 py-1 bg-primary-black-700 text-primary-black-300 rounded text-xs font-bold">
-          {getPositionAbbr(player.player_card.position)}
+          {showBenchBadge ? 'BN' : getPositionAbbr(player.player_card.position)}
         </span>
       </div>
 
@@ -406,7 +409,7 @@ const PlayerTableRow = ({
         {/* COLUMN 1: Position Badge - exact match to modal */}
         <div className="flex items-center justify-center">
           <span className="px-1 py-0.5 bg-primary-black-700 text-primary-black-300 rounded text-[9px] font-semibold text-center">
-            {getPositionAbbr(player.player_card.position)}
+            {showBenchBadge ? 'BN' : getPositionAbbr(player.player_card.position)}
           </span>
         </div>
 
@@ -495,6 +498,7 @@ PlayerTable.propTypes = {
   showBulkSelect: PropTypes.bool,
   showAddButton: PropTypes.bool,
   showTierLevel: PropTypes.bool,
+  showBenchBadge: PropTypes.bool,
   renderExtraHeaderColumns: PropTypes.func,
   renderExtraRowColumns: PropTypes.func,
   onBulkSelectChange: PropTypes.func,
@@ -518,6 +522,7 @@ PlayerTableRow.propTypes = {
   showBulkSelect: PropTypes.bool,
   showAddButton: PropTypes.bool,
   showTierLevel: PropTypes.bool,
+  showBenchBadge: PropTypes.bool,
   isSelected: PropTypes.bool,
   isLocked: PropTypes.bool,
   onBulkSelectChange: PropTypes.func,

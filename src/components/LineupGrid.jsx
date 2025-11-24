@@ -52,7 +52,8 @@ export default function LineupGrid({
     { key: 'WR2', label: 'Wide Receiver' },
     { key: 'WR3', label: 'Wide Receiver' },
     { key: 'TE', label: 'Tight End' },
-    { key: 'FLEX', label: 'Flex (RB/WR/TE)' }
+    { key: 'FLEX', label: 'Flex (RB/WR/TE)' },
+    { key: 'SUPERFLEX', label: 'SuperFlex (Any Position)' }
   ];
 
   const handleDragOver = (e, slotKey) => {
@@ -174,6 +175,7 @@ export default function LineupGrid({
 
   const getPositionAbbreviation = (slotKey) => {
     if (slotKey === 'FLEX') return 'FLEX';
+    if (slotKey === 'SUPERFLEX') return 'SUPERFLEX';
     if (slotKey.startsWith('QB')) return 'QB';
     if (slotKey.startsWith('RB')) return 'RB';
     if (slotKey.startsWith('WR')) return 'WR';
@@ -192,7 +194,8 @@ export default function LineupGrid({
       'RB': 'Running Back',
       'WR': 'Wide Receiver',
       'TE': 'Tight End',
-      'FLEX': ['Running Back', 'Wide Receiver', 'Tight End']
+      'FLEX': ['Running Back', 'Wide Receiver', 'Tight End'],
+      'SUPERFLEX': ['Quarterback', 'Running Back', 'Wide Receiver', 'Tight End']
     };
     
     const allowedPositions = positionMap[posAbbr];
@@ -218,7 +221,8 @@ export default function LineupGrid({
       'RB': ['Running Back'],
       'WR': ['Wide Receiver'],
       'TE': ['Tight End'],
-      'FLEX': ['Running Back', 'Wide Receiver', 'Tight End']
+      'FLEX': ['Running Back', 'Wide Receiver', 'Tight End'],
+      'SUPERFLEX': ['Quarterback', 'Running Back', 'Wide Receiver', 'Tight End']
     };
     
     const allowedPositions = positionMap[posAbbr] || [];
@@ -296,22 +300,16 @@ export default function LineupGrid({
         data-lineup-slot={slot.key}
         onClick={handleSlotClick}
       >
-        {/* Position Label - Above card on mobile always */}
-        <div className="md:hidden text-center mb-1">
-          <span className="text-[10px] font-bold text-primary-black-400 uppercase tracking-wide">
-            {posAbbr}
-          </span>
-        </div>
-        
-        {/* Card Container with fixed aspect ratio */}
-        <div className="aspect-[3.2/5] relative">
+        {/* Card Container with fixed aspect ratio - square on mobile, tall on desktop */}
+        <div className="aspect-square md:aspect-[3.2/5] relative">
         <div
           onDragEnter={(e) => !isLocked && handleDragOver(e, slot.key)}
           onDragOver={(e) => !isLocked && handleDragOver(e, slot.key)}
           onDragLeave={handleDragLeave}
           onDrop={(e) => !isLocked && handleDrop(e, slot.key)}
           className={`
-            relative rounded-xl border-2 transition-all duration-200 w-full h-full
+            relative rounded-xl transition-all duration-200 w-full h-full
+            ${player ? '' : 'border-2'}
             ${isDragOver 
               ? 'border-primary-green-500 bg-primary-green-500/20 scale-105 shadow-lg shadow-primary-green-500/50' 
               : isFilteredSlot && !player
@@ -323,7 +321,7 @@ export default function LineupGrid({
                     : isEligibleForSelectedToken
                       ? 'border-yellow-500/70 bg-yellow-500/10 cursor-pointer hover:border-yellow-500 hover:bg-yellow-500/20'
                       : player 
-                        ? 'border-primary-black-600 bg-primary-black-800/50' 
+                        ? 'bg-transparent' 
                         : 'border-dashed border-primary-black-600 bg-primary-black-800/30'
             }
             ${isHovered && !player && !isLocked && !selectedPlayerForSlot && !selectedTokenForPlayer ? 'border-primary-green-500/50 bg-primary-black-700/50' : ''}
@@ -353,7 +351,7 @@ export default function LineupGrid({
           </div>
 
           {/* Player Card or Empty State */}
-          <div className="absolute inset-0 flex flex-col">
+          <div className="absolute inset-0">
             {player ? (
               <>
                 {/* PlayerCard - both mobile and desktop render inside the fixed container */}
@@ -371,7 +369,7 @@ export default function LineupGrid({
                   size="small"
                   showStats={true}
                   showNameOutside={false}
-                  className="absolute inset-0 rounded-xl"
+                  className="w-full h-full rounded-xl"
                 />
                 
                 {/* SWAP overlay for eligible slots */}
@@ -425,46 +423,6 @@ export default function LineupGrid({
           </div>
         </div>
         </div>
-        
-        {/* Name and Matchup - OUTSIDE card container on mobile only */}
-        {player && (
-          <div className="md:hidden mt-1 text-center px-0.5">
-            <div className="text-xs font-bold text-primary-black-50 leading-tight">
-              {(() => {
-                const name = player.player_card.player_name;
-                const parts = name.split(' ');
-                if (parts.length >= 2) {
-                  return `${parts[0][0]}. ${parts.slice(1).join(' ')}`;
-                }
-                return name;
-              })()}
-            </div>
-            
-            {/* Game matchup or bye week */}
-            {(() => {
-              const gameData = liveGameData?.get(player.player_card.player_id);
-              if (gameData && gameData.gameStatus === 'scheduled' && gameData.opponent && gameData.gameStartTime) {
-                return (
-                  <div className="text-[10px] text-primary-black-400 font-medium leading-tight mt-0.5">
-                    {gameData.isHome ? 'vs' : '@'} {gameData.opponent} · {new Date(gameData.gameStartTime).toLocaleDateString('en-US', { 
-                      weekday: 'short'
-                    }).toUpperCase()} {new Date(gameData.gameStartTime).toLocaleTimeString('en-US', { 
-                      hour: 'numeric',
-                      hour12: true 
-                    }).replace(' ', '')}
-                  </div>
-                );
-              } else if (!gameData) {
-                return (
-                  <div className="text-[10px] text-primary-black-500 font-medium leading-tight mt-0.5">
-                    On Bye Week
-                  </div>
-                );
-              }
-              return null;
-            })()}
-          </div>
-        )}
       </div>
     );
   };
@@ -485,7 +443,8 @@ export default function LineupGrid({
       'RB': ['Running Back'],
       'WR': ['Wide Receiver'],
       'TE': ['Tight End'],
-      'FLEX': ['Running Back', 'Wide Receiver', 'Tight End']
+      'FLEX': ['Running Back', 'Wide Receiver', 'Tight End'],
+      'SUPERFLEX': ['Quarterback', 'Running Back', 'Wide Receiver', 'Tight End']
     };
     
     const allowedPositions = positionMap[posAbbr] || [];
@@ -509,13 +468,26 @@ export default function LineupGrid({
 
   return (
     <div className={paddingClass}>
-      {/* Mobile: 4 on top, 4 on bottom */}
-      <div className="md:hidden grid grid-cols-4 gap-1">
-        {positionSlots.map(renderPositionSlot)}
+      {/* Mobile: 3x3 grid - 9 slots total */}
+      <div className="md:hidden space-y-1">
+        {/* Row 1: QB, RB1, RB2 */}
+        <div className="grid grid-cols-3 gap-1">
+          {positionSlots.slice(0, 3).map(renderPositionSlot)}
+        </div>
+        
+        {/* Row 2: WR1, WR2, WR3 */}
+        <div className="grid grid-cols-3 gap-1">
+          {positionSlots.slice(3, 6).map(renderPositionSlot)}
+        </div>
+        
+        {/* Row 3: TE, FLEX, SUPERFLEX */}
+        <div className="grid grid-cols-3 gap-1">
+          {positionSlots.slice(6, 9).map(renderPositionSlot)}
+        </div>
       </div>
       
       {/* Desktop Grid */}
-      <div className={`hidden md:grid md:grid-cols-4 lg:grid-cols-8 ${gapClass}`}>
+      <div className={`hidden md:grid md:grid-cols-3 lg:grid-cols-9 ${gapClass}`}>
         {positionSlots.map(renderPositionSlot)}
       </div>
       

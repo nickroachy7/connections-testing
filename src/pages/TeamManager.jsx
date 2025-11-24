@@ -7,6 +7,7 @@ import { calculatePlayerSellValue, calculateTokenSellValue } from '../utils/sell
 import { useIsMobile } from '../hooks';
 import PlayerCard from '../components/PlayerCard';
 import LineupGrid from '../components/LineupGrid';
+import LineupListView from '../components/LineupListView';
 import BenchAndTokensPanel from '../components/BenchAndTokensPanel';
 import PlayerSelectionModal from '../components/PlayerSelectionModal';
 import BenchPlayerSwapModal from '../components/BenchPlayerSwapModal';
@@ -113,8 +114,12 @@ export default function TeamManager() {
     WR3: null,
     TE: null,
     FLEX: null,
+    SUPERFLEX: null,
     BENCH: []
   });
+  
+  // View mode state
+  const [lineupViewMode, setLineupViewMode] = useState('grid'); // 'grid', 'horizontal', 'list'
   
   // Filters state
   const [filters, setFilters] = useState({
@@ -1385,6 +1390,31 @@ export default function TeamManager() {
     });
   };
 
+  // Handle clicking a player in the lineup (opens swap modal in list/horizontal views)
+  const handleLineupPlayerClick = (playerOrPosition, slotKey) => {
+    // If first arg is a string, it's a position (empty slot)
+    if (typeof playerOrPosition === 'string') {
+      handleClickToAdd(playerOrPosition);
+      return;
+    }
+    
+    // Otherwise it's a player object - open swap modal
+    const player = playerOrPosition;
+    const gameData = liveGameData?.get(player.player_card.player_id);
+    const isGameLive = gameData && (gameData.gameStatus?.toLowerCase() === 'live' || gameData.gameStatus?.toLowerCase() === 'halftime');
+    
+    if (player.is_locked || isGameLive) {
+      setError(`${player.player_card.player_name} is locked and cannot be moved (game in progress)`);
+      setTimeout(() => setError(''), 3000);
+      return;
+    }
+    
+    setBenchPlayerSwapModal({
+      isOpen: true,
+      benchPlayer: player
+    });
+  };
+
   // Get eligible lineup slots for a bench player
   const getEligibleSlotsForBenchPlayer = (player) => {
     if (!player) return [];
@@ -1815,64 +1845,111 @@ export default function TeamManager() {
             <div className="flex items-center justify-between gap-2">
               <div className="min-w-0 flex-1">
                 <h1 className="text-sm sm:text-xl font-bold text-primary-black-50 truncate">Starting Lineup</h1>
-                <p className="text-[10px] sm:text-xs text-primary-black-400 mt-0.5 truncate">Set your Starting Lineup</p>
+                {/* Save Status */}
+                <div className="mt-0.5 text-[10px] sm:text-xs">
+                  {autoSaving ? (
+                    <div className="flex items-center gap-1 sm:gap-1.5 text-primary-black-400">
+                      <div className="animate-spin h-2.5 w-2.5 sm:h-3 sm:w-3 border-2 border-primary-green-500 border-t-transparent rounded-full"></div>
+                      <span>Saving...</span>
+                    </div>
+                  ) : lastSaved ? (
+                    <div className="flex items-center gap-1 sm:gap-1.5 text-primary-green-500">
+                      <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                      <span>Lineup Saved</span>
+                    </div>
+                  ) : (
+                    <div className="text-primary-black-500">
+                      <span>No changes</span>
+                    </div>
+                  )}
+                </div>
               </div>
-              <div className="flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs text-primary-black-400 flex-shrink-0">
-                {autoSaving && (
-                  <div className="flex items-center gap-1 sm:gap-1.5">
-                    <div className="animate-spin h-2.5 w-2.5 sm:h-3 sm:w-3 border-2 border-primary-green-500 border-t-transparent rounded-full"></div>
-                    <span className="hidden sm:inline">Saving...</span>
-                  </div>
-                )}
-                {!autoSaving && lastSaved && (
-                  <div className="flex items-center gap-1 sm:gap-1.5">
-                    <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-primary-green-500" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                    <span className="hidden sm:inline">All changes saved</span>
-                  </div>
-                )}
+              {/* View Toggle Buttons */}
+              <div className="flex items-center gap-1 flex-shrink-0">
+                {/* Grid View Button */}
+                <button
+                  onClick={() => setLineupViewMode('grid')}
+                  className={`p-1.5 sm:p-2 rounded border transition-colors ${
+                    lineupViewMode === 'grid'
+                      ? 'bg-primary-green-500/20 border-primary-green-500 text-primary-green-400'
+                      : 'bg-primary-black-800 border-primary-black-600 text-primary-black-400 hover:border-primary-black-500 hover:text-primary-black-300'
+                  }`}
+                  title="Grid View"
+                >
+                  <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                  </svg>
+                </button>
+                {/* List View Button */}
+                <button
+                  onClick={() => setLineupViewMode('list')}
+                  className={`p-1.5 sm:p-2 rounded border transition-colors ${
+                    lineupViewMode === 'list'
+                      ? 'bg-primary-green-500/20 border-primary-green-500 text-primary-green-400'
+                      : 'bg-primary-black-800 border-primary-black-600 text-primary-black-400 hover:border-primary-black-500 hover:text-primary-black-300'
+                  }`}
+                  title="List View"
+                >
+                  <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                  </svg>
+                </button>
               </div>
             </div>
           </div>
           
-          <LineupGrid
-            lineup={lineup}
-            onPlayerDrop={handlePlayerDrop}
-            onPlayerDragStart={handlePlayerDragStart}
-            onTokenDrop={handleTokenDrop}
-            onClickToAdd={handleClickToAdd}
-            onClickToAddToken={handleClickToAddToken}
-            onRemovePlayer={handleRemovePlayer}
-            onMoveToSlot={handleMoveToSlot}
-            liveGameData={isPreviewMode ? new Map() : liveGameData}
-            projections={projections}
-            inventory={inventory}
-            onRemoveToken={handleRemoveToken}
-            autoSaving={autoSaving}
-            filterPosition={benchFilterPosition}
-            isPreviewMode={isPreviewMode}
-            selectedPlayerForSlot={selectedPlayerForSlot}
-            selectedTokenForPlayer={selectedTokenForPlayer}
-            onSlotClickWithSelection={(slotKey) => {
-              if (selectedPlayerForSlot) {
-                handleMoveToSlot(selectedPlayerForSlot, slotKey);
-                setSelectedPlayerForSlot(null);
-              }
-            }}
-            onPlayerClickWithTokenSelection={(player) => {
-              if (selectedTokenForPlayer) {
-                handleApplyTokenToPlayer(selectedTokenForPlayer, player.id);
-                setSelectedTokenForPlayer(null);
-              }
-            }}
-          />
+          {lineupViewMode === 'grid' && (
+            <LineupGrid
+              lineup={lineup}
+              onPlayerDrop={handlePlayerDrop}
+              onPlayerDragStart={handlePlayerDragStart}
+              onTokenDrop={handleTokenDrop}
+              onClickToAdd={handleClickToAdd}
+              onClickToAddToken={handleClickToAddToken}
+              onRemovePlayer={handleRemovePlayer}
+              onMoveToSlot={handleMoveToSlot}
+              liveGameData={isPreviewMode ? new Map() : liveGameData}
+              projections={projections}
+              inventory={inventory}
+              onRemoveToken={handleRemoveToken}
+              autoSaving={autoSaving}
+              filterPosition={benchFilterPosition}
+              isPreviewMode={isPreviewMode}
+              selectedPlayerForSlot={selectedPlayerForSlot}
+              selectedTokenForPlayer={selectedTokenForPlayer}
+              onSlotClickWithSelection={(slotKey) => {
+                if (selectedPlayerForSlot) {
+                  handleMoveToSlot(selectedPlayerForSlot, slotKey);
+                  setSelectedPlayerForSlot(null);
+                }
+              }}
+              onPlayerClickWithTokenSelection={(player) => {
+                if (selectedTokenForPlayer) {
+                  handleApplyTokenToPlayer(selectedTokenForPlayer, player.id);
+                  setSelectedTokenForPlayer(null);
+                }
+              }}
+            />
+          )}
+
+          {lineupViewMode === 'list' && (
+            <LineupListView
+              lineup={lineup}
+              onPlayerClick={handleLineupPlayerClick}
+              liveGameData={isPreviewMode ? new Map() : liveGameData}
+              projections={projections}
+              inventory={inventory}
+              isPreviewMode={isPreviewMode}
+            />
+          )}
         </section>
       </div>
 
       {/* Bench and Inventory Section - Separate section for reserves */}
-      <section aria-label="Bench and Tokens Inventory" className="mt-6">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section aria-label="Bench and Tokens Inventory" className="mt-3">
+        <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8">
           <BenchAndTokensPanel
             benchPlayers={inventory?.players?.filter(p => !p.is_in_lineup) || []}
             availableTokens={availableTokens}

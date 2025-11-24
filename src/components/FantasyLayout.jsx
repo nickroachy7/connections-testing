@@ -19,7 +19,7 @@ function FantasyLayoutInner() {
   };
 
   return (
-    <div className="min-h-screen bg-dk-black-primary">
+    <div className="min-h-screen bg-dk-black-primary overflow-x-hidden">
       {/* Header Section - Navigation Banner - Persistent across all routes */}
       <header>
         <FantasyNavBanner 

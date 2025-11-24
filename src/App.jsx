@@ -50,11 +50,11 @@ function PageLoader() {
 // Root layout component
 function RootLayout() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-black-950 via-primary-black-900 to-primary-black-950 bg-pattern flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-primary-black-950 via-primary-black-900 to-primary-black-950 bg-pattern flex flex-col overflow-x-hidden">
       <div className="relative z-10 flex-1 flex flex-col">
         <Header />
         {/* Add left padding on desktop to account for sidebar */}
-        <main className="animate-fade-in flex-1 md:pl-64">
+        <main className="animate-fade-in flex-1 md:pl-64 overflow-x-hidden">
           <Suspense fallback={<PageLoader />}>
             <Outlet />
           </Suspense>
