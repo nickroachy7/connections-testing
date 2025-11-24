@@ -299,14 +299,12 @@ export function FantasyProvider({ children, user, activeTeam, initialInventory }
       const data = await getUserInventory(user.id, activeTeam.id);
       setInventory(data);
       
-      // Build lineup from inventory
+      // Build lineup from inventory (no BENCH array)
       const newLineup = createEmptyLineup();
       
       data.players.forEach(player => {
         if (player.is_in_lineup && player.lineup_position) {
           newLineup[player.lineup_position] = player;
-        } else if (!player.is_in_lineup) {
-          newLineup.BENCH.push(player);
         }
       });
       
@@ -327,13 +325,11 @@ export function FantasyProvider({ children, user, activeTeam, initialInventory }
     
     console.log('📊 [FantasyContext] Initial setup with loader data:', inventory.players.length, 'players');
     
-    // Build lineup from inventory
+    // Build lineup from inventory (no BENCH array)
     const newLineup = createEmptyLineup();
     inventory.players.forEach(player => {
       if (player.is_in_lineup && player.lineup_position) {
         newLineup[player.lineup_position] = player;
-      } else if (!player.is_in_lineup) {
-        newLineup.BENCH.push(player);
       }
     });
     setLineup(newLineup);
@@ -425,6 +421,15 @@ export function FantasyProvider({ children, user, activeTeam, initialInventory }
     };
   }, [user?.id, currentWeek?.week, currentWeek?.year, inventory?.players?.length]); // Use primitive values to prevent stale closures
 
+  // Update inventory with proper state management
+  const updateInventory = useCallback((updater) => {
+    setInventory(prev => {
+      const updated = typeof updater === 'function' ? updater(prev) : updater;
+      console.log('🔄 [FantasyContext] Inventory updated:', updated.players?.length, 'players');
+      return updated;
+    });
+  }, []);
+
   // Calculate derived lineup statistics using custom hook
   const lineupStats = useLineupStats(lineup, projections, liveGameData);
 
@@ -438,6 +443,7 @@ export function FantasyProvider({ children, user, activeTeam, initialInventory }
     currentWeek,
     inventory,
     setInventory,
+    updateInventory, // Add new function for atomic updates
     loading,
     loadInventory,
     loadLiveGameData,

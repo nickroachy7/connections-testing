@@ -14,10 +14,10 @@ export const LINEUP_POSITIONS = {
   WR3: 'WR3',
   TE: 'TE',
   FLEX: 'FLEX',
-  BENCH: 'BENCH'
+  SUPERFLEX: 'SUPERFLEX'
 };
 
-// Starting positions (non-bench)
+// Starting positions (all positions)
 export const STARTING_POSITIONS = [
   LINEUP_POSITIONS.QB,
   LINEUP_POSITIONS.RB1,
@@ -26,10 +26,11 @@ export const STARTING_POSITIONS = [
   LINEUP_POSITIONS.WR2,
   LINEUP_POSITIONS.WR3,
   LINEUP_POSITIONS.TE,
-  LINEUP_POSITIONS.FLEX
+  LINEUP_POSITIONS.FLEX,
+  LINEUP_POSITIONS.SUPERFLEX
 ];
 
-// Empty lineup template
+// Empty lineup template (no BENCH array)
 export const EMPTY_LINEUP = {
   [LINEUP_POSITIONS.QB]: null,
   [LINEUP_POSITIONS.RB1]: null,
@@ -39,7 +40,7 @@ export const EMPTY_LINEUP = {
   [LINEUP_POSITIONS.WR3]: null,
   [LINEUP_POSITIONS.TE]: null,
   [LINEUP_POSITIONS.FLEX]: null,
-  [LINEUP_POSITIONS.BENCH]: []
+  [LINEUP_POSITIONS.SUPERFLEX]: null
 };
 
 // Position display names
@@ -84,10 +85,7 @@ export function getBaselineProjection(position) {
  * @returns {Object} Empty lineup object
  */
 export function createEmptyLineup() {
-  return {
-    ...EMPTY_LINEUP,
-    [LINEUP_POSITIONS.BENCH]: [] // Ensure BENCH is a new array
-  };
+  return { ...EMPTY_LINEUP };
 }
 
 /**
