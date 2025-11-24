@@ -11,12 +11,28 @@ export const getPullPercentageColor = (percentage) => {
 
 export const getTierBadgeInfo = (tier) => {
   const tiers = {
-    'all_star': { initial: 'A', color: 'bg-purple-500 text-white' },
-    'starter': { initial: 'S', color: 'bg-blue-500 text-white' },
-    'role_player': { initial: 'R', color: 'bg-green-500 text-white' },
-    'base': { initial: 'B', color: 'bg-gray-500 text-white' }
+    'all_star': { 
+      initial: 'A', 
+      color: 'bg-purple-500 text-white',
+      borderColor: 'border-purple-500'
+    },
+    'starter': { 
+      initial: 'S', 
+      color: 'bg-blue-500 text-white',
+      borderColor: 'border-blue-500'
+    },
+    'role_player': { 
+      initial: 'R', 
+      color: 'bg-green-500 text-white',
+      borderColor: 'border-green-500'
+    },
+    'base': { 
+      initial: 'B', 
+      color: 'bg-gray-500 text-white',
+      borderColor: 'border-gray-500'
+    }
   };
-  return tiers[tier] || { initial: 'B', color: 'bg-gray-500 text-white' };
+  return tiers[tier] || { initial: 'B', color: 'bg-gray-500 text-white', borderColor: 'border-gray-500' };
 };
 
 export const getTokenRarityColor = (rarity) => {
@@ -105,6 +121,14 @@ export const enrichPlayerData = (player, liveGameData, projections) => {
     gameStatus,
     gameStartTime: gameData?.gameStartTime,
     isLiveOrFinal,
+    
+    // Game scores and details
+    homeScore: gameData?.homeScore,
+    awayScore: gameData?.awayScore,
+    homeTeam: gameData?.homeTeam,
+    awayTeam: gameData?.awayTeam,
+    timeRemaining: gameData?.timeRemaining,
+    quarter: gameData?.quarter,
     
     // Stats
     projected: projection?.projected,

@@ -294,7 +294,7 @@ const PlayerTableRow = ({
       </div>
 
       {/* COLUMN 3: Player Icon */}
-      <div className="rounded bg-primary-black-700 flex items-center justify-center w-12 h-12">
+      <div className={`rounded bg-primary-black-700 flex items-center justify-center w-12 h-12 border-2 ${player.card_tier ? getTierBadgeInfo(player.card_tier).borderColor : 'border-gray-500'}`}>
         <svg className="w-7 h-7 text-primary-black-300" fill="currentColor" viewBox="0 0 24 24">
           <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
         </svg>
@@ -336,11 +336,44 @@ const PlayerTableRow = ({
               )}
             </>
           ) : null}
+          {/* Live game - show clock, quarter, score, opponent */}
           {!player.isBye && (player.gameStatus === 'live' || player.gameStatus === 'halftime') && (
-            <span className="text-red-400 font-bold">🔴 LIVE</span>
+            <span className="text-primary-black-50 font-semibold">
+              LIVE {player.timeRemaining && player.quarter ? `${player.timeRemaining} ${player.quarter} ` : ''}
+              {player.homeScore !== undefined && player.awayScore !== undefined && (
+                <>
+                  {player.isHome 
+                    ? `${player.homeScore}-${player.awayScore} ` 
+                    : `${player.awayScore}-${player.homeScore} `
+                  }
+                </>
+              )}
+              {(() => {
+                const opponent = player.opponent || (player.isHome ? player.awayTeam : player.homeTeam);
+                return opponent ? `${player.isHome ? 'vs' : '@'} ${opponent}` : '';
+              })()}
+            </span>
           )}
+          {/* Final game - show result, score, opponent */}
           {!player.isBye && player.gameStatus === 'final' && (
-            <span className="text-green-400 font-bold">✓ FINAL</span>
+            <span className="text-primary-black-50 font-semibold">
+              {(() => {
+                if (player.homeScore === undefined || player.awayScore === undefined) {
+                  const opponent = player.opponent || (player.isHome ? player.awayTeam : player.homeTeam);
+                  return `FINAL${opponent ? ` ${player.isHome ? 'vs' : '@'} ${opponent}` : ''}`;
+                }
+                const playerScore = player.isHome ? player.homeScore : player.awayScore;
+                const opponentScore = player.isHome ? player.awayScore : player.homeScore;
+                const opponent = player.opponent || (player.isHome ? player.awayTeam : player.homeTeam);
+                const result = playerScore > opponentScore ? 'W' : playerScore < opponentScore ? 'L' : 'T';
+                const resultColor = result === 'W' ? 'text-green-400' : result === 'L' ? 'text-red-400' : 'text-yellow-400';
+                return (
+                  <>
+                    FINAL <span className={resultColor}>{result}</span> {playerScore}-{opponentScore}{opponent ? ` ${player.isHome ? 'vs' : '@'} ${opponent}` : ''}
+                  </>
+                );
+              })()}
+            </span>
           )}
         </div>
       </div>
@@ -414,7 +447,7 @@ const PlayerTableRow = ({
         </div>
 
         {/* COLUMN 2: Player Icon - exact match to modal */}
-        <div className="rounded bg-primary-black-700 flex items-center justify-center w-10 h-10">
+        <div className={`rounded bg-primary-black-700 flex items-center justify-center w-10 h-10 border-2 ${player.card_tier ? getTierBadgeInfo(player.card_tier).borderColor : 'border-gray-500'}`}>
           <svg className="w-6 h-6 text-primary-black-300" fill="currentColor" viewBox="0 0 24 24">
             <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
           </svg>
@@ -440,26 +473,65 @@ const PlayerTableRow = ({
           <div className="flex items-center gap-1 text-[9px] leading-tight">
             {player.isBye ? (
               <span className="text-primary-black-500 font-semibold">BYE</span>
-            ) : player.opponent ? (
+            ) : (
               <>
-                {/* Game Status for live/final games */}
+                {/* Live game - show clock, quarter, score, opponent */}
                 {(player.gameStatus === 'live' || player.gameStatus === 'halftime') && (
-                  <span className="text-red-400 font-bold">🔴 LIVE</span>
-                )}
-                {player.gameStatus === 'final' && (
-                  <span className="text-green-400 font-bold">✓ FINAL</span>
-                )}
-                {/* Matchup and time */}
-                {player.gameStartTime && player.gameStatus === 'scheduled' && (
-                  <span className="text-primary-black-400">
-                    {new Date(player.gameStartTime).toLocaleDateString('en-US', { weekday: 'short' })} {new Date(player.gameStartTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+                  <span className="text-primary-black-50 font-semibold">
+                    LIVE {player.timeRemaining && player.quarter ? `${player.timeRemaining} ${player.quarter} ` : ''}
+                    {player.homeScore !== undefined && player.awayScore !== undefined && (
+                      <>
+                        {player.isHome 
+                          ? `${player.homeScore}-${player.awayScore} ` 
+                          : `${player.awayScore}-${player.homeScore} `
+                        }
+                      </>
+                    )}
+                    {(() => {
+                      const opponent = player.opponent || (player.isHome ? player.awayTeam : player.homeTeam);
+                      return opponent ? `${player.isHome ? 'vs' : '@'} ${opponent}` : '';
+                    })()}
                   </span>
                 )}
-                <span className="text-primary-black-300 font-semibold">
-                  {player.isHome ? 'vs' : '@'} {player.opponent}
-                </span>
+                {/* Final game - show result, score, opponent */}
+                {player.gameStatus === 'final' && (
+                  <span className="text-primary-black-50 font-semibold">
+                    {(() => {
+                      if (player.homeScore === undefined || player.awayScore === undefined) {
+                        const opponent = player.opponent || (player.isHome ? player.awayTeam : player.homeTeam);
+                        return `FINAL${opponent ? ` ${player.isHome ? 'vs' : '@'} ${opponent}` : ''}`;
+                      }
+                      const playerScore = player.isHome ? player.homeScore : player.awayScore;
+                      const opponentScore = player.isHome ? player.awayScore : player.homeScore;
+                      const opponent = player.opponent || (player.isHome ? player.awayTeam : player.homeTeam);
+                      const result = playerScore > opponentScore ? 'W' : playerScore < opponentScore ? 'L' : 'T';
+                      const resultColor = result === 'W' ? 'text-green-400' : result === 'L' ? 'text-red-400' : 'text-yellow-400';
+                      return (
+                        <>
+                          FINAL <span className={resultColor}>{result}</span> {playerScore}-{opponentScore}{opponent ? ` ${player.isHome ? 'vs' : '@'} ${opponent}` : ''}
+                        </>
+                      );
+                    })()}
+                  </span>
+                )}
+                {/* Scheduled game - show time and opponent */}
+                {player.gameStartTime && player.gameStatus === 'scheduled' && (
+                  <>
+                    <span className="text-primary-black-400">
+                      {new Date(player.gameStartTime).toLocaleDateString('en-US', { weekday: 'short' })} {new Date(player.gameStartTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+                    </span>
+                    {(() => {
+                      const opponent = player.opponent || (player.isHome ? player.awayTeam : player.homeTeam);
+                      return opponent ? (
+                        <span className="text-primary-black-300 font-semibold">
+                          {player.isHome ? 'vs' : '@'} {opponent}
+                        </span>
+                      ) : null;
+                    })()}
+                  </>
+                )}
               </>
-            ) : null}
+            )}
           </div>
         </div>
 

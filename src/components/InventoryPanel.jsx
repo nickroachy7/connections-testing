@@ -2,6 +2,7 @@ import { useState } from 'react';
 import PropTypes from 'prop-types';
 import PlayerTable from './tables/PlayerTable';
 import TokenTable from './tables/TokenTable';
+import PlayerCard from './PlayerCard';
 import { enrichPlayerData, enrichTokenData } from './tables/tableHelpers.jsx';
 import { getRosterCount, ROSTER_LIMIT } from '../utils/rosterLimits';
 import { calculatePlayerSellValue, calculateTokenSellValue } from '../utils/sellValueCalculator';
@@ -24,7 +25,8 @@ export default function InventoryPanel({
   selling,
   filters,
   onFilterChange,
-  inventory
+  inventory,
+  viewMode = 'list' // 'list' or 'grid'
 }) {
   const [selectedForBulkAction, setSelectedForBulkAction] = useState([]);
   
@@ -196,10 +198,10 @@ export default function InventoryPanel({
         </div>
       )}
 
-      {/* Players Section - Wrapped in container matching header style */}
+      {/* Players Section */}
       {(activeTab === 'all' || activeTab === 'players') && filteredPlayers.length > 0 && (
-        <div className="bg-primary-black-900 border-2 border-primary-black-700 rounded-lg sm:rounded-xl mb-3 sm:mb-4">
-          <div className="md:px-3 lg:px-4 md:py-3 lg:py-4">
+        <>
+          {viewMode === 'list' ? (
             <PlayerTable
               players={filteredPlayers}
               showBulkSelect={true}
@@ -210,24 +212,41 @@ export default function InventoryPanel({
               emptyMessage="No players in inventory"
               emptyIcon="🏈"
             />
-          </div>
-        </div>
+          ) : (
+            <div className="grid grid-cols-3 gap-1 md:gap-4 mb-3 sm:mb-4">
+              {filteredPlayers.map((player) => (
+                <div key={player.id} className="relative w-full">
+                  {/* Card Container with fixed aspect ratio - square on mobile, tall on desktop */}
+                  <div className="aspect-square md:aspect-[3.2/5] relative">
+                    <PlayerCard
+                      player={player}
+                      projectedPoints={projections.get(player.player_card?.player_id)}
+                      gameData={liveGameData.get(player.player_card?.player_id)}
+                      projection={projections.get(player.player_card?.player_id)}
+                      isLocked={player.is_locked}
+                      size="small"
+                      showStats={true}
+                      showNameOutside={false}
+                      className="w-full h-full rounded-xl"
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
       )}
 
-      {/* Tokens Section - Wrapped in container matching header style */}
+      {/* Tokens Section */}
       {(activeTab === 'all' || activeTab === 'tokens') && filteredTokens.length > 0 && (
-        <div className="bg-primary-black-900 border-2 border-primary-black-700 rounded-lg sm:rounded-xl mb-3 sm:mb-4">
-          <div className="md:px-3 lg:px-4 md:py-3 lg:py-4">
-            <TokenTable
-              tokens={filteredTokens}
-              showBulkSelect={true}
-              selectedIds={selectedTokenIds}
-              onBulkSelectChange={handleTokenBulkSelect}
-              emptyMessage="No tokens available"
-              emptyIcon="💎"
-            />
-          </div>
-        </div>
+        <TokenTable
+          tokens={filteredTokens}
+          showBulkSelect={true}
+          selectedIds={selectedTokenIds}
+          onBulkSelectChange={handleTokenBulkSelect}
+          emptyMessage="No tokens available"
+          emptyIcon="💎"
+        />
       )}
 
       {/* Empty State */}
@@ -262,5 +281,6 @@ InventoryPanel.propTypes = {
   selling: PropTypes.bool,
   filters: PropTypes.object.isRequired,
   onFilterChange: PropTypes.func,
-  inventory: PropTypes.object
+  inventory: PropTypes.object,
+  viewMode: PropTypes.string
 };

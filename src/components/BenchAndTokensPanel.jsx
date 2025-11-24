@@ -159,16 +159,16 @@ export default function BenchAndTokensPanel({
 
       {/* Content */}
       <div className="space-y-3 sm:space-y-4">
-        {/* Players Section - Wrapped in separate container */}
+        {/* Players Section */}
         {shouldShowPlayers && enrichedPlayers.length > 0 && (
-          <div className="bg-primary-black-900 border-2 border-primary-black-700 rounded-lg sm:rounded-xl">
-            <div className="md:px-3 lg:px-4 md:py-3 lg:py-4">
-              <PlayerTable
-                players={enrichedPlayers}
-                showAddButton={true}
-                showBenchBadge={true}
-                onRowDragStart={onPlayerDragStart}
-                onRowClick={(player) => {
+          <>
+            <h3 className="text-sm sm:text-xl font-bold text-primary-black-50 px-2">Bench</h3>
+            <PlayerTable
+              players={enrichedPlayers}
+              showAddButton={true}
+              showBenchBadge={true}
+              onRowDragStart={onPlayerDragStart}
+              onRowClick={(player) => {
                   // On mobile, always open the swap modal
                   if (isMobile && onBenchPlayerClick) {
                     onBenchPlayerClick(player);
@@ -191,20 +191,19 @@ export default function BenchAndTokensPanel({
                 emptyMessage="No bench players"
                 emptyIcon="🏈"
               />
-            </div>
-          </div>
+          </>
         )}
 
-        {/* Tokens Section - Wrapped in separate container */}
+        {/* Tokens Section */}
         {shouldShowTokens && enrichedTokens.length > 0 && (
-          <div className="bg-primary-black-900 border-2 border-primary-black-700 rounded-lg sm:rounded-xl">
-            <div className="md:px-3 lg:px-4 md:py-3 lg:py-4">
-              {tokenFilterPlayerId && (
-                <div className="text-xs text-dk-white-muted mb-2 px-2">
-                  Tap a token to apply it to this player
-                </div>
-              )}
-              <TokenTable
+          <>
+            <h3 className="text-sm sm:text-xl font-bold text-primary-black-50 px-2">Tokens</h3>
+            {tokenFilterPlayerId && (
+              <div className="text-xs text-dk-white-muted mb-2 px-2">
+                Tap a token to apply it to this player
+              </div>
+            )}
+            <TokenTable
             tokens={enrichedTokens}
             onRowDragStart={onTokenDragStart}
             onDragEnd={onTokenDragEnd}
@@ -235,8 +234,7 @@ export default function BenchAndTokensPanel({
             emptyMessage={tokenFilterPlayerId ? "No available tokens for this player" : "No tokens available"}
             emptyIcon="💎"
           />
-            </div>
-          </div>
+          </>
         )}
 
         {/* Empty State */}

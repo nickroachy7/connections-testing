@@ -182,9 +182,8 @@ export default function LeaderboardWidget({
       )}
 
       {/* Leaderboard Table */}
-      <div className="bg-primary-black-900 border-2 border-primary-black-700 rounded-xl overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
+      <div className="overflow-x-auto">
+        <table className="w-full">
             <thead className="bg-primary-black-800 border-b border-primary-black-700">
               <tr>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-primary-black-300 uppercase tracking-wider">
@@ -307,7 +306,6 @@ export default function LeaderboardWidget({
               )}
             </tbody>
           </table>
-        </div>
       </div>
 
       {/* Footer Note */}

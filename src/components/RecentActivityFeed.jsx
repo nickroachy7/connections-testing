@@ -84,7 +84,7 @@ export default function RecentActivityFeed({ teamId, userId, limit = 10 }) {
   }
 
   return (
-    <div className="bg-primary-black-900 border-2 border-primary-black-700 rounded-xl">
+    <>
       <div className="border-b-2 border-primary-black-700 px-6 py-4">
         <h3 className="text-xl font-bold text-primary-black-50">Recent Activity</h3>
         <p className="text-xs text-primary-black-400 mt-0.5">Your latest {activities.length} transactions</p>
@@ -126,6 +126,6 @@ export default function RecentActivityFeed({ teamId, userId, limit = 10 }) {
           </div>
         ))}
       </div>
-    </div>
+    </>
   );
 }

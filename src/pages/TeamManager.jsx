@@ -1839,14 +1839,14 @@ export default function TeamManager() {
         )}
 
         {/* Starting Lineup Display Section */}
-        <section className={`max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 pb-0 ${error ? 'mt-0' : 'mt-3 sm:mt-6'}`} aria-label="Starting Lineup">
+        <section className={`max-w-7xl mx-auto pb-0 ${error ? 'mt-0' : 'mt-3 sm:mt-6'}`} aria-label="Starting Lineup">
           {/* Page Header */}
-          <div className="bg-primary-black-900 border-2 border-primary-black-700 rounded-lg sm:rounded-xl mb-3 sm:mb-4 px-3 sm:px-4 py-2 sm:py-4">
+          <div className="mb-3 sm:mb-4 px-2 sm:px-4 py-2 sm:py-4">
             <div className="flex items-center justify-between gap-2">
-              <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 sm:gap-3">
                 <h1 className="text-sm sm:text-xl font-bold text-primary-black-50 truncate">Starting Lineup</h1>
                 {/* Save Status */}
-                <div className="mt-0.5 text-[10px] sm:text-xs">
+                <div className="text-[10px] sm:text-xs">
                   {autoSaving ? (
                     <div className="flex items-center gap-1 sm:gap-1.5 text-primary-black-400">
                       <div className="animate-spin h-2.5 w-2.5 sm:h-3 sm:w-3 border-2 border-primary-green-500 border-t-transparent rounded-full"></div>
@@ -1866,90 +1866,24 @@ export default function TeamManager() {
                   )}
                 </div>
               </div>
-              {/* View Toggle Buttons */}
-              <div className="flex items-center gap-1 flex-shrink-0">
-                {/* Grid View Button */}
-                <button
-                  onClick={() => setLineupViewMode('grid')}
-                  className={`p-1.5 sm:p-2 rounded border transition-colors ${
-                    lineupViewMode === 'grid'
-                      ? 'bg-primary-green-500/20 border-primary-green-500 text-primary-green-400'
-                      : 'bg-primary-black-800 border-primary-black-600 text-primary-black-400 hover:border-primary-black-500 hover:text-primary-black-300'
-                  }`}
-                  title="Grid View"
-                >
-                  <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-                  </svg>
-                </button>
-                {/* List View Button */}
-                <button
-                  onClick={() => setLineupViewMode('list')}
-                  className={`p-1.5 sm:p-2 rounded border transition-colors ${
-                    lineupViewMode === 'list'
-                      ? 'bg-primary-green-500/20 border-primary-green-500 text-primary-green-400'
-                      : 'bg-primary-black-800 border-primary-black-600 text-primary-black-400 hover:border-primary-black-500 hover:text-primary-black-300'
-                  }`}
-                  title="List View"
-                >
-                  <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
-                  </svg>
-                </button>
-              </div>
             </div>
           </div>
           
-          {lineupViewMode === 'grid' && (
-            <LineupGrid
-              lineup={lineup}
-              onPlayerDrop={handlePlayerDrop}
-              onPlayerDragStart={handlePlayerDragStart}
-              onTokenDrop={handleTokenDrop}
-              onClickToAdd={handleClickToAdd}
-              onClickToAddToken={handleClickToAddToken}
-              onRemovePlayer={handleRemovePlayer}
-              onMoveToSlot={handleMoveToSlot}
-              liveGameData={isPreviewMode ? new Map() : liveGameData}
-              projections={projections}
-              inventory={inventory}
-              onRemoveToken={handleRemoveToken}
-              autoSaving={autoSaving}
-              filterPosition={benchFilterPosition}
-              isPreviewMode={isPreviewMode}
-              selectedPlayerForSlot={selectedPlayerForSlot}
-              selectedTokenForPlayer={selectedTokenForPlayer}
-              onSlotClickWithSelection={(slotKey) => {
-                if (selectedPlayerForSlot) {
-                  handleMoveToSlot(selectedPlayerForSlot, slotKey);
-                  setSelectedPlayerForSlot(null);
-                }
-              }}
-              onPlayerClickWithTokenSelection={(player) => {
-                if (selectedTokenForPlayer) {
-                  handleApplyTokenToPlayer(selectedTokenForPlayer, player.id);
-                  setSelectedTokenForPlayer(null);
-                }
-              }}
-            />
-          )}
-
-          {lineupViewMode === 'list' && (
-            <LineupListView
-              lineup={lineup}
-              onPlayerClick={handleLineupPlayerClick}
-              liveGameData={isPreviewMode ? new Map() : liveGameData}
-              projections={projections}
-              inventory={inventory}
-              isPreviewMode={isPreviewMode}
-            />
-          )}
+          <LineupListView
+            lineup={lineup}
+            onPlayerClick={handleLineupPlayerClick}
+            liveGameData={isPreviewMode ? new Map() : liveGameData}
+            projections={projections}
+            inventory={inventory}
+            isPreviewMode={isPreviewMode}
+            onAddToken={handleClickToAddToken}
+          />
         </section>
       </div>
 
       {/* Bench and Inventory Section - Separate section for reserves */}
       <section aria-label="Bench and Tokens Inventory" className="mt-3">
-        <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8">
+        <div className="max-w-7xl mx-auto">
           <BenchAndTokensPanel
             benchPlayers={inventory?.players?.filter(p => !p.is_in_lineup) || []}
             availableTokens={availableTokens}
