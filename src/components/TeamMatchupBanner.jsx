@@ -34,7 +34,18 @@ export default function TeamMatchupBanner({
   team,
   previewMode = false
 }) {
-  const { lineupStats, lineup } = useFantasy();
+  // Safely get fantasy context - may not be available during SSR or outside provider
+  let lineupStats = null;
+  let lineup = null;
+  
+  try {
+    const fantasyContext = useFantasy();
+    lineupStats = fantasyContext?.lineupStats;
+    lineup = fantasyContext?.lineup;
+  } catch (error) {
+    // Context not available - component used outside FantasyProvider
+    console.warn('TeamMatchupBanner: Fantasy context not available');
+  }
   
   // Team customization state
   const [showCustomization, setShowCustomization] = useState(false);
@@ -250,11 +261,11 @@ export default function TeamMatchupBanner({
     return () => clearInterval(interval);
   }, [displayWeek, teamId, simulatedSeasonId, lineup, lineupStats, previewMode, currentWeek]);
 
-  // Fetch projected median
+  // Fetch projected median or live scores for all teams
   useEffect(() => {
-    if (!displayWeek || !currentWeek || isLive || isFinal) return;
+    if (!displayWeek || !currentWeek) return;
 
-    const fetchAllTeamsProjections = async () => {
+    const fetchAllTeamsScores = async () => {
       try {
         const { data: teams } = await supabase
           .from('teams')
@@ -266,30 +277,47 @@ export default function TeamMatchupBanner({
           return;
         }
 
-        const projections = [];
-        for (const team of teams) {
-          const { data: lineup } = await supabase
-            .from('user_inventory')
-            .select('player_cards!inner(weekly_projected_points, projected_points)')
-            .eq('team_id', team.id)
-            .eq('is_in_lineup', true);
+        const scores = [];
+        
+        // If week is live/final, fetch actual scores from weekly_lineups
+        // Note: These are updated by the edge function periodically
+        if (isLive || isFinal) {
+          const { data: lineups } = await supabase
+            .from('weekly_lineups')
+            .select('team_id, total_points')
+            .eq('week_number', displayWeek.week)
+            .eq('season_year', displayWeek.year);
 
-          if (lineup?.length) {
-            const teamProjected = lineup.reduce((sum, player) => {
-              const proj = player.player_cards?.weekly_projected_points || 
-                          player.player_cards?.projected_points || 0;
-              return sum + parseFloat(proj);
-            }, 0);
-            if (teamProjected > 0) projections.push(teamProjected);
+          if (lineups?.length) {
+            scores.push(...lineups.map(l => parseFloat(l.total_points || 0)).filter(s => s > 0));
+          }
+        } else {
+          // Otherwise fetch projected scores
+          for (const team of teams) {
+            const { data: lineup } = await supabase
+              .from('user_inventory')
+              .select('player_cards!inner(weekly_projected_points, projected_points)')
+              .eq('team_id', team.id)
+              .eq('is_in_lineup', true);
+
+            if (lineup?.length) {
+              const teamProjected = lineup.reduce((sum, player) => {
+                const proj = player.player_cards?.weekly_projected_points || 
+                            player.player_cards?.projected_points || 0;
+                return sum + parseFloat(proj);
+              }, 0);
+              if (teamProjected > 0) scores.push(teamProjected);
+            }
           }
         }
-        setAllTeamsProjected(projections);
+        
+        setAllTeamsProjected(scores);
       } catch (error) {
-        console.error('Error fetching all teams projections:', error);
+        console.error('Error fetching all teams scores:', error);
       }
     };
 
-    fetchAllTeamsProjections();
+    fetchAllTeamsScores();
   }, [displayWeek, currentWeek, isLive, isFinal, projectedPoints]);
 
   const { projectedMedian, totalTeams } = useProjectedMedian(
@@ -299,13 +327,63 @@ export default function TeamMatchupBanner({
   );
 
   // Calculate scores and percentages
-  const userScore = (isLive || isFinal) ? livePoints : projectedPoints;
+  // Use real-time calculated points from lineupStats hook
+  // During live games, use livePoints (actual in-game stats)
+  // Otherwise use projectedPoints (pre-game projections)
+  const userScore = (isLive || isFinal) 
+    ? (lineupStats?.livePoints || 0)  // Use real-time live stats during games
+    : (lineupStats?.projectedPoints || 0);  // Use projections before games start
+  
   const hasGlobalStats = globalStats && globalStats.total_active_teams > 0;
+  
+  // Calculate median from actual team scores instead of trusting potentially stale DB value
+  const calculatedMedian = allTeamsProjected.length > 0 ? (() => {
+    const sorted = [...allTeamsProjected].sort((a, b) => a - b);
+    const mid = Math.floor(sorted.length / 2);
+    const median = sorted.length % 2 === 0 
+      ? (sorted[mid - 1] + sorted[mid]) / 2 
+      : sorted[mid];
+    
+    return median;
+  })() : 0;
+  
+  // Use calculated median for live weeks (refreshes in real-time)
+  // Use DB median for historical/future weeks (finalized data)
   const medianScore = simulatedSeasonId && simulatedMedian
     ? parseFloat(simulatedMedian)
-    : (hasGlobalStats ? globalStats.median_score || 0 : (totalTeams > 0 ? projectedMedian : userScore));
+    : (isLive || isFinal) && calculatedMedian > 0
+    ? calculatedMedian  // Use real-time calculated median during live weeks
+    : hasGlobalStats && globalStats.median_score
+    ? globalStats.median_score  // Use DB median for historical data
+    : totalTeams > 0 ? projectedMedian : userScore;
   
-  const maxScore = hasGlobalStats ? (globalStats?.highest_score || userScore * 1.5) : (userScore * 1.5);
+  // Calculate max score: include user's score and filter outliers
+  // Filter out scores that are unrealistically high (> median * 2) as they're likely corrupted data
+  const reasonableScores = allTeamsProjected.filter(score => {
+    // If we have a median, filter outliers. Otherwise include all scores.
+    if (medianScore > 0) {
+      return score <= medianScore * 2; // Remove anything 2x above median (likely bad data)
+    }
+    return true;
+  });
+  
+  // Include user's current score in the comparison
+  const allScoresIncludingUser = [...reasonableScores, userScore];
+  
+  const highestProjectedScore = allScoresIncludingUser.length > 0 
+    ? Math.max(...allScoresIncludingUser)
+    : userScore;
+  
+  // Prioritize dynamically calculated highest score over potentially stale DB value
+  const rawMaxScore = highestProjectedScore > 0
+    ? highestProjectedScore      // Use highest from all teams (live or projected)
+    : hasGlobalStats && globalStats.highest_score > 0
+    ? globalStats.highest_score  // Fallback to DB value if available
+    : Math.max(userScore, 150);  // Final fallback to user score or minimum 150
+  
+  // Add 10% buffer so bar doesn't look completely maxed out
+  const maxScore = rawMaxScore * 1.10;
+  
   const userPercentage = Math.min((userScore / maxScore) * 100, 100);
   const medianPercentage = Math.min((medianScore / maxScore) * 100, 100);
   const isAboveMedian = userScore >= medianScore;

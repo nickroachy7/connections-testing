@@ -249,7 +249,9 @@ export default function WeekStatusBar({ teamId, team, previewMode = false }) {
     allTeamsProjected
   );
 
-  const userScore = (isLive || isFinal) ? livePoints : projectedPoints;
+  // Use real-time projected points if no weekly lineup exists yet (building phase)
+  // Otherwise use live/final points from database when available
+  const userScore = (isLive || isFinal) && hasWeeklyLineup ? livePoints : projectedPoints;
   const hasGlobalStats = globalStats && globalStats.total_active_teams > 0;
   const medianScore = simulatedSeasonId && simulatedMedian
     ? parseFloat(simulatedMedian)

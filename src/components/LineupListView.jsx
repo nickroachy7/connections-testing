@@ -252,15 +252,40 @@ export default function LineupListView({
 
             {/* COLUMN 4: FPTS - exact match to modal */}
             <div className="text-center">
-              {player ? (
-                isGameLiveOrFinal && gameData?.currentPoints !== undefined ? (
-                  <div className="flex flex-col items-center">
-                    <span className="text-sm text-white font-bold leading-tight">{gameData.currentPoints.toFixed(1)}</span>
-                    {projection?.projected && projection.projected > 0 && (
-                      <span className="text-[7px] text-primary-black-500 leading-tight">{projection.projected.toFixed(1)}</span>
-                    )}
-                  </div>
-                ) : (
+              {player ? (() => {
+                // Calculate tier multiplier bonus
+                const tierMultipliers = {
+                  'base': 1.0,
+                  'role_player': 1.1,
+                  'starter': 1.2,
+                  'all_star': 1.3,
+                  'elite': 1.5
+                };
+                const tierMult = tierMultipliers[player.card_tier] || 1.0;
+                const hasTierBonus = tierMult > 1.0;
+                
+                if (isGameLiveOrFinal && gameData?.currentPoints !== undefined) {
+                  const totalPoints = gameData.currentPoints;
+                  const basePoints = totalPoints / tierMult;
+                  const bonusPoints = totalPoints - basePoints;
+                  
+                  return (
+                    <div className="flex flex-col items-center">
+                      <div className="flex items-center gap-0.5">
+                        {/* Show BASE points + BONUS so it adds up visually */}
+                        <span className="text-sm text-white font-bold leading-tight">{basePoints.toFixed(1)}</span>
+                        {hasTierBonus && bonusPoints > 0.01 && (
+                          <span className="text-[9px] text-green-400 font-bold leading-tight">+{bonusPoints.toFixed(1)}</span>
+                        )}
+                      </div>
+                      {projection?.projected && projection.projected > 0 && (
+                        <span className="text-[7px] text-primary-black-500 leading-tight">{projection.projected.toFixed(1)}</span>
+                      )}
+                    </div>
+                  );
+                }
+                
+                return (
                   <div className="flex flex-col items-center">
                     {projection?.projected && projection.projected > 0 ? (
                       <>
@@ -271,8 +296,8 @@ export default function LineupListView({
                       <span className="text-[9px] text-primary-black-600">--</span>
                     )}
                   </div>
-                )
-              ) : (
+                );
+              })() : (
                 <span className="text-[9px] text-primary-black-600">--</span>
               )}
             </div>

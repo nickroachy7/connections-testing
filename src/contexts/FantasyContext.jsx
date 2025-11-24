@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import { supabase } from '../services/supabase';
 import { getUserInventory } from '../services/supabase';
@@ -320,23 +320,24 @@ export function FantasyProvider({ children, user, activeTeam, initialInventory }
   }, [user?.id, activeTeam?.id, currentWeek?.week, currentWeek?.year, loadProjectionsAndGameData]);
 
   // Load projections and game data from initial inventory on mount
+  // AND rebuild lineup whenever inventory changes (including lineup position changes)
   useEffect(() => {
     if (!user?.id || !activeTeam?.id || !currentWeek || !inventory?.players?.length) return;
     
-    console.log('📊 [FantasyContext] Initial setup with loader data:', inventory.players.length, 'players');
-    
     // Build lineup from inventory (no BENCH array)
     const newLineup = createEmptyLineup();
+    
     inventory.players.forEach(player => {
       if (player.is_in_lineup && player.lineup_position) {
         newLineup[player.lineup_position] = player;
       }
     });
+    
     setLineup(newLineup);
     
     // Load projections and game data from inventory
     loadProjectionsAndGameData(inventory);
-  }, [currentWeek?.week, inventory?.players?.length, loadProjectionsAndGameData]); // Trigger when week OR inventory changes
+  }, [currentWeek?.week, inventory, user?.id, activeTeam?.id, loadProjectionsAndGameData]); // Trigger when inventory object changes
 
   // Subscribe to live updates
   useEffect(() => {
@@ -433,7 +434,8 @@ export function FantasyProvider({ children, user, activeTeam, initialInventory }
   // Calculate derived lineup statistics using custom hook
   const lineupStats = useLineupStats(lineup, projections, liveGameData);
 
-  const value = {
+  // Memoize context value to prevent unnecessary re-renders
+  const value = useMemo(() => ({
     lineup,
     setLineup,
     projections,
@@ -443,13 +445,27 @@ export function FantasyProvider({ children, user, activeTeam, initialInventory }
     currentWeek,
     inventory,
     setInventory,
-    updateInventory, // Add new function for atomic updates
+    updateInventory,
     loading,
     loadInventory,
     loadLiveGameData,
-    // Derived stats (always up-to-date)
     lineupStats
-  };
+  }), [
+    lineup,
+    setLineup,
+    projections,
+    setProjections,
+    liveGameData,
+    setLiveGameData,
+    currentWeek,
+    inventory,
+    setInventory,
+    updateInventory,
+    loading,
+    loadInventory,
+    loadLiveGameData,
+    lineupStats
+  ]);
 
   return (
     <FantasyContext.Provider value={value}>

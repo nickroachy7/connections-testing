@@ -28,7 +28,7 @@ function getBaselineProjection(position) {
 }
 
 export default function TeamManager() {
-  const { user, profile, teams, activeTeam: initialActiveTeam, inventory: contextInventory, updateInventory, loadInventory: reloadInventoryFromContext, projections: contextProjections, liveGameData: contextLiveGameData, currentWeek: contextCurrentWeek } = useOutletContext();
+  const { user, profile, teams, activeTeam: initialActiveTeam, inventory: contextInventory, updateInventory, loadInventory: reloadInventoryFromContext, projections: contextProjections, liveGameData: contextLiveGameData, currentWeek: contextCurrentWeek, lineup: contextLineup, setLineup: setContextLineup } = useOutletContext();
   const navigate = useNavigate();
   const revalidator = useRevalidator();
   const location = useLocation();
@@ -39,6 +39,20 @@ export default function TeamManager() {
   
   // Use context inventory directly - SINGLE SOURCE OF TRUTH
   const inventory = contextInventory || { players: [], tokens: [] };
+  
+  // Use context lineup - SINGLE SOURCE OF TRUTH
+  const lineup = contextLineup || {
+    QB: null,
+    RB1: null,
+    RB2: null,
+    WR1: null,
+    WR2: null,
+    WR3: null,
+    TE: null,
+    FLEX: null,
+    SUPERFLEX: null
+  };
+  const setLineup = setContextLineup;
 
   // Handle case where user is null (loader error or not logged in)
   useEffect(() => {
@@ -54,50 +68,8 @@ export default function TeamManager() {
     }
   }, [initialActiveTeam?.id]); // Only depend on the ID to detect actual team changes
   
-  // Reload lineup when context inventory changes (e.g., after pack opening, team switch)
-  useEffect(() => {
-    if (inventory && inventory.players) {
-      const startingPlayers = inventory.players.filter(p => p.is_in_lineup);
-      
-      const newLineup = {
-        QB: null,
-        RB1: null,
-        RB2: null,
-        WR1: null,
-        WR2: null,
-        WR3: null,
-        TE: null,
-        FLEX: null,
-        SUPERFLEX: null
-      };
-      
-      startingPlayers.forEach(player => {
-        if (player.lineup_position) {
-          // Add sell value to player object for swipe-to-sell
-          const playerWithSellValue = {
-            ...player,
-            sell_value: calculatePlayerSellValue(player)
-          };
-          newLineup[player.lineup_position] = playerWithSellValue;
-        }
-      });
-      
-      setLineup(newLineup);
-    }
-  }, [inventory]);
-  
-  // Lineup state - NO BENCH array, derive from inventory
-  const [lineup, setLineup] = useState({
-    QB: null,
-    RB1: null,
-    RB2: null,
-    WR1: null,
-    WR2: null,
-    WR3: null,
-    TE: null,
-    FLEX: null,
-    SUPERFLEX: null
-  });
+  // Note: Lineup is now managed by FantasyContext and synced via inventory changes
+  // No local lineup state needed - using context lineup directly
   
   // View mode state
   const [lineupViewMode, setLineupViewMode] = useState('grid'); // 'grid', 'horizontal', 'list'

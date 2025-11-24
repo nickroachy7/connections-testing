@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { STARTING_POSITIONS } from '../../constants/lineup';
 
 /**
  * Custom hook to calculate all lineup statistics
@@ -27,7 +28,8 @@ export function useLineupStats(lineup, projections, liveGameData) {
       };
     }
 
-    const positions = ['QB', 'RB1', 'RB2', 'WR1', 'WR2', 'WR3', 'TE', 'FLEX'];
+    // Use only STARTING positions - excludes bench players
+    const positions = STARTING_POSITIONS;
     let totalProjected = 0;
     let totalLive = 0;
     let totalProjectedFinal = 0;
@@ -54,19 +56,26 @@ export function useLineupStats(lineup, projections, liveGameData) {
 
       // Get projection (from DB or Map)
       let projectedValue = 0;
-      const weeklyProj = player.player_card.weekly_projected_points;
-      if (weeklyProj && parseFloat(weeklyProj) > 0) {
-        projectedValue = parseFloat(weeklyProj);
-      } else if (projections?.has(playerId)) {
-        const projection = projections.get(playerId);
-        projectedValue = projection?.projected || 0;
-      }
-
-      // Get live game data
+      
+      // Get live game data first
       const gameData = liveGameData?.get(playerId);
       const gameStatus = gameData?.gameStatus?.toLowerCase() || 'scheduled';
       const isGameStarted = ['live', 'halftime', 'final'].includes(gameStatus);
       const liveValue = isGameStarted ? (gameData?.currentPoints || 0) : 0;
+      
+      // CRITICAL: Use live points if game has started, otherwise use weekly projection
+      // This ensures displayed points match what users see in the lineup view
+      if (isGameStarted && liveValue > 0) {
+        projectedValue = liveValue;
+      } else {
+        const weeklyProj = player.player_card.weekly_projected_points;
+        if (weeklyProj && parseFloat(weeklyProj) > 0) {
+          projectedValue = parseFloat(weeklyProj);
+        } else if (projections?.has(playerId)) {
+          const projection = projections.get(playerId);
+          projectedValue = projection?.projected || 0;
+        }
+      }
 
       // Track game states
       if (gameStatus === 'live' || gameStatus === 'halftime') {
