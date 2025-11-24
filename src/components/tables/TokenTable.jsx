@@ -291,22 +291,27 @@ const TokenTable = ({
             {renderExtraRowColumns && renderExtraRowColumns(token, index)}
             </div>
 
-            {/* Mobile Row */}
+            {/* Mobile Row - MATCH PlayerTable */}
             <div
               draggable={!isLocked}
               onDragStart={handleDragStart}
               onDragEnd={onRowDragEnd}
-              onClick={handleClick}
               className={`grid md:hidden ${customClassName} py-2 px-2`}
-              style={{ 
+              style={{
                 gridTemplateColumns: mobileGridTemplate,
                 gap: '4px',
                 alignItems: 'center',
                 minHeight: '56px'
               }}
             >
-              {/* COLUMN 1: TK Badge - match modal styling */}
-              <div className="flex items-center justify-center">
+              {/* COLUMN 1: TK Badge - match modal styling - CLICKABLE ONLY */}
+              <div 
+                className="flex items-center justify-center cursor-pointer"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleClick();
+                }}
+              >
                 <span className="px-1 py-0.5 bg-primary-black-700 text-primary-black-400 rounded text-[9px] font-semibold text-center">
                   TK
                 </span>

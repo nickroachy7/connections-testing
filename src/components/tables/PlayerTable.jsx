@@ -430,7 +430,6 @@ const PlayerTableRow = ({
         draggable={!isLocked}
         onDragStart={handleDragStart}
         onDragEnd={onDragEnd}
-        onClick={handleClick}
         className={`grid md:hidden ${customClassName} py-2 px-2`}
         style={{ 
           gridTemplateColumns: mobileGridTemplate,
@@ -439,8 +438,14 @@ const PlayerTableRow = ({
           minHeight: '56px'
         }}
       >
-        {/* COLUMN 1: Position Badge - exact match to modal */}
-        <div className="flex items-center justify-center">
+        {/* COLUMN 1: Position Badge - exact match to modal - CLICKABLE ONLY */}
+        <div 
+          className="flex items-center justify-center cursor-pointer"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleClick();
+          }}
+        >
           <span className="px-1 py-0.5 bg-primary-black-700 text-primary-black-300 rounded text-[9px] font-semibold text-center">
             {showBenchBadge ? 'BN' : getPositionAbbr(player.player_card.position)}
           </span>
