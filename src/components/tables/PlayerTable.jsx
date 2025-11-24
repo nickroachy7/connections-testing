@@ -1,4 +1,5 @@
 import PropTypes from 'prop-types';
+import SwipeableRow from '../SwipeableRow';
 import {
   getPositionAbbr,
   getTierBadgeInfo,
@@ -40,6 +41,7 @@ const PlayerTable = ({
   onRowDragStart = null,
   onRowDragEnd = null,
   onAddButtonClick = null,
+  onSell = null,
   
   // Row customization
   getRowClassName = null,
@@ -168,6 +170,7 @@ const PlayerTable = ({
           getRowClassName={getRowClassName}
           renderExtraColumns={renderExtraRowColumns}
           isSelectedForAction={selectedPlayerId === player.id}
+          onSell={onSell}
         />
       ))}
     </div>
@@ -196,12 +199,15 @@ const PlayerTableRow = ({
   onDragEnd,
   getRowClassName,
   renderExtraColumns,
-  isSelectedForAction
+  isSelectedForAction,
+  onSell
 }) => {
+  console.log('PlayerTable Row:', player.player_card?.player_name, 'onSell:', !!onSell, 'isLocked:', isLocked, 'will render SwipeableRow:', onSell && !isLocked);
+  
   const defaultClassName = `
     grid md:py-2 md:px-2 transition-all md:border-l-4 min-h-[64px] md:min-h-[48px]
-    ${isLocked ? 'cursor-not-allowed opacity-60 bg-primary-black-900/60 md:border-primary-black-600' : 'cursor-move md:border-transparent'}
-    ${index % 2 === 0 && !isLocked ? 'bg-primary-black-800/20' : !isLocked ? 'bg-primary-black-800/40' : ''}
+    ${isLocked ? 'cursor-not-allowed opacity-60 bg-primary-black-900 md:border-primary-black-600' : 'cursor-move md:border-transparent'}
+    ${index % 2 === 0 && !isLocked ? 'bg-primary-black-800' : !isLocked ? 'bg-primary-black-900' : ''}
   `;
 
 
@@ -425,150 +431,193 @@ const PlayerTableRow = ({
       {renderExtraColumns && renderExtraColumns(player, index)}
       </div>
 
-      {/* Mobile Row */}
-      <div
-        draggable={!isLocked}
-        onDragStart={handleDragStart}
-        onDragEnd={onDragEnd}
-        className={`grid md:hidden ${customClassName} py-2 px-2`}
-        style={{ 
-          gridTemplateColumns: mobileGridTemplate,
-          gap: '4px',
-          alignItems: 'center',
-          minHeight: '56px'
-        }}
-      >
-        {/* COLUMN 1: Position Badge - exact match to modal - CLICKABLE ONLY */}
-        <div 
-          className="flex items-center justify-center cursor-pointer"
-          onClick={(e) => {
-            e.stopPropagation();
-            handleClick();
+      {/* Mobile Row - wrapped in SwipeableRow for swipe-to-sell */}
+      {onSell && !isLocked ? (
+        <SwipeableRow
+          onSell={() => {
+            console.log('SwipeableRow onSell called for player:', player.player_card?.player_name);
+            onSell(player);
+          }}
+          sellValue={player.sellValue || 0}
+          disabled={isLocked}
+          className="md:hidden"
+        >
+          <div
+            className={`grid ${customClassName} py-2 px-2 bg-primary-black-900`}
+            style={{ 
+              gridTemplateColumns: mobileGridTemplate,
+              gap: '4px',
+              alignItems: 'center',
+              minHeight: '56px'
+            }}
+          >
+            <MobileRowContent 
+              player={player} 
+              showBenchBadge={showBenchBadge} 
+              handleClick={handleClick}
+              renderExtraColumns={renderExtraColumns}
+              index={index}
+            />
+          </div>
+        </SwipeableRow>
+      ) : (
+        <div
+          draggable={!isLocked}
+          onDragStart={handleDragStart}
+          onDragEnd={onDragEnd}
+          className={`grid md:hidden ${customClassName} py-2 px-2`}
+          style={{ 
+            gridTemplateColumns: mobileGridTemplate,
+            gap: '4px',
+            alignItems: 'center',
+            minHeight: '56px'
           }}
         >
-          <span className="px-1 py-0.5 bg-primary-black-700 text-primary-black-300 rounded text-[9px] font-semibold text-center">
-            {showBenchBadge ? 'BN' : getPositionAbbr(player.player_card.position)}
-          </span>
+          <MobileRowContent 
+            player={player} 
+            showBenchBadge={showBenchBadge} 
+            handleClick={handleClick}
+            renderExtraColumns={renderExtraColumns}
+            index={index}
+          />
         </div>
-
-        {/* COLUMN 2: Player Icon - exact match to modal */}
-        <div className={`rounded bg-primary-black-700 flex items-center justify-center w-10 h-10 border-2 ${player.card_tier ? getTierBadgeInfo(player.card_tier).borderColor : 'border-gray-500'}`}>
-          <svg className="w-6 h-6 text-primary-black-300" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
-          </svg>
-        </div>
-
-        {/* COLUMN 3: Player Name & Info - Sleeper-style dense layout */}
-        <div className="min-w-0">
-          {/* Line 1: Name + Position + Team + Tier */}
-          <div className="flex items-baseline gap-1 mb-0.5">
-            <h4 className="font-bold text-primary-black-50 truncate text-[11px] leading-tight">
-              {player.player_card.player_name}
-            </h4>
-            <span className="text-[9px] text-primary-black-400 font-semibold flex-shrink-0">
-              {getPositionAbbr(player.player_card.position)} - {player.player_card.team_abbreviation}
-            </span>
-            {player.card_tier && (
-              <span className={`px-1 py-0 rounded text-[8px] font-bold uppercase ${getTierBadgeInfo(player.card_tier).color} flex-shrink-0 leading-tight`}>
-                {getTierBadgeInfo(player.card_tier).initial}
-              </span>
-            )}
-          </div>
-          {/* Line 2: Matchup info */}
-          <div className="flex items-center gap-1 text-[9px] leading-tight">
-            {player.isBye ? (
-              <span className="text-primary-black-500 font-semibold">BYE</span>
-            ) : (
-              <>
-                {/* Live game - show clock, quarter, score, opponent */}
-                {(player.gameStatus === 'live' || player.gameStatus === 'halftime') && (
-                  <span className="text-primary-black-50 font-semibold">
-                    LIVE {player.timeRemaining && player.quarter ? `${player.timeRemaining} ${player.quarter} ` : ''}
-                    {player.homeScore !== undefined && player.awayScore !== undefined && (
-                      <>
-                        {player.isHome 
-                          ? `${player.homeScore}-${player.awayScore} ` 
-                          : `${player.awayScore}-${player.homeScore} `
-                        }
-                      </>
-                    )}
-                    {(() => {
-                      const opponent = player.opponent || (player.isHome ? player.awayTeam : player.homeTeam);
-                      return opponent ? `${player.isHome ? 'vs' : '@'} ${opponent}` : '';
-                    })()}
-                  </span>
-                )}
-                {/* Final game - show result, score, opponent */}
-                {player.gameStatus === 'final' && (
-                  <span className="text-primary-black-400">
-                    {(() => {
-                      if (player.homeScore === undefined || player.awayScore === undefined) {
-                        const opponent = player.opponent || (player.isHome ? player.awayTeam : player.homeTeam);
-                        return `Final${opponent ? ` ${player.isHome ? 'vs' : '@'} ${opponent}` : ''}`;
-                      }
-                      const playerScore = player.isHome ? player.homeScore : player.awayScore;
-                      const opponentScore = player.isHome ? player.awayScore : player.homeScore;
-                      const opponent = player.opponent || (player.isHome ? player.awayTeam : player.homeTeam);
-                      const result = playerScore > opponentScore ? 'W' : playerScore < opponentScore ? 'L' : 'T';
-                      const resultColor = result === 'W' ? 'text-green-400' : result === 'L' ? 'text-red-400' : 'text-yellow-400';
-                      return (
-                        <>
-                          Final <span className={resultColor}>{result}</span> {playerScore}-{opponentScore}{opponent ? ` ${player.isHome ? 'vs' : '@'} ${opponent}` : ''}
-                        </>
-                      );
-                    })()}
-                  </span>
-                )}
-                {/* Scheduled game - show time and opponent */}
-                {player.gameStartTime && player.gameStatus === 'scheduled' && (
-                  <>
-                    <span className="text-primary-black-400">
-                      {new Date(player.gameStartTime).toLocaleDateString('en-US', { weekday: 'short' })} {new Date(player.gameStartTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
-                    </span>
-                    {(() => {
-                      const opponent = player.opponent || (player.isHome ? player.awayTeam : player.homeTeam);
-                      return opponent ? (
-                        <span className="text-primary-black-300 font-semibold">
-                          {player.isHome ? 'vs' : '@'} {opponent}
-                        </span>
-                      ) : null;
-                    })()}
-                  </>
-                )}
-              </>
-            )}
-          </div>
-        </div>
-
-        {/* COLUMN 4: FPTS - exact match to modal */}
-        <div className="text-center">
-          {player.isLiveOrFinal && player.score !== undefined ? (
-            <div className="flex flex-col items-center">
-              <span className="text-sm text-white font-bold leading-tight">{player.score.toFixed(1)}</span>
-              {player.projected && player.projected > 0 && (
-                <span className="text-[7px] text-primary-black-500 leading-tight">{player.projected.toFixed(1)}</span>
-              )}
-            </div>
-          ) : (
-            <div className="flex flex-col items-center">
-              {player.projected && player.projected > 0 ? (
-                <>
-                  <span className="text-[10px] text-primary-black-500">--</span>
-                  <span className="text-[7px] text-primary-black-500 leading-tight">{player.projected.toFixed(1)}</span>
-                </>
-              ) : (
-                <span className="text-[9px] text-primary-black-600">--</span>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Custom columns */}
-        {renderExtraColumns && renderExtraColumns(player, index)}
-      </div>
+      )}
     </>
   );
 };
+
+// Extract mobile row content to avoid duplication
+const MobileRowContent = ({ player, showBenchBadge, handleClick, renderExtraColumns, index }) => (
+  <>
+    {/* COLUMN 1: Position Badge - exact match to modal - CLICKABLE ONLY */}
+    <div 
+      className="flex items-center justify-center cursor-pointer"
+      onClick={(e) => {
+        e.stopPropagation();
+        handleClick();
+      }}
+    >
+      <span className="px-1 py-0.5 bg-primary-black-700 text-primary-black-300 rounded text-[9px] font-semibold text-center">
+        {showBenchBadge ? 'BN' : getPositionAbbr(player.player_card.position)}
+      </span>
+    </div>
+
+    {/* COLUMN 2: Player Icon - exact match to modal */}
+    <div className={`rounded bg-primary-black-700 flex items-center justify-center w-10 h-10 border-2 ${player.card_tier ? getTierBadgeInfo(player.card_tier).borderColor : 'border-gray-500'}`}>
+      <svg className="w-6 h-6 text-primary-black-300" fill="currentColor" viewBox="0 0 24 24">
+        <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+      </svg>
+    </div>
+
+    {/* COLUMN 3: Player Name & Info - Sleeper-style dense layout */}
+    <div className="min-w-0">
+      {/* Line 1: Name + Position + Team + Tier */}
+      <div className="flex items-baseline gap-1 mb-0.5">
+        <h4 className="font-bold text-primary-black-50 truncate text-[11px] leading-tight">
+          {player.player_card.player_name}
+        </h4>
+        <span className="text-[9px] text-primary-black-400 font-semibold flex-shrink-0">
+          {getPositionAbbr(player.player_card.position)} - {player.player_card.team_abbreviation}
+        </span>
+        {player.card_tier && (
+          <span className={`px-1 py-0 rounded text-[8px] font-bold uppercase ${getTierBadgeInfo(player.card_tier).color} flex-shrink-0 leading-tight`}>
+            {getTierBadgeInfo(player.card_tier).initial}
+          </span>
+        )}
+      </div>
+      {/* Line 2: Matchup info */}
+      <div className="flex items-center gap-1 text-[9px] leading-tight">
+        {player.isBye ? (
+          <span className="text-primary-black-500 font-semibold">BYE</span>
+        ) : (
+          <>
+            {/* Live game - show clock, quarter, score, opponent */}
+            {(player.gameStatus === 'live' || player.gameStatus === 'halftime') && (
+              <span className="text-primary-black-50 font-semibold">
+                LIVE {player.timeRemaining && player.quarter ? `${player.timeRemaining} ${player.quarter} ` : ''}
+                {player.homeScore !== undefined && player.awayScore !== undefined && (
+                  <>
+                    {player.isHome 
+                      ? `${player.homeScore}-${player.awayScore} ` 
+                      : `${player.awayScore}-${player.homeScore} `
+                    }
+                  </>
+                )}
+                {(() => {
+                  const opponent = player.opponent || (player.isHome ? player.awayTeam : player.homeTeam);
+                  return opponent ? `${player.isHome ? 'vs' : '@'} ${opponent}` : '';
+                })()}
+              </span>
+            )}
+            {/* Final game - show result, score, opponent */}
+            {player.gameStatus === 'final' && (
+              <span className="text-primary-black-400">
+                {(() => {
+                  if (player.homeScore === undefined || player.awayScore === undefined) {
+                    const opponent = player.opponent || (player.isHome ? player.awayTeam : player.homeTeam);
+                    return `Final${opponent ? ` ${player.isHome ? 'vs' : '@'} ${opponent}` : ''}`;
+                  }
+                  const playerScore = player.isHome ? player.homeScore : player.awayScore;
+                  const opponentScore = player.isHome ? player.awayScore : player.homeScore;
+                  const opponent = player.opponent || (player.isHome ? player.awayTeam : player.homeTeam);
+                  const result = playerScore > opponentScore ? 'W' : playerScore < opponentScore ? 'L' : 'T';
+                  const resultColor = result === 'W' ? 'text-green-400' : result === 'L' ? 'text-red-400' : 'text-yellow-400';
+                  return (
+                    <>
+                      Final <span className={resultColor}>{result}</span> {playerScore}-{opponentScore}{opponent ? ` ${player.isHome ? 'vs' : '@'} ${opponent}` : ''}
+                    </>
+                  );
+                })()}
+              </span>
+            )}
+            {/* Scheduled game - show time and opponent */}
+            {player.gameStartTime && player.gameStatus === 'scheduled' && (
+              <>
+                <span className="text-primary-black-400">
+                  {new Date(player.gameStartTime).toLocaleDateString('en-US', { weekday: 'short' })} {new Date(player.gameStartTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+                </span>
+                {(() => {
+                  const opponent = player.opponent || (player.isHome ? player.awayTeam : player.homeTeam);
+                  return opponent ? (
+                    <span className="text-primary-black-300 font-semibold">
+                      {player.isHome ? 'vs' : '@'} {opponent}
+                    </span>
+                  ) : null;
+                })()}
+              </>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+
+    {/* COLUMN 4: FPTS - exact match to modal */}
+    <div className="text-center">
+      {player.isLiveOrFinal && player.score !== undefined ? (
+        <div className="flex flex-col items-center">
+          <span className="text-sm text-white font-bold leading-tight">{player.score.toFixed(1)}</span>
+          {player.projected && player.projected > 0 && (
+            <span className="text-[7px] text-primary-black-500 leading-tight">{player.projected.toFixed(1)}</span>
+          )}
+        </div>
+      ) : (
+        <div className="flex flex-col items-center">
+          {player.projected && player.projected > 0 ? (
+            <>
+              <span className="text-[10px] text-primary-black-500">--</span>
+              <span className="text-[7px] text-primary-black-500 leading-tight">{player.projected.toFixed(1)}</span>
+            </>
+          ) : (
+            <span className="text-[9px] text-primary-black-600">--</span>
+          )}
+        </div>
+      )}
+    </div>
+
+    {/* Custom columns */}
+    {renderExtraColumns && renderExtraColumns(player, index)}
+  </>
+);
 
 PlayerTable.propTypes = {
   players: PropTypes.array.isRequired,
@@ -584,6 +633,7 @@ PlayerTable.propTypes = {
   onRowDragStart: PropTypes.func,
   onRowDragEnd: PropTypes.func,
   onAddButtonClick: PropTypes.func,
+  onSell: PropTypes.func,
   getRowClassName: PropTypes.func,
   isRowLocked: PropTypes.func,
   selectedPlayerId: PropTypes.string,
@@ -609,7 +659,16 @@ PlayerTableRow.propTypes = {
   onDragEnd: PropTypes.func,
   getRowClassName: PropTypes.func,
   renderExtraColumns: PropTypes.func,
-  isSelectedForAction: PropTypes.bool
+  isSelectedForAction: PropTypes.bool,
+  onSell: PropTypes.func
+};
+
+MobileRowContent.propTypes = {
+  player: PropTypes.object.isRequired,
+  showBenchBadge: PropTypes.bool,
+  handleClick: PropTypes.func,
+  renderExtraColumns: PropTypes.func,
+  index: PropTypes.number
 };
 
 export default PlayerTable;

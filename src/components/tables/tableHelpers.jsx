@@ -133,16 +133,14 @@ export const enrichPlayerData = (player, liveGameData, projections) => {
     // Stats
     projected: projection?.projected,
     score: gameData?.currentPoints,
-    seasonAvg: projection?.seasonAvg,
-    
-    // Calculated
-    sellValue: null // Will be set by component
+    seasonAvg: projection?.seasonAvg
+    // Note: sellValue should be calculated by the calling component
   };
 };
 
 export const enrichTokenData = (token) => {
   return {
-    ...token,
-    sellValue: null // Will be set by component
+    ...token
+    // Note: sellValue should be calculated by the calling component
   };
 };

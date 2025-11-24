@@ -5,10 +5,11 @@ import { calculatePlayerSellValue, calculateTokenSellValue } from '../utils/sell
 import InventoryPanel from '../components/InventoryPanel';
 import RosterLimitBanner from '../components/RosterLimitBanner';
 import RosterCount from '../components/RosterCount';
+import SellConfirmationModal from '../components/SellConfirmationModal';
 
 export default function Inventory() {
   // Use shared data from FantasyContext via outlet
-  const { user, profile, activeTeam, inventory: contextInventory, refreshProfile, projections, liveGameData, currentWeek, loadInventory: reloadInventory } = useOutletContext();
+  const { user, profile, activeTeam, inventory: contextInventory, refreshProfile, updateCoins, projections, liveGameData, currentWeek, loadInventory: reloadInventory } = useOutletContext();
   const [inventory, setInventory] = useState(contextInventory || { players: [], tokens: [] });
   const [filters, setFilters] = useState({
     position: 'all',
@@ -20,6 +21,14 @@ export default function Inventory() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [viewMode, setViewMode] = useState('list'); // 'list' or 'grid'
+  
+  // Sell confirmation modal state
+  const [sellConfirmationModal, setSellConfirmationModal] = useState({
+    isOpen: false,
+    player: null,
+    sellValue: 0,
+    cardType: 'player'
+  });
 
   // Sync inventory when context changes
   useEffect(() => {
@@ -58,8 +67,99 @@ export default function Inventory() {
       console.error('Error selling card:', err);
       setError(err.message || 'Failed to sell card');
     } finally {
-      setSelling(prev => ({ ...prev, [inventoryId]: false }));
+      setSelling(prev => ({ ...prev, [inventoryId]: false}));
     }
+  };
+
+  // Swipe-to-sell handler for players (opens confirmation modal)
+  const handleSwipeToSell = (player) => {
+    // Use the sellValue already calculated in enrichedPlayers
+    const sellValue = player.sellValue || calculatePlayerSellValue(player);
+    setSellConfirmationModal({
+      isOpen: true,
+      player,
+      sellValue,
+      cardType: 'player'
+    });
+  };
+
+  // Swipe-to-sell handler for tokens (opens confirmation modal)
+  const handleSwipeToSellToken = (token) => {
+    // Use the sellValue already calculated in enrichedTokens
+    const sellValue = token.sellValue || calculateTokenSellValue(token);
+    setSellConfirmationModal({
+      isOpen: true,
+      player: token, // Reuse the same modal structure
+      sellValue,
+      cardType: 'token'
+    });
+  };
+
+  // Confirm sell from modal
+  const handleConfirmSell = async () => {
+    const { player, sellValue, cardType } = sellConfirmationModal;
+    if (!player) return;
+
+    setSelling(prev => ({ ...prev, [player.id]: true }));
+    setError('');
+    setSuccess('');
+
+    try {
+      const result = await quickSellCard(player.id, cardType);
+      
+      // Optimistically update coins in banner immediately
+      if (updateCoins) {
+        updateCoins(result.coins_earned);
+      }
+      
+      setSuccess(`Card sold for ${result.coins_earned} coins! New balance: ${result.new_balance}`);
+      
+      // Close modal
+      setSellConfirmationModal({
+        isOpen: false,
+        player: null,
+        sellValue: 0,
+        cardType: 'player'
+      });
+
+      // Remove sold item from inventory
+      if (cardType === 'player') {
+        setInventory(prev => ({
+          ...prev,
+          players: prev.players.filter(p => p.id !== player.id)
+        }));
+      } else {
+        setInventory(prev => ({
+          ...prev,
+          tokens: prev.tokens.filter(t => t.id !== player.id)
+        }));
+      }
+
+      // Reload inventory from context
+      if (reloadInventory) {
+        await reloadInventory();
+      }
+      
+      // Refresh profile to sync actual coin value from server
+      if (refreshProfile) {
+        refreshProfile();
+      }
+    } catch (err) {
+      console.error('Error selling card:', err);
+      setError(err.message || 'Failed to sell card');
+    } finally {
+      setSelling(prev => ({ ...prev, [player.id]: false }));
+    }
+  };
+
+  // Cancel sell
+  const handleCancelSell = () => {
+    setSellConfirmationModal({
+      isOpen: false,
+      player: null,
+      sellValue: 0,
+      cardType: 'player'
+    });
   };
 
   const filteredTokens = inventory.tokens.filter(token => {
@@ -185,6 +285,8 @@ export default function Inventory() {
               loadingProjections={false}
               liveGameData={liveGameData || new Map()}
               onQuickSell={handleQuickSell}
+              onSell={handleSwipeToSell}
+              onSellToken={handleSwipeToSellToken}
               onBulkSellComplete={reloadInventory}
               onReloadProfile={refreshProfile}
               selling={Object.keys(selling).length > 0}
@@ -196,6 +298,15 @@ export default function Inventory() {
           </div>
         </div>
       </div>
+
+      {/* Sell Confirmation Modal */}
+      <SellConfirmationModal
+        player={sellConfirmationModal.player}
+        sellValue={sellConfirmationModal.sellValue}
+        onConfirm={handleConfirmSell}
+        onCancel={handleCancelSell}
+        isOpen={sellConfirmationModal.isOpen}
+      />
     </>
   );
 }

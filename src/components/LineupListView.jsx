@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import { getTierBadgeInfo } from './tables/tableHelpers.jsx';
+import SwipeableRow from './SwipeableRow';
 
 /**
  * LineupListView Component
@@ -13,7 +14,9 @@ export default function LineupListView({
   projections,
   inventory,
   isPreviewMode = false,
-  onAddToken
+  onAddToken,
+  onSell,
+  isMobile = false
 }) {
   const positionSlots = [
     { key: 'QB', label: 'Quarterback' },
@@ -76,9 +79,8 @@ export default function LineupListView({
         const isLocked = isPreviewMode ? false : (player?.is_locked || isGameLiveOrFinal);
         const appliedToken = inventory?.tokens?.find(t => t.applied_to_player_id === player?.id && t.is_active);
 
-        return (
+        const rowContent = (
           <div
-            key={slot.key}
             className={`${defaultClassName(index, isLocked)} py-2 px-2`}
             style={{ 
               gridTemplateColumns: '32px 40px 1fr 24px 60px',
@@ -276,6 +278,23 @@ export default function LineupListView({
             </div>
           </div>
         );
+
+        // Wrap in SwipeableRow if player exists and not locked (works on both mobile and desktop)
+        if (player && !isLocked && onSell) {
+          return (
+            <SwipeableRow
+              key={slot.key}
+              onSell={() => onSell(player)}
+              sellValue={player.sell_value || 0}
+              disabled={isLocked}
+            >
+              {rowContent}
+            </SwipeableRow>
+          );
+        }
+
+        // When not wrapped, clone the element and add the key
+        return <div key={slot.key}>{rowContent}</div>;
       })}
     </div>
   );
@@ -288,5 +307,7 @@ LineupListView.propTypes = {
   projections: PropTypes.instanceOf(Map),
   inventory: PropTypes.object,
   isPreviewMode: PropTypes.bool,
-  onAddToken: PropTypes.func
+  onAddToken: PropTypes.func,
+  onSell: PropTypes.func,
+  isMobile: PropTypes.bool
 };

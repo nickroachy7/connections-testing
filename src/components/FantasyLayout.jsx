@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { Outlet, useLoaderData, useLocation, useRevalidator } from 'react-router-dom';
 import { FantasyProvider, useFantasy } from '../contexts/FantasyContext';
 import FantasyNavBanner from './FantasyNavBanner';
@@ -9,6 +10,16 @@ function FantasyLayoutInner() {
   const { lineup, projections, liveGameData, currentWeek, inventory, loadInventory, updateInventory } = useFantasy();
   const location = useLocation();
   const revalidator = useRevalidator();
+  
+  // Local state for optimistic coin updates
+  const [displayCoins, setDisplayCoins] = useState(activeTeam?.coins || 0);
+
+  // Sync displayCoins when activeTeam.coins changes from server
+  useEffect(() => {
+    if (activeTeam?.coins !== undefined) {
+      setDisplayCoins(activeTeam.coins);
+    }
+  }, [activeTeam?.coins]);
 
   // Enable preview mode ONLY on starting-lineup page
   const isStartingLineupPage = location.pathname.includes('/starting-lineup');
@@ -16,6 +27,11 @@ function FantasyLayoutInner() {
   // Function to refresh profile data (including coins)
   const refreshProfile = () => {
     revalidator.revalidate();
+  };
+  
+  // Function to update coins optimistically (for instant UI feedback)
+  const updateCoins = (coinsToAdd) => {
+    setDisplayCoins(prev => prev + coinsToAdd);
   };
 
   return (
@@ -27,7 +43,7 @@ function FantasyLayoutInner() {
           teamName={activeTeam?.team_name}
           wins={activeTeam?.wins}
           losses={activeTeam?.losses}
-          coins={activeTeam?.coins}
+          coins={displayCoins}
           teamId={activeTeam?.id}
           userId={user?.id}
           team={activeTeam}
@@ -48,7 +64,8 @@ function FantasyLayoutInner() {
           inventory,
           loadInventory,
           updateInventory,
-          refreshProfile
+          refreshProfile,
+          updateCoins
         }} />
       </main>
     </div>

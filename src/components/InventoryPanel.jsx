@@ -20,6 +20,8 @@ export default function InventoryPanel({
   loadingProjections,
   liveGameData,
   onQuickSell,
+  onSell,
+  onSellToken,
   onBulkSellComplete,
   onReloadProfile,
   selling,
@@ -46,18 +48,25 @@ export default function InventoryPanel({
 
   // Enrich player data with live game info and projections
   const enrichedPlayers = sortedPlayers.map(player => {
+    // Use base_value from player_cards table as sell value
+    const sellValue = player.player_card?.base_value || 0;
     const enriched = enrichPlayerData(player, liveGameData, projections);
     return {
       ...enriched,
-      sellValue: calculatePlayerSellValue(player)
+      sellValue // Add sellValue to enriched data
     };
   });
 
   // Enrich token data
-  const enrichedTokens = tokens.map(token => ({
-    ...enrichTokenData(token),
-    sellValue: calculateTokenSellValue(token)
-  }));
+  const enrichedTokens = tokens.map(token => {
+    // Use base_value from token_cards table as sell value
+    const sellValue = token.token_card?.base_value || 0;
+    const enriched = enrichTokenData(token);
+    return {
+      ...enriched,
+      sellValue // Add sellValue to enriched data
+    };
+  });
 
   // Filter players
   const filteredPlayers = enrichedPlayers.filter(player => {
@@ -208,6 +217,7 @@ export default function InventoryPanel({
               showTierLevel={true}
               selectedIds={selectedPlayerIds}
               onBulkSelectChange={handlePlayerBulkSelect}
+              onSell={onSell}
               isRowLocked={(player) => {
                 const gameData = liveGameData?.get(player.player_card?.player_id);
                 const gameStatus = gameData?.gameStatus?.toLowerCase();
@@ -249,6 +259,7 @@ export default function InventoryPanel({
           showBulkSelect={true}
           selectedIds={selectedTokenIds}
           onBulkSelectChange={handleTokenBulkSelect}
+          onSell={onSellToken}
           emptyMessage="No tokens available"
           emptyIcon="💎"
         />
@@ -281,6 +292,8 @@ InventoryPanel.propTypes = {
   loadingProjections: PropTypes.bool,
   liveGameData: PropTypes.object,
   onQuickSell: PropTypes.func.isRequired,
+  onSell: PropTypes.func,
+  onSellToken: PropTypes.func,
   onBulkSellComplete: PropTypes.func,
   onReloadProfile: PropTypes.func,
   selling: PropTypes.bool,

@@ -14,6 +14,7 @@ import PlayerSwapModal from '../components/PlayerSwapModal';
 import TokenApplicationModal from '../components/TokenApplicationModal';
 import TokenSelectionModal from '../components/TokenSelectionModal';
 import RosterCount from '../components/RosterCount';
+import SellConfirmationModal from '../components/SellConfirmationModal';
 
 // Helper function for baseline projections
 function getBaselineProjection(position) {
@@ -72,7 +73,12 @@ export default function TeamManager() {
       
       startingPlayers.forEach(player => {
         if (player.lineup_position) {
-          newLineup[player.lineup_position] = player;
+          // Add sell value to player object for swipe-to-sell
+          const playerWithSellValue = {
+            ...player,
+            sell_value: calculatePlayerSellValue(player)
+          };
+          newLineup[player.lineup_position] = playerWithSellValue;
         }
       });
       
@@ -173,6 +179,13 @@ export default function TeamManager() {
   const [tokenSelectionModal, setTokenSelectionModal] = useState({
     isOpen: false,
     targetPlayer: null
+  });
+  
+  // Sell confirmation modal state
+  const [sellConfirmationModal, setSellConfirmationModal] = useState({
+    isOpen: false,
+    player: null,
+    sellValue: 0
   });
   
   // Projections state - use context data
@@ -810,6 +823,54 @@ export default function TeamManager() {
     } finally {
       setSelling(prev => ({ ...prev, [inventoryId]: false }));
     }
+  };
+
+  // Swipe-to-sell handler (opens confirmation modal)
+  const handleSwipeToSell = (player) => {
+    const sellValue = calculatePlayerSellValue(player);
+    setSellConfirmationModal({
+      isOpen: true,
+      player,
+      sellValue
+    });
+  };
+
+  // Confirm sell from modal
+  const handleConfirmSell = async () => {
+    const { player, sellValue } = sellConfirmationModal;
+    if (!player) return;
+
+    setSelling(prev => ({ ...prev, [player.id]: true }));
+    setError('');
+
+    try {
+      await quickSellCard(player.id, 'player');
+      
+      // Close modal
+      setSellConfirmationModal({
+        isOpen: false,
+        player: null,
+        sellValue: 0
+      });
+
+      // Reload inventory via context
+      await reloadInventoryFromContext();
+    } catch (err) {
+      console.error('Error selling card:', err);
+      setError(err.message || 'Failed to sell card');
+      setTimeout(() => setError(''), 3000);
+    } finally {
+      setSelling(prev => ({ ...prev, [player.id]: false }));
+    }
+  };
+
+  // Cancel sell
+  const handleCancelSell = () => {
+    setSellConfirmationModal({
+      isOpen: false,
+      player: null,
+      sellValue: 0
+    });
   };
 
   // Remove token from player
@@ -1650,6 +1711,8 @@ export default function TeamManager() {
             inventory={inventory}
             isPreviewMode={isPreviewMode}
             onAddToken={handleClickToAddToken}
+            onSell={handleSwipeToSell}
+            isMobile={isMobile}
           />
         </section>
       </div>
@@ -1836,6 +1899,15 @@ export default function TeamManager() {
           </div>
         </div>
       )}
+
+      {/* Sell Confirmation Modal */}
+      <SellConfirmationModal
+        player={sellConfirmationModal.player}
+        sellValue={sellConfirmationModal.sellValue}
+        onConfirm={handleConfirmSell}
+        onCancel={handleCancelSell}
+        isOpen={sellConfirmationModal.isOpen}
+      />
     </>
   );
 }

@@ -41,6 +41,7 @@ export default function SwipeableRow({
     currentXRef.current = swipeOffset;
     isHorizontalSwipeRef.current = false;
     setIsDragging(true);
+    console.log('Touch start:', touch.clientX, touch.clientY);
   };
 
   const handleTouchMove = (e) => {
@@ -50,14 +51,19 @@ export default function SwipeableRow({
     const deltaX = startXRef.current - touch.clientX;
     const deltaY = Math.abs(startYRef.current - touch.clientY);
     
+    console.log('Touch move - deltaX:', deltaX, 'deltaY:', deltaY);
+    
     // Determine if this is a horizontal swipe
     if (!isHorizontalSwipeRef.current && Math.abs(deltaX) > 5) {
       isHorizontalSwipeRef.current = Math.abs(deltaX) > deltaY;
+      console.log('Horizontal swipe detected:', isHorizontalSwipeRef.current);
     }
     
     // Only process horizontal swipes
     if (isHorizontalSwipeRef.current) {
       const newOffset = currentXRef.current + deltaX;
+      
+      console.log('New offset:', newOffset);
       
       // Only allow left swipe (positive offset)
       if (newOffset >= 0 && newOffset <= MAX_SWIPE) {
@@ -73,14 +79,18 @@ export default function SwipeableRow({
   const handleTouchEnd = () => {
     if (disabled) return;
     
+    console.log('Touch end - swipeOffset:', swipeOffset);
+    
     setIsDragging(false);
     isHorizontalSwipeRef.current = false;
 
     // Snap to either closed or open based on threshold
     if (swipeOffset > SWIPE_THRESHOLD / 2) {
       setSwipeOffset(SWIPE_THRESHOLD); // Snap to open
+      console.log('Snapped to open');
     } else {
       setSwipeOffset(0); // Snap to closed
+      console.log('Snapped to closed');
     }
   };
 
@@ -146,7 +156,7 @@ export default function SwipeableRow({
           WebkitTransform: `translateX(-${swipeOffset}px)`, // Safari support
           cursor: isDragging ? 'grabbing' : 'grab'
         }}
-        className="bg-primary-black-900 w-full touch-pan-y" // Ensure content has background and full width
+        className="w-full touch-pan-y relative z-10 bg-primary-black-900"
       >
         {children}
       </div>
