@@ -100,104 +100,116 @@ function CardReveal({ items, onRevealComplete, isStarterPack = false, tierConfig
   };
 
   const handleCardClickForTier = (cardIndex) => {
-    const item = items[cardIndex];
-    if (item.type !== 'player' || !selectedTier) return;
-
-    setTierAssignments(prev => {
-      const newAssignments = { ...prev };
-      
-      // Check if this tier is full
-      const tierSlots = tierConfig[selectedTier].slots;
-      const currentAssignments = newAssignments[selectedTier] || [];
-      
-      // If card is already in this tier, remove it
-      if (currentAssignments.includes(cardIndex)) {
-        newAssignments[selectedTier] = currentAssignments.filter(idx => idx !== cardIndex);
-        return newAssignments;
-      }
-      
-      // If tier is full, don't add
-      if (currentAssignments.length >= tierSlots) {
-        return newAssignments;
-      }
-      
-      // Remove this card from any other tier
-      Object.keys(newAssignments).forEach(t => {
-        newAssignments[t] = newAssignments[t].filter(idx => idx !== cardIndex);
-      });
-      
-      // Add to selected tier
-      if (!newAssignments[selectedTier]) newAssignments[selectedTier] = [];
-      newAssignments[selectedTier].push(cardIndex);
-      
-      return newAssignments;
-    });
-  };
-
-  const canConfirmTiers = () => {
-    if (!isStarterPack || !tierConfig) return true;
+    if (!selectedTier) return;
     
-    // Check all slots are filled
-    return Object.keys(tierConfig).every(tier => {
-      const assigned = tierAssignments[tier] || [];
-      return assigned.length === tierConfig[tier].slots;
-    });
-  };
-
-  const handleContinue = () => {
-    if (isStarterPack && tierConfig) {
-      // Convert tier assignments to the format expected by parent
-      const formattedAssignments = {};
-      Object.keys(tierAssignments).forEach(tier => {
-        tierAssignments[tier].forEach(cardIndex => {
-          const card = items[cardIndex];
-          if (card.type === 'player') {
-            formattedAssignments[card.data.id] = tier;
-          }
-        });
-      });
-      onRevealComplete(formattedAssignments);
+    const config = tierConfig[selectedTier];
+    const currentAssignments = tierAssignments[selectedTier] || [];
+    
+    // Check if this card is already assigned to this tier
+    if (currentAssignments.includes(cardIndex)) {
+      // Unassign
+      setTierAssignments(prev => ({
+        ...prev,
+        [selectedTier]: currentAssignments.filter(idx => idx !== cardIndex)
+      }));
+      return;
+    }
+    
+    // Check if tier is full
+    if (currentAssignments.length >= config.slots) {
+      return;
+    }
+    
+    // Check if card is assigned to another tier
+    const existingTier = Object.keys(tierAssignments).find(tier => 
+      tierAssignments[tier]?.includes(cardIndex)
+    );
+    
+    if (existingTier) {
+      // Remove from old tier
+      setTierAssignments(prev => ({
+        ...prev,
+        [existingTier]: prev[existingTier].filter(idx => idx !== cardIndex),
+        [selectedTier]: [...currentAssignments, cardIndex]
+      }));
     } else {
-      onRevealComplete();
+      // Add to new tier
+      setTierAssignments(prev => ({
+        ...prev,
+        [selectedTier]: [...currentAssignments, cardIndex]
+      }));
     }
   };
 
-  // Get glow color based on pull_percentage (lower % = rarer = better glow)
+  const canConfirmTiers = () => {
+    if (!tierConfig) return false;
+    
+    const totalSlots = Object.values(tierConfig).reduce((sum, config) => sum + config.slots, 0);
+    const totalAssigned = Object.values(tierAssignments).flat().length;
+    
+    return totalAssigned === totalSlots;
+  };
+
+  const handleContinue = () => {
+    if (showTierUI && tierConfig) {
+      // Convert tier assignments from card indices to player IDs
+      const tierAssignmentsByPlayerId = {};
+      
+      Object.keys(tierAssignments).forEach(tier => {
+        tierAssignments[tier].forEach(cardIndex => {
+          const playerItem = items[cardIndex];
+          if (playerItem && playerItem.type === 'player') {
+            tierAssignmentsByPlayerId[playerItem.data.id] = tier;
+          }
+        });
+      });
+      
+      onRevealComplete?.(tierAssignmentsByPlayerId);
+    } else {
+      onRevealComplete?.();
+    }
+  };
+
   const getGlowColor = (pullPercentage) => {
-    if (!pullPercentage) return {
-      border: 'border-gray-600',
-      shadow: 'hover:shadow-[0_0_8px_rgba(107,114,128,0.3)]',
-      glow: 'rgba(107, 114, 128, 0.15)',
-      textColor: 'text-gray-400'
-    };
+    if (!pullPercentage) {
+      // Token or no pull percentage
+      return {
+        border: 'border-gray-600',
+        shadow: 'hover:shadow-[0_0_8px_rgba(107,114,128,0.3)]',
+        glow: 'rgba(107, 114, 128, 0.15)',
+        textColor: 'text-gray-400'
+      };
+    }
     
-    if (pullPercentage <= 5) return {
-      border: 'border-yellow-400',
-      shadow: 'hover:shadow-[0_0_12px_rgba(250,204,21,0.4)]',
-      glow: 'rgba(250, 204, 21, 0.2)',
-      textColor: 'text-yellow-400'
-    };
+    // Legendary: 0-5%
+    if (pullPercentage <= 5) {
+      return {
+        border: 'border-yellow-500',
+        shadow: 'hover:shadow-[0_0_15px_rgba(234,179,8,0.5)]',
+        glow: 'rgba(234, 179, 8, 0.2)',
+        textColor: 'text-yellow-400'
+      };
+    }
     
-    if (pullPercentage <= 15) return {
-      border: 'border-purple-500',
-      shadow: 'hover:shadow-[0_0_12px_rgba(168,85,247,0.4)]',
-      glow: 'rgba(168, 85, 247, 0.2)',
-      textColor: 'text-purple-400'
-    };
+    // Epic: 5-15%
+    if (pullPercentage <= 15) {
+      return {
+        border: 'border-purple-500',
+        shadow: 'hover:shadow-[0_0_12px_rgba(168,85,247,0.4)]',
+        glow: 'rgba(168, 85, 247, 0.15)',
+        textColor: 'text-purple-400'
+      };
+    }
     
-    if (pullPercentage <= 25) return {
-      border: 'border-blue-500',
-      shadow: 'hover:shadow-[0_0_12px_rgba(59,130,246,0.4)]',
-      glow: 'rgba(59, 130, 246, 0.2)',
-      textColor: 'text-blue-400'
-    };
-    
-    if (pullPercentage <= 40) return {
-      border: 'border-green-500',
-      shadow: 'hover:shadow-[0_0_12px_rgba(34,197,94,0.4)]',
-      glow: 'rgba(34, 197, 94, 0.2)',
-      textColor: 'text-green-400'
-    };
+    // Rare: 15-40%
+    if (pullPercentage <= 40) {
+      return {
+        border: 'border-blue-500',
+        shadow: 'hover:shadow-[0_0_10px_rgba(59,130,246,0.3)]',
+        glow: 'rgba(59, 130, 246, 0.12)',
+        textColor: 'text-blue-400'
+      };
+    }
     
     return {
       border: 'border-gray-600',
@@ -527,29 +539,31 @@ function CardReveal({ items, onRevealComplete, isStarterPack = false, tierConfig
         </div>
       )}
 
-      {/* Bottom Buttons */}
-      <div className="text-center py-3 flex-shrink-0 bg-primary-black-950">
-        {!allRevealed && (
-          <button
-            onClick={handleRevealAll}
-            className="px-6 py-2.5 bg-primary-green-500 hover:bg-primary-green-400 text-primary-black-950 font-bold rounded-lg transition-all hover:scale-105 text-sm"
-          >
-            Reveal All
-          </button>
-        )}
-        {allRevealed && !showTierUI && (
-          <button
-            onClick={handleContinue}
-            className="px-6 py-2.5 bg-primary-green-500 hover:bg-primary-green-400 text-primary-black-950 font-bold rounded-lg transition-all hover:scale-105 text-sm"
-          >
-            Continue
-          </button>
-        )}
+      {/* Bottom Buttons - Fixed position with safe area support for mobile */}
+      <div className="fixed bottom-0 left-0 right-0 text-center py-3 pb-safe bg-primary-black-950 border-t border-primary-black-800 z-10">
+        <div className="pb-safe-offset-3">
+          {!allRevealed && (
+            <button
+              onClick={handleRevealAll}
+              className="px-6 py-2.5 bg-primary-green-500 hover:bg-primary-green-400 text-primary-black-950 font-bold rounded-lg transition-all hover:scale-105 text-sm shadow-lg"
+            >
+              Reveal All
+            </button>
+          )}
+          {allRevealed && !showTierUI && (
+            <button
+              onClick={handleContinue}
+              className="px-6 py-2.5 bg-primary-green-500 hover:bg-primary-green-400 text-primary-black-950 font-bold rounded-lg transition-all hover:scale-105 text-sm shadow-lg"
+            >
+              Continue
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* Tier Assignment UI */}
+      {/* Tier Assignment UI - Fixed position with safe area support */}
       {showTierUI && tierConfig && (
-        <div className="mt-1 space-y-1.5 flex-shrink-0">
+        <div className="fixed bottom-0 left-0 right-0 mt-1 space-y-1.5 flex-shrink-0 bg-primary-black-950 border-t border-primary-black-800 py-3 pb-safe z-10">
           {/* Tier Selection Buttons */}
           <div className="flex gap-1.5 justify-center flex-wrap">
             {Object.keys(tierConfig).map(tier => {
