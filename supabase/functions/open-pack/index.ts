@@ -46,9 +46,6 @@ serve(async (req) => {
       throw new Error(`Pack not found: ${packError?.message || 'Unknown error'}`)
     }
 
-    // No need to check coins here - coins are deducted during purchase_pack RPC
-    // This function only handles opening packs that have already been purchased
-
     // Use the provided team_id, or fall back to active team
     let teamToUse = null
     if (team_id) {
@@ -81,6 +78,54 @@ serve(async (req) => {
 
     console.log('Using team:', teamToUse)
 
+    // Retrieve the pre-generated pack contents from user_packs
+    // Cards are now generated during purchase_pack RPC to prevent loss on refresh
+    const { data: userPack, error: userPackError } = await supabaseClient
+      .from('user_packs')
+      .select('id, pack_contents, cards_added_to_inventory')
+      .eq('pack_id', pack_id)
+      .eq('team_id', teamToUse.id)
+      .eq('user_id', user.id)
+      .eq('is_opened', false)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single()
+
+    if (userPackError || !userPack) {
+      console.error('User pack error:', userPackError)
+      throw new Error('Pack not found or already opened')
+    }
+
+    // If pack contents don't exist (old packs before migration), generate them now
+    let contents = userPack.pack_contents
+    if (!contents) {
+      console.log('Legacy pack detected - generating contents on-the-fly')
+      contents = { players: [], tokens: [] }
+      
+      // Generate players
+      for (let i = 0; i < pack.player_count; i++) {
+        const playerCard = await generatePlayerCard(supabaseClient)
+        if (playerCard) contents.players.push(playerCard)
+      }
+      
+      // Generate tokens
+      for (let i = 0; i < pack.token_count; i++) {
+        const tokenCard = await generateTokenCard(supabaseClient)
+        if (tokenCard) contents.tokens.push(tokenCard)
+      }
+      
+      // Update user_packs with generated contents
+      await supabaseClient
+        .from('user_packs')
+        .update({ pack_contents: contents })
+        .eq('id', userPack.id)
+    }
+
+    console.log('Retrieved pack contents:', {
+      players_count: contents.players?.length || 0,
+      tokens_count: contents.tokens?.length || 0
+    })
+
     // Get tier configuration for starter packs
     let tierConfig = { role_player: 0, starter: 0, all_star: 0 }
     if (is_starter_pack && teamToUse.contest_type_id) {
@@ -96,57 +141,13 @@ serve(async (req) => {
       }
     }
 
-    // Build tier assignment array
-    const tiersToAssign: string[] = []
-    if (tierConfig.all_star > 0) {
-      for (let i = 0; i < tierConfig.all_star; i++) tiersToAssign.push('all_star')
-    }
-    if (tierConfig.starter > 0) {
-      for (let i = 0; i < tierConfig.starter; i++) tiersToAssign.push('starter')
-    }
-    if (tierConfig.role_player > 0) {
-      for (let i = 0; i < tierConfig.role_player; i++) tiersToAssign.push('role_player')
-    }
-
-    // Shuffle tiers randomly
-    const shuffledTiers = tiersToAssign.sort(() => Math.random() - 0.5)
-
-    console.log('Tiers to assign:', shuffledTiers)
-    console.log('Generating', pack.player_count, 'players and', pack.token_count, 'tokens')
-
-    // Start transaction
-    const contents: { players: any[], tokens: any[] } = {
-      players: [],
-      tokens: []
-    }
-
-    // Helper function to get starting level for tier
-    const getStartingLevelForTier = (tier: string): number => {
-      const tierLevels: Record<string, number> = {
-        'base': 1,
-        'role_player': 3,
-        'starter': 5,
-        'all_star': 7,
-        'elite': 9
-      }
-      return tierLevels[tier] || 1
-    }
-
-    // Generate players based on pack configuration
-    // For starter packs, return cards for user to assign tiers (client-side)
-    // For regular packs, insert cards directly at Base tier
-    for (let i = 0; i < pack.player_count; i++) {
-      const playerCard = await generatePlayerCard(supabaseClient)
-      if (playerCard) {
-        contents.players.push(playerCard)
-
-        // For starter packs, don't insert yet - return cards for tier assignment
-        if (is_starter_pack) {
-          console.log('Starter pack - returning card for tier assignment:', playerCard.player_name)
-          continue
-        }
-
-        // Regular packs: Add to inventory at Base tier, Level 1
+    // For starter packs, return cards for tier assignment (client-side)
+    // For regular packs, add cards to inventory immediately
+    if (!is_starter_pack && !userPack.cards_added_to_inventory) {
+      console.log('Adding cards to inventory for regular pack')
+      
+      // Add players to inventory at Base tier, Level 1
+      for (const playerCard of contents.players) {
         const { error: inventoryError } = await supabaseClient
           .rpc('insert_player_to_inventory', {
             p_user_id: user.id,
@@ -164,21 +165,9 @@ serve(async (req) => {
         
         console.log('Added player:', playerCard.player_name, 'to team', teamToUse.id)
       }
-    }
 
-    // Generate tokens based on pack configuration
-    for (let i = 0; i < pack.token_count; i++) {
-      const tokenCard = await generateTokenCard(supabaseClient)
-      if (tokenCard) {
-        contents.tokens.push(tokenCard)
-
-        // For starter packs, don't insert yet - return tokens for client to insert
-        if (is_starter_pack) {
-          console.log('Starter pack - returning token:', tokenCard.token_name)
-          continue
-        }
-
-        // Regular packs: Add to inventory immediately
+      // Add tokens to inventory
+      for (const tokenCard of contents.tokens) {
         const { error: tokenInventoryError } = await supabaseClient
           .rpc('insert_token_to_inventory', {
             p_user_id: user.id,
@@ -193,6 +182,12 @@ serve(async (req) => {
         
         console.log('Added token:', tokenCard.token_name, 'to team', teamToUse.id)
       }
+      
+      // Mark cards as added to inventory
+      await supabaseClient
+        .from('user_packs')
+        .update({ cards_added_to_inventory: true })
+        .eq('id', userPack.id)
     }
 
     // If this is a starter pack, return cards + tier config for client-side assignment
@@ -209,6 +204,7 @@ serve(async (req) => {
           needs_tier_assignment: true,
           tier_config: tierConfig,
           contents: contents,
+          user_pack_id: userPack.id,
           message: 'Please assign tiers to your starter pack cards'
         }),
         {
@@ -218,8 +214,14 @@ serve(async (req) => {
       )
     }
 
-    // Coins are deducted during purchase_pack RPC, not here
-    // This function only handles opening purchased packs
+    // For regular packs, mark as opened since cards are now in inventory
+    await supabaseClient
+      .from('user_packs')
+      .update({ 
+        is_opened: true, 
+        opened_at: new Date().toISOString() 
+      })
+      .eq('id', userPack.id)
 
     return new Response(
       JSON.stringify({
