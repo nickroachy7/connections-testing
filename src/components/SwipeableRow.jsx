@@ -17,8 +17,10 @@ export default function SwipeableRow({
   const [swipeOffset, setSwipeOffset] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const startXRef = useRef(0);
+  const startYRef = useRef(0);
   const currentXRef = useRef(0);
   const containerRef = useRef(null);
+  const isHorizontalSwipeRef = useRef(false);
 
   const SWIPE_THRESHOLD = 80; // Minimum swipe distance to reveal button
   const MAX_SWIPE = 100; // Maximum swipe distance
@@ -33,25 +35,38 @@ export default function SwipeableRow({
   const handleTouchStart = (e) => {
     if (disabled) return;
     
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    startXRef.current = clientX;
+    const touch = e.touches ? e.touches[0] : e;
+    startXRef.current = touch.clientX;
+    startYRef.current = touch.clientY;
     currentXRef.current = swipeOffset;
+    isHorizontalSwipeRef.current = false;
     setIsDragging(true);
   };
 
   const handleTouchMove = (e) => {
     if (disabled || !isDragging) return;
 
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const diff = startXRef.current - clientX;
-    const newOffset = currentXRef.current + diff;
-
-    // Only allow left swipe (positive offset)
-    if (newOffset >= 0 && newOffset <= MAX_SWIPE) {
-      if (e.touches) {
-        e.preventDefault(); // Prevent scrolling during touch swipe
+    const touch = e.touches ? e.touches[0] : e;
+    const deltaX = startXRef.current - touch.clientX;
+    const deltaY = Math.abs(startYRef.current - touch.clientY);
+    
+    // Determine if this is a horizontal swipe
+    if (!isHorizontalSwipeRef.current && Math.abs(deltaX) > 5) {
+      isHorizontalSwipeRef.current = Math.abs(deltaX) > deltaY;
+    }
+    
+    // Only process horizontal swipes
+    if (isHorizontalSwipeRef.current) {
+      const newOffset = currentXRef.current + deltaX;
+      
+      // Only allow left swipe (positive offset)
+      if (newOffset >= 0 && newOffset <= MAX_SWIPE) {
+        setSwipeOffset(newOffset);
+        // Prevent vertical scrolling during horizontal swipe
+        if (e.cancelable) {
+          e.preventDefault();
+        }
       }
-      setSwipeOffset(newOffset);
     }
   };
 
@@ -59,6 +74,7 @@ export default function SwipeableRow({
     if (disabled) return;
     
     setIsDragging(false);
+    isHorizontalSwipeRef.current = false;
 
     // Snap to either closed or open based on threshold
     if (swipeOffset > SWIPE_THRESHOLD / 2) {
@@ -127,10 +143,10 @@ export default function SwipeableRow({
         style={{
           transform: `translateX(-${swipeOffset}px)`,
           transition: isDragging ? 'none' : 'transform 0.2s ease-out',
-          touchAction: 'pan-y', // Allow vertical scroll, prevent horizontal scroll
+          WebkitTransform: `translateX(-${swipeOffset}px)`, // Safari support
           cursor: isDragging ? 'grabbing' : 'grab'
         }}
-        className="bg-primary-black-900 w-full" // Ensure content has background and full width
+        className="bg-primary-black-900 w-full touch-pan-y" // Ensure content has background and full width
       >
         {children}
       </div>

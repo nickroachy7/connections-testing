@@ -107,4 +107,30 @@
   .backface-hidden {
     backface-visibility: hidden;
   }
+
+  /* Scale in animation for modals */
+  @keyframes scaleIn {
+    from {
+      opacity: 0;
+      transform: scale(0.9);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  .animate-scale-in {
+    animation: scaleIn 0.2s ease-out;
+  }
+
+  /* Touch action utilities */
+  .touch-pan-y {
+    touch-action: pan-y;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .touch-none {
+    touch-action: none;
+  }
 }
