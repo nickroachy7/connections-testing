@@ -7,7 +7,7 @@ import FantasyNavBanner from './FantasyNavBanner';
 function FantasyLayoutInner() {
   const loaderData = useLoaderData();
   const { user, profile, activeTeam } = loaderData;
-  const { lineup, projections, liveGameData, currentWeek, inventory, loadInventory, updateInventory } = useFantasy();
+  const { lineup, setLineup, projections, liveGameData, currentWeek, inventory, loadInventory, updateInventory } = useFantasy();
   const location = useLocation();
   const revalidator = useRevalidator();
   
@@ -58,6 +58,7 @@ function FantasyLayoutInner() {
         <Outlet context={{
           ...loaderData,
           lineup,
+          setLineup,
           projections,
           liveGameData,
           currentWeek,
