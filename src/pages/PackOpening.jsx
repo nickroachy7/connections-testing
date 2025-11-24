@@ -189,15 +189,7 @@ export default function PackOpening() {
       
       const validItems = [...players, ...tokens]
       
-      // Mark pack as opened
-      await supabase
-        .from('user_packs')
-        .update({ 
-          is_opened: true, 
-          opened_at: new Date().toISOString() 
-        })
-        .eq('id', packId)
-
+      // Pack is marked as opened in Edge Function after cards are added to inventory
       setRevealedItems(validItems)
       setShowCardReveal(true)
       success(data.message || 'Pack opened!')
