@@ -187,6 +187,12 @@ export default function BenchAndTokensPanel({
                     onSelectPlayerForSlot(player);
                   }
                 }}
+                isRowLocked={(player) => {
+                  const gameData = liveGameData?.get(player.player_card?.player_id);
+                  const gameStatus = gameData?.gameStatus?.toLowerCase();
+                  const isGameLiveOrFinal = gameStatus === 'live' || gameStatus === 'halftime' || gameStatus === 'final';
+                  return player.is_locked || isGameLiveOrFinal;
+                }}
                 selectedPlayerId={selectedPlayerForSlot?.id}
                 emptyMessage="No bench players"
                 emptyIcon="🏈"

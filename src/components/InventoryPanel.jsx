@@ -208,7 +208,12 @@ export default function InventoryPanel({
               showTierLevel={true}
               selectedIds={selectedPlayerIds}
               onBulkSelectChange={handlePlayerBulkSelect}
-              isRowLocked={(player) => player.is_locked}
+              isRowLocked={(player) => {
+                const gameData = liveGameData?.get(player.player_card?.player_id);
+                const gameStatus = gameData?.gameStatus?.toLowerCase();
+                const isGameLiveOrFinal = gameStatus === 'live' || gameStatus === 'halftime' || gameStatus === 'final';
+                return player.is_locked || isGameLiveOrFinal;
+              }}
               emptyMessage="No players in inventory"
               emptyIcon="🏈"
             />

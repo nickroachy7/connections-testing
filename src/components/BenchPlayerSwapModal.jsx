@@ -5,12 +5,14 @@ import { getTierBadgeInfo } from './tables/tableHelpers.jsx';
 /**
  * BenchPlayerSwapModal Component
  * 
- * Shows when clicking a bench player - displays the selected bench player
- * and all eligible lineup slots they can swap into.
+ * Unified modal for player-slot interactions on mobile.
+ * Handles two scenarios:
+ * 1. Bench player selected → shows eligible lineup slots to add to
+ * 2. Empty lineup slot selected → shows available bench players to add
  * 
  * Features:
- * - Shows selected bench player at top with "BN" badge
- * - Lists eligible lineup positions below
+ * - Shows selected player/slot at top
+ * - Lists eligible options below
  * - Clear distinction between empty slots and swap scenarios
  * - Mobile-optimized bottom sheet
  */
@@ -21,7 +23,11 @@ export default function BenchPlayerSwapModal({
   onSwap,
   onClose,
   liveGameData,
-  projections
+  projections,
+  // New props for reverse mode (empty slot → select bench player)
+  mode = 'bench-to-lineup', // 'bench-to-lineup' or 'slot-to-bench'
+  targetSlot = null,
+  availablePlayers = []
 }) {
   const modalRef = useRef(null);
 
@@ -100,7 +106,7 @@ export default function BenchPlayerSwapModal({
   };
 
   // Render player row (bench player or lineup player)
-  const renderPlayerRow = (player, slotKey = null, isSelected = false) => {
+  const renderPlayerRow = (player, slotKey = null, isSelected = false, isBenchPlayerInSlotMode = false) => {
     if (!player) {
       // Empty slot
       return (
@@ -151,12 +157,14 @@ export default function BenchPlayerSwapModal({
     return (
       <div
         key={player.id}
-        onClick={() => !isSelected && onSwap(slotKey)}
+        onClick={() => !isSelected && onSwap(isBenchPlayerInSlotMode ? player : slotKey)}
         className={`
           grid py-2 px-1 transition-all border-l-4 min-h-[56px]
           ${isSelected 
             ? 'bg-primary-black-800/50 border-primary-green-500/50 cursor-default' 
-            : 'bg-primary-black-900 border-transparent cursor-pointer'
+            : isFinal
+              ? 'bg-primary-black-900/60 border-transparent cursor-pointer opacity-60'
+              : 'bg-primary-black-900 border-transparent cursor-pointer'
           }
         `}
         style={{ 
@@ -281,47 +289,81 @@ export default function BenchPlayerSwapModal({
             Add to Lineup
           </h2>
           <p className="text-xs text-primary-black-400 text-center mt-1">
-            Choose position for {benchPlayer?.player_card?.player_name}
+            {mode === 'bench-to-lineup' 
+              ? `Choose position for ${benchPlayer?.player_card?.player_name}`
+              : `Choose position for ${targetSlot}`
+            }
           </p>
         </div>
 
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto overscroll-contain">
-          {/* Selected Bench Player Section */}
-          <div className="border-b border-primary-black-800">
-            <div className="px-4 py-2 text-xs font-semibold text-primary-black-400 uppercase tracking-wide bg-primary-black-900">
-              Selected Player
-            </div>
-            {renderPlayerRow(benchPlayer, null, true)}
-          </div>
+          {mode === 'bench-to-lineup' ? (
+            <>
+              {/* Selected Bench Player Section */}
+              <div className="border-b border-primary-black-800">
+                <div className="px-4 py-2 text-xs font-semibold text-primary-black-400 uppercase tracking-wide bg-primary-black-900">
+                  Selected Player
+                </div>
+                {renderPlayerRow(benchPlayer, null, true)}
+              </div>
 
-          {/* Available Lineup Slots Section */}
-          <div>
-            <div className="px-4 py-2 text-xs font-semibold text-primary-black-400 uppercase tracking-wide bg-primary-black-900 flex items-center justify-center">
-              <div className="h-px flex-1 bg-primary-black-800" />
-              <span className="px-3">Choose lineup position</span>
-              <div className="h-px flex-1 bg-primary-black-800" />
-            </div>
-
-            {eligibleSlots.length > 0 ? (
+              {/* Available Lineup Slots Section */}
               <div>
-                {eligibleSlots.map(slotKey => {
-                  const currentPlayer = lineup[slotKey];
-                  return renderPlayerRow(currentPlayer, slotKey, false);
-                })}
+                <div className="px-4 py-2 text-xs font-semibold text-primary-black-400 uppercase tracking-wide bg-primary-black-900 flex items-center justify-center">
+                  <div className="h-px flex-1 bg-primary-black-800" />
+                  <span className="px-3">Choose lineup position</span>
+                  <div className="h-px flex-1 bg-primary-black-800" />
+                </div>
+
+                {eligibleSlots.length > 0 ? (
+                  <div>
+                    {eligibleSlots.map(slotKey => {
+                      const currentPlayer = lineup[slotKey];
+                      return renderPlayerRow(currentPlayer, slotKey, false);
+                    })}
+                  </div>
+                ) : (
+                  <div className="py-8 text-center">
+                    <div className="text-4xl mb-2 opacity-30">⚠️</div>
+                    <p className="text-primary-black-400 font-semibold">
+                      No eligible lineup positions
+                    </p>
+                    <p className="text-xs text-primary-black-500 mt-1">
+                      All slots for this position are locked
+                    </p>
+                  </div>
+                )}
               </div>
-            ) : (
-              <div className="py-8 text-center">
-                <div className="text-4xl mb-2 opacity-30">⚠️</div>
-                <p className="text-primary-black-400 font-semibold">
-                  No eligible lineup positions
-                </p>
-                <p className="text-xs text-primary-black-500 mt-1">
-                  All slots for this position are locked
-                </p>
+            </>
+          ) : (
+            <>
+              {/* Available Bench Players Section */}
+              <div>
+                <div className="px-4 py-2 text-xs font-semibold text-primary-black-400 uppercase tracking-wide bg-primary-black-900">
+                  Available Players
+                </div>
+
+                {availablePlayers.length > 0 ? (
+                  <div>
+                    {availablePlayers.map(player => {
+                      return renderPlayerRow(player, null, false, true);
+                    })}
+                  </div>
+                ) : (
+                  <div className="py-8 text-center">
+                    <div className="text-4xl mb-2 opacity-30">📭</div>
+                    <p className="text-primary-black-400 font-semibold">
+                      No available players
+                    </p>
+                    <p className="text-xs text-primary-black-500 mt-1">
+                      All eligible players are already in your lineup
+                    </p>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
+            </>
+          )}
         </div>
 
         {/* Footer with Cancel Button */}
@@ -367,11 +409,14 @@ export default function BenchPlayerSwapModal({
 }
 
 BenchPlayerSwapModal.propTypes = {
-  benchPlayer: PropTypes.object.isRequired,
-  eligibleSlots: PropTypes.array.isRequired,
-  lineup: PropTypes.object.isRequired,
+  benchPlayer: PropTypes.object,
+  eligibleSlots: PropTypes.array,
+  lineup: PropTypes.object,
   onSwap: PropTypes.func.isRequired,
   onClose: PropTypes.func.isRequired,
   liveGameData: PropTypes.instanceOf(Map),
-  projections: PropTypes.instanceOf(Map)
+  projections: PropTypes.instanceOf(Map),
+  mode: PropTypes.oneOf(['bench-to-lineup', 'slot-to-bench']),
+  targetSlot: PropTypes.string,
+  availablePlayers: PropTypes.array
 };

@@ -200,7 +200,7 @@ const PlayerTableRow = ({
 }) => {
   const defaultClassName = `
     grid md:py-2 md:px-2 transition-all md:border-l-4 min-h-[64px] md:min-h-[48px]
-    ${isLocked ? 'cursor-not-allowed opacity-60 bg-red-900/20 md:border-red-500/50' : 'cursor-move md:border-transparent'}
+    ${isLocked ? 'cursor-not-allowed opacity-60 bg-primary-black-900/60 md:border-primary-black-600' : 'cursor-move md:border-transparent'}
     ${index % 2 === 0 && !isLocked ? 'bg-primary-black-800/20' : !isLocked ? 'bg-primary-black-800/40' : ''}
   `;
 

@@ -170,11 +170,17 @@ export default function TokenApplicationModal({
       <div
         key={player.id}
         onClick={(e) => {
-          e.stopPropagation();
-          e.preventDefault();
-          handleTokenApplication(player);
+          if (!isFinal) {
+            e.stopPropagation();
+            e.preventDefault();
+            handleTokenApplication(player);
+          }
         }}
-        className="grid py-2 px-1 transition-all border-l-4 min-h-[56px] bg-primary-black-900 border-transparent cursor-pointer hover:bg-yellow-500/10 hover:border-yellow-500 active:bg-yellow-500/20"
+        className={`grid py-2 px-1 transition-all border-l-4 min-h-[56px] border-transparent ${
+          isFinal 
+            ? 'bg-primary-black-900/60 opacity-60 cursor-not-allowed' 
+            : 'bg-primary-black-900 cursor-pointer hover:bg-yellow-500/10 hover:border-yellow-500 active:bg-yellow-500/20'
+        }`}
         style={{ 
           gridTemplateColumns: '32px 40px 1fr 60px',
           gap: '4px',

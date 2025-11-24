@@ -260,7 +260,7 @@ export default function LineupPreview() {
               <div
                 key={player.id}
                 className={`flex items-center justify-between p-3 rounded-lg ${
-                  player.is_locked ? 'bg-red-900/20 border border-red-500/30' : 'bg-primary-black-900'
+                  player.is_locked ? 'bg-primary-black-900/60 border border-primary-black-600' : 'bg-primary-black-900'
                 }`}
               >
                 <div className="flex items-center gap-3 flex-1 min-w-0">

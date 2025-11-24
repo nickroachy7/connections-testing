@@ -174,6 +174,11 @@ export function FantasyProvider({ children, user, activeTeam, initialInventory }
         const game = displayGames.find(g => g.game_id === stat.game_id);
         
         if (game) {
+          // Find player's team to determine if home/away
+          const playerTeam = playersData?.find(p => p.player_card.player_id === playerId)?.player_card.team_abbreviation;
+          const isHome = game.home_team === playerTeam;
+          const opponent = isHome ? game.away_team : game.home_team;
+          
           gameDataMap.set(playerId, {
             gameStatus: game.game_status,
             gameTime: game.time_remaining,
@@ -186,7 +191,9 @@ export function FantasyProvider({ children, user, activeTeam, initialInventory }
             awayTeam: game.away_team,
             homeScore: game.home_score,
             awayScore: game.away_score,
-            gameStartTime: game.game_start_time
+            gameStartTime: game.game_start_time,
+            opponent: opponent,
+            isHome: isHome
           });
         }
       });

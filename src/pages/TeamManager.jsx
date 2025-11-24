@@ -9,8 +9,8 @@ import PlayerCard from '../components/PlayerCard';
 import LineupGrid from '../components/LineupGrid';
 import LineupListView from '../components/LineupListView';
 import BenchAndTokensPanel from '../components/BenchAndTokensPanel';
-import PlayerSelectionModal from '../components/PlayerSelectionModal';
 import BenchPlayerSwapModal from '../components/BenchPlayerSwapModal';
+import PlayerSwapModal from '../components/PlayerSwapModal';
 import TokenApplicationModal from '../components/TokenApplicationModal';
 import TokenSelectionModal from '../components/TokenSelectionModal';
 import RosterCount from '../components/RosterCount';
@@ -127,10 +127,11 @@ export default function TeamManager() {
   const initialLoadRef = useRef(true);
   const saveLineupRef = useRef(null);
   
-  // Player selection modal state
+  // Player selection modal state (now using BenchPlayerSwapModal in slot-to-bench mode)
   const [playerSelectionModal, setPlayerSelectionModal] = useState({
     isOpen: false,
-    position: null
+    position: null,
+    slotKey: null
   });
   
   // Bench filter state for slot selection
@@ -160,6 +161,13 @@ export default function TeamManager() {
   const [benchPlayerSwapModal, setBenchPlayerSwapModal] = useState({
     isOpen: false,
     benchPlayer: null
+  });
+  
+  // Player swap modal state (for lineup players)
+  const [playerSwapModal, setPlayerSwapModal] = useState({
+    isOpen: false,
+    currentPlayer: null,
+    slotKey: null
   });
   
   // Token application modal state
@@ -1107,24 +1115,45 @@ export default function TeamManager() {
   const handleLineupPlayerClick = (playerOrPosition, slotKey) => {
     // If first arg is a string, it's a position (empty slot)
     if (typeof playerOrPosition === 'string') {
-      handleClickToAdd(playerOrPosition);
+      const position = playerOrPosition;
+      const availablePlayers = getAvailablePlayersForPosition(position);
+      
+      if (!availablePlayers || availablePlayers.length === 0) {
+        const positionName = position === 'QB' ? 'Quarterback' 
+          : position.startsWith('RB') ? 'Running Back'
+          : position.startsWith('WR') ? 'Wide Receiver'
+          : position === 'TE' ? 'Tight End'
+          : 'Flex';
+        setNoPlayersModal({ isOpen: true, positionName });
+        return;
+      }
+      
+      // On mobile, open BenchPlayerSwapModal in slot-to-bench mode
+      if (isMobile) {
+        setPlayerSelectionModal({ isOpen: true, position: position, slotKey: slotKey });
+      } else {
+        // Desktop: use filter behavior
+        handleClickToAdd(position);
+      }
       return;
     }
     
     // Otherwise it's a player object - open swap modal
     const player = playerOrPosition;
     const gameData = liveGameData?.get(player.player_card.player_id);
-    const isGameLive = gameData && (gameData.gameStatus?.toLowerCase() === 'live' || gameData.gameStatus?.toLowerCase() === 'halftime');
+    const gameStatus = gameData?.gameStatus?.toLowerCase();
+    const isGameLiveOrFinal = gameStatus === 'live' || gameStatus === 'halftime' || gameStatus === 'final';
     
-    if (player.is_locked || isGameLive) {
-      setError(`${player.player_card.player_name} is locked and cannot be moved (game in progress)`);
+    if (player.is_locked || isGameLiveOrFinal) {
+      setError(`${player.player_card.player_name} is locked and cannot be moved (game in progress or final)`);
       setTimeout(() => setError(''), 3000);
       return;
     }
     
-    setBenchPlayerSwapModal({
+    setPlayerSwapModal({
       isOpen: true,
-      benchPlayer: player
+      currentPlayer: player,
+      slotKey: slotKey
     });
   };
 
@@ -1159,13 +1188,130 @@ export default function TeamManager() {
     const benchPlayer = benchPlayerSwapModal.benchPlayer;
     if (!benchPlayer || !slotKey) return;
     
-    // Use existing handleMoveToSlot logic
-    await handleMoveToSlot(benchPlayer, slotKey);
+    // Check roster limit
+    if (shouldBlockLineupChanges(inventory)) {
+      const playerCount = inventory?.players?.length || 0;
+      const tokenCount = inventory?.tokens?.length || 0;
+      const totalCount = playerCount + tokenCount;
+      setRosterLimitModal({ isOpen: true, currentCount: totalCount, overBy: totalCount - 20 });
+      setBenchPlayerSwapModal({ isOpen: false, benchPlayer: null });
+      return;
+    }
+    
+    const updatedLineup = { ...lineup };
+    
+    // Remove player from bench
+    updatedLineup.BENCH = updatedLineup.BENCH.filter(p => p.id !== benchPlayer.id);
+    
+    // If slot has a player, swap them to bench
+    if (updatedLineup[slotKey]) {
+      const swappedPlayer = updatedLineup[slotKey];
+      
+      // Remove any token from swapped player before moving to bench
+      const appliedToken = inventory?.tokens?.find(t => t.applied_to_player_id === swappedPlayer.id && t.is_active);
+      
+      if (appliedToken) {
+        try {
+          await supabase
+            .from('user_token_inventory')
+            .update({ applied_to_player_id: null, is_active: false })
+            .eq('id', appliedToken.id);
+          
+          // Update token inventory locally
+          setInventory(prev => ({
+            ...prev,
+            tokens: prev.tokens.map(token => 
+              token.id === appliedToken.id 
+                ? { ...token, applied_to_player_id: null, is_active: false }
+                : token
+            )
+          }));
+        } catch (err) {
+          console.error('Error removing token from swapped player:', err);
+        }
+      }
+      
+      updatedLineup.BENCH.push(swappedPlayer);
+    }
+    
+    // Place bench player in lineup slot
+    updatedLineup[slotKey] = benchPlayer;
+    
+    setLineup(updatedLineup);
+    
+    // Update inventory to reflect lineup changes
+    setInventory(prev => ({
+      ...prev,
+      players: prev.players.map(p => {
+        if (p.id === benchPlayer.id) {
+          return { ...p, is_in_lineup: true, lineup_position: slotKey };
+        }
+        if (updatedLineup.BENCH.find(bp => bp.id === p.id)) {
+          return { ...p, is_in_lineup: false, lineup_position: null };
+        }
+        return p;
+      })
+    }));
     
     // Close modal
     setBenchPlayerSwapModal({
       isOpen: false,
       benchPlayer: null
+    });
+
+    // Auto-save
+    triggerAutoSave();
+  };
+
+  // Handle swap from player swap modal (lineup player with bench player)
+  const handlePlayerSwap = async (benchPlayer) => {
+    const { currentPlayer, slotKey } = playerSwapModal;
+    if (!currentPlayer || !benchPlayer || !slotKey) return;
+
+    // Move current player to bench
+    const updatedLineup = { ...lineup };
+    updatedLineup[slotKey] = benchPlayer;
+    updatedLineup.BENCH = updatedLineup.BENCH.filter(p => p.id !== benchPlayer.id);
+    updatedLineup.BENCH.push(currentPlayer);
+    
+    setLineup(updatedLineup);
+    
+    // Close modal
+    setPlayerSwapModal({
+      isOpen: false,
+      currentPlayer: null,
+      slotKey: null
+    });
+
+    // Auto-save
+    triggerAutoSave();
+  };
+
+  // Get eligible bench players for swapping with a lineup player
+  const getEligibleBenchPlayers = (currentPlayer, slotKey) => {
+    if (!currentPlayer) return [];
+    
+    const position = currentPlayer.player_card.position;
+    
+    // Filter bench players by position compatibility
+    return lineup.BENCH.filter(benchPlayer => {
+      // Check position compatibility
+      if (slotKey === 'QB') return benchPlayer.player_card.position === 'Quarterback';
+      if (slotKey === 'TE') return benchPlayer.player_card.position === 'Tight End';
+      if (slotKey.startsWith('RB')) return benchPlayer.player_card.position === 'Running Back';
+      if (slotKey.startsWith('WR')) return benchPlayer.player_card.position === 'Wide Receiver';
+      if (slotKey === 'FLEX') {
+        return ['Running Back', 'Wide Receiver', 'Tight End'].includes(benchPlayer.player_card.position);
+      }
+      if (slotKey === 'SUPERFLEX') return true; // Any position
+      
+      return false;
+    }).filter(benchPlayer => {
+      // Filter out locked players
+      const gameData = liveGameData?.get(benchPlayer.player_card.player_id);
+      const gameStatus = gameData?.gameStatus?.toLowerCase();
+      const isGameLiveOrFinal = gameStatus === 'live' || gameStatus === 'halftime' || gameStatus === 'final';
+      return !benchPlayer.is_locked && !isGameLiveOrFinal;
     });
   };
 
@@ -1231,7 +1377,7 @@ export default function TeamManager() {
     if (player.is_locked || isGameLive) {
       setError(`${player.player_card.player_name} is locked and cannot be added to lineup (game in progress)`);
       setTimeout(() => setError(''), 3000);
-      setPlayerSelectionModal({ isOpen: false, position: null });
+      setPlayerSelectionModal({ isOpen: false, position: null, slotKey: null });
       return;
     }
     
@@ -1241,7 +1387,7 @@ export default function TeamManager() {
       const tokenCount = inventory?.tokens?.length || 0;
       const totalCount = playerCount + tokenCount;
       setRosterLimitModal({ isOpen: true, currentCount: totalCount, overBy: totalCount - 20 });
-      setPlayerSelectionModal({ isOpen: false, position: null });
+      setPlayerSelectionModal({ isOpen: false, position: null, slotKey: null });
       return;
     }
     
@@ -1263,7 +1409,7 @@ export default function TeamManager() {
     }
     
     setLineup(newLineup);
-    setPlayerSelectionModal({ isOpen: false, position: null });
+    setPlayerSelectionModal({ isOpen: false, position: null, slotKey: null });
   };
 
   // Handle remove player from lineup slot
@@ -1630,26 +1776,46 @@ export default function TeamManager() {
         </div>
       </section>
 
-      {/* Player Selection Modal */}
-      <PlayerSelectionModal
-        isOpen={playerSelectionModal.isOpen}
-        onClose={() => setPlayerSelectionModal({ isOpen: false, position: null })}
-        position={playerSelectionModal.position}
-        availablePlayers={getAvailablePlayersForPosition(playerSelectionModal.position)}
-        onSelectPlayer={handleSelectPlayer}
-        liveGameData={isPreviewMode ? new Map() : liveGameData}
-        projections={projections}
-        inventory={inventory}
-      />
+      {/* Player Selection Modal (using BenchPlayerSwapModal in slot-to-bench mode) */}
+      {playerSelectionModal.isOpen && (
+        <BenchPlayerSwapModal
+          mode="slot-to-bench"
+          targetSlot={playerSelectionModal.position}
+          availablePlayers={getAvailablePlayersForPosition(playerSelectionModal.position)}
+          onSwap={(player) => handleSelectPlayer(player)}
+          onClose={() => setPlayerSelectionModal({ isOpen: false, position: null, slotKey: null })}
+          liveGameData={isPreviewMode ? new Map() : liveGameData}
+          projections={projections}
+          // Not needed for slot-to-bench mode
+          benchPlayer={null}
+          eligibleSlots={[]}
+          lineup={lineup}
+        />
+      )}
 
-      {/* Bench Player Swap Modal */}
+      {/* Bench Player Swap Modal (bench-to-lineup mode) */}
       {benchPlayerSwapModal.isOpen && benchPlayerSwapModal.benchPlayer && (
         <BenchPlayerSwapModal
+          mode="bench-to-lineup"
           benchPlayer={benchPlayerSwapModal.benchPlayer}
           eligibleSlots={getEligibleSlotsForBenchPlayer(benchPlayerSwapModal.benchPlayer)}
           lineup={lineup}
           onSwap={handleBenchPlayerSwap}
           onClose={() => setBenchPlayerSwapModal({ isOpen: false, benchPlayer: null })}
+          liveGameData={isPreviewMode ? new Map() : liveGameData}
+          projections={projections}
+        />
+      )}
+
+
+      {/* Player Swap Modal - for swapping lineup players with bench players */}
+      {playerSwapModal.isOpen && playerSwapModal.currentPlayer && (
+        <PlayerSwapModal
+          currentPlayer={playerSwapModal.currentPlayer}
+          slotKey={playerSwapModal.slotKey}
+          eligiblePlayers={getEligibleBenchPlayers(playerSwapModal.currentPlayer, playerSwapModal.slotKey)}
+          onSwap={handlePlayerSwap}
+          onClose={() => setPlayerSwapModal({ isOpen: false, currentPlayer: null, slotKey: null })}
           liveGameData={isPreviewMode ? new Map() : liveGameData}
           projections={projections}
         />
