@@ -8,7 +8,7 @@ import { useIsMobile } from '../hooks';
 import PlayerCard from '../components/PlayerCard';
 import LineupGrid from '../components/LineupGrid';
 import LineupListView from '../components/LineupListView';
-import BenchAndTokensPanel from '../components/BenchAndTokensPanel';
+import BenchFilterManager from '../components/BenchFilterManager';
 import BenchPlayerSwapModal from '../components/BenchPlayerSwapModal';
 import PlayerSwapModal from '../components/PlayerSwapModal';
 import TokenApplicationModal from '../components/TokenApplicationModal';
@@ -1692,7 +1692,7 @@ export default function TeamManager() {
       {/* Bench and Inventory Section - Separate section for reserves */}
       <section aria-label="Bench and Tokens Inventory" className="mt-3">
         <div className="max-w-7xl mx-auto">
-          <BenchAndTokensPanel
+          <BenchFilterManager
             benchPlayers={inventory?.players?.filter(p => !p.is_in_lineup) || []}
             availableTokens={availableTokens}
             onPlayerDragStart={handlePlayerDragStart}

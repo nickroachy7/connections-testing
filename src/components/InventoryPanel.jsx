@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import PropTypes from 'prop-types';
-import PlayerTable from './tables/PlayerTable';
-import TokenTable from './tables/TokenTable';
+import UnifiedItemList from './tables/UnifiedItemList';
 import PlayerCard from './PlayerCard';
 import { enrichPlayerData, enrichTokenData } from './tables/tableHelpers.jsx';
 import { getRosterCount, ROSTER_LIMIT } from '../utils/rosterLimits';
@@ -211,13 +210,18 @@ export default function InventoryPanel({
       {(activeTab === 'all' || activeTab === 'players') && filteredPlayers.length > 0 && (
         <>
           {viewMode === 'list' ? (
-            <PlayerTable
-              players={filteredPlayers}
+            <UnifiedItemList
+              items={filteredPlayers}
+              itemType="player"
+              mode="inventory"
+              viewMode="list"
               showBulkSelect={true}
               showTierLevel={true}
               selectedIds={selectedPlayerIds}
               onBulkSelectChange={handlePlayerBulkSelect}
               onSell={onSell}
+              liveGameData={liveGameData}
+              projections={projections}
               isRowLocked={(player) => {
                 const gameData = liveGameData?.get(player.player_card?.player_id);
                 const gameStatus = gameData?.gameStatus?.toLowerCase();
@@ -254,8 +258,11 @@ export default function InventoryPanel({
 
       {/* Tokens Section */}
       {(activeTab === 'all' || activeTab === 'tokens') && filteredTokens.length > 0 && (
-        <TokenTable
-          tokens={filteredTokens}
+        <UnifiedItemList
+          items={filteredTokens}
+          itemType="token"
+          mode="inventory"
+          viewMode="list"
           showBulkSelect={true}
           selectedIds={selectedTokenIds}
           onBulkSelectChange={handleTokenBulkSelect}
