@@ -407,43 +407,12 @@ export default function TeamMatchupBanner({
           
           {/* Mobile Layout */}
           <div className="md:hidden space-y-2">
-            {/* Top Row: Team Identity + Customize Button */}
-            <div className="flex items-start justify-between gap-2">
-              <div className="flex items-center gap-2 flex-1 min-w-0">
-                {/* Avatar */}
-                <div className="flex-shrink-0">
-                  {teamImage ? (
-                    <img
-                      src={teamImage}
-                      alt={localTeamName || 'Team'}
-                      className="w-10 h-10 rounded-lg object-cover border-2 border-white/20 shadow-lg"
-                    />
-                  ) : (
-                    <div className="w-10 h-10 rounded-lg bg-white/10 border-2 border-white/20 flex items-center justify-center">
-                      <svg className="w-5 h-5 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                      </svg>
-                    </div>
-                  )}
-                </div>
-
-                {/* Team Name + Meta */}
-                <div className="flex-1 min-w-0">
-                  <h1 className="text-base font-dk-display font-black text-white truncate leading-tight">
-                    {localTeamName || 'Your Team'}
-                  </h1>
-                  {username && (
-                    <div className="text-[10px] text-white/80 font-medium truncate">
-                      {username}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Customize Button */}
+            {/* Team Identity Row */}
+            <div className="flex items-center gap-3 relative">
+              {/* Customize Button - Top Right */}
               <button
                 onClick={() => setShowCustomization(true)}
-                className="flex-shrink-0 p-2 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 transition-all"
+                className="absolute top-0 right-0 p-2 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 transition-all z-10"
                 title="Customize team"
               >
                 <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -451,33 +420,60 @@ export default function TeamMatchupBanner({
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
               </button>
-            </div>
 
-            {/* Stats Row: Rank, Record, Coins, Lives */}
-            <div className="flex items-center justify-between gap-2 px-1">
-              <div className="flex items-center gap-1 text-[10px] text-white/80 font-medium">
-                {globalRank && (
-                  <>
-                    <span className="text-yellow-400 font-bold">#{globalRank}</span>
-                    <span className="text-white/40">•</span>
-                  </>
+              {/* Team Image */}
+              <div className="flex-shrink-0">
+                {teamImage ? (
+                  <img
+                    src={teamImage}
+                    alt={localTeamName || 'Team'}
+                    className="w-20 h-20 rounded-lg object-cover border-2 border-white/30 shadow-xl"
+                  />
+                ) : (
+                  <div className="w-20 h-20 rounded-lg bg-white/10 border-2 border-white/30 flex items-center justify-center">
+                    <svg className="w-8 h-8 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                  </div>
                 )}
-                <span className="font-bold text-white">{wins || 0}-{losses || 0}</span>
-                <span className="text-white/40">•</span>
-                <svg className="w-3 h-3 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z" />
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clipRule="evenodd" />
-                </svg>
-                <span className="font-bold text-white">{coins?.toLocaleString() || '0'}</span>
               </div>
 
-              <div className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                isEliminated ? 'bg-red-500/20 text-red-300 border border-red-500/50' :
-                isDanger ? 'bg-red-500/20 text-red-300 border border-red-500/50' :
-                isWarning ? 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/50' :
-                'bg-white/10 text-white/80 border border-white/20'
-              }`}>
-                {isEliminated ? '❌ Eliminated' : `${lossesRemaining} ${lossesRemaining === 1 ? 'life' : 'lives'}`}
+              {/* Team Info */}
+              <div className="flex-1 min-w-0 pr-12 flex flex-col justify-center">
+                <h1 className="text-xl font-dk-display font-black text-white truncate leading-none">
+                  {localTeamName || 'Your Team'}
+                </h1>
+                {username && (
+                  <div className="text-xs text-white/80 font-medium truncate mt-0.5">
+                    {username}
+                  </div>
+                )}
+                
+                {/* Inline Stats Row: Rank, Record, Coins, Lives */}
+                <div className="flex items-center gap-2 text-xs mt-1.5">
+                  <span className="font-dk-display font-bold text-white/90">#{globalRank || '--'}</span>
+                  <span className="text-white/40">•</span>
+                  <div className="flex items-center gap-1">
+                    <span className="font-dk-display font-bold text-green-400">{wins || 0}</span>
+                    <span className="text-white/60">-</span>
+                    <span className="font-dk-display font-bold text-red-400">{losses || 0}</span>
+                  </div>
+                  <span className="text-white/40">•</span>
+                  <div className="flex items-center gap-1">
+                    <svg className="w-3 h-3 text-white/90" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z" />
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clipRule="evenodd" />
+                    </svg>
+                    <span className="font-dk-display font-bold text-white/90">{coins?.toLocaleString() || '0'}</span>
+                  </div>
+                  <span className="text-white/40">•</span>
+                  <div className="flex items-center gap-1">
+                    <svg className="w-3 h-3 text-white/90" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
+                    </svg>
+                    <span className="font-dk-display font-bold text-white/90">{lossesRemaining}</span>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -542,11 +538,11 @@ export default function TeamMatchupBanner({
                     <img
                       src={teamImage}
                       alt={localTeamName || 'Team'}
-                      className="w-16 h-16 rounded-lg object-cover border-2 border-white/30 shadow-xl"
+                      className="w-24 h-24 rounded-lg object-cover border-2 border-white/30 shadow-xl"
                     />
                   ) : (
-                    <div className="w-16 h-16 rounded-lg bg-white/10 border-2 border-white/30 flex items-center justify-center">
-                      <svg className="w-8 h-8 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="w-24 h-24 rounded-lg bg-white/10 border-2 border-white/30 flex items-center justify-center">
+                      <svg className="w-10 h-10 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                       </svg>
                     </div>
@@ -554,41 +550,39 @@ export default function TeamMatchupBanner({
                 </div>
 
                 {/* Team Info */}
-                <div className="flex-1 min-w-0">
-                  <h1 className="text-2xl font-dk-display font-black text-white truncate leading-tight">
+                <div className="flex-1 min-w-0 flex flex-col justify-center">
+                  <h1 className="text-4xl font-dk-display font-black text-white truncate leading-none">
                     {localTeamName || 'Your Team'}
                   </h1>
                   {username && (
-                    <div className="text-sm text-white/90 font-medium mt-0.5 truncate">
-                      {username}
+                    <div className="text-base text-white/80 font-medium truncate mt-1">
+                      @{username}
                     </div>
                   )}
 
-                  {/* Stats Row: Rank, Record, Coins, Lives */}
-                  <div className="flex items-center gap-3 mt-2">
-                    <div className="flex items-center gap-2 text-sm text-white/90 font-medium">
-                      {globalRank && (
-                        <>
-                          <span className="text-yellow-400 font-bold">#{globalRank}</span>
-                          <span className="text-white/40">•</span>
-                        </>
-                      )}
-                      <span className="font-bold">{wins || 0}-{losses || 0}</span>
-                      <span className="text-white/40">•</span>
-                      <svg className="w-4 h-4 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                  {/* Inline Stats Row: Rank, Record, Coins, Lives */}
+                  <div className="flex items-center gap-3 text-sm mt-2">
+                    <span className="font-dk-display font-bold text-white/90">#{globalRank || '--'}</span>
+                    <span className="text-white/40">•</span>
+                    <div className="flex items-center gap-1">
+                      <span className="font-dk-display font-bold text-green-400">{wins || 0}</span>
+                      <span className="text-white/60">-</span>
+                      <span className="font-dk-display font-bold text-red-400">{losses || 0}</span>
+                    </div>
+                    <span className="text-white/40">•</span>
+                    <div className="flex items-center gap-1">
+                      <svg className="w-3.5 h-3.5 text-white/90" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z" />
                         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clipRule="evenodd" />
                       </svg>
-                      <span className="font-bold">{coins?.toLocaleString() || '0'}</span>
+                      <span className="font-dk-display font-bold text-white/90">{coins?.toLocaleString() || '0'}</span>
                     </div>
-
-                    <div className={`px-2 py-1 rounded text-xs font-bold ${
-                      isEliminated ? 'bg-red-500/20 text-red-300 border border-red-500/50' :
-                      isDanger ? 'bg-red-500/20 text-red-300 border border-red-500/50' :
-                      isWarning ? 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/50' :
-                      'bg-white/10 text-white/80 border border-white/20'
-                    }`}>
-                      {isEliminated ? '❌ Eliminated' : `${lossesRemaining} ${lossesRemaining === 1 ? 'life' : 'lives'} remaining`}
+                    <span className="text-white/40">•</span>
+                    <div className="flex items-center gap-1">
+                      <svg className="w-3.5 h-3.5 text-white/90" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
+                      </svg>
+                      <span className="font-dk-display font-bold text-white/90">{lossesRemaining}</span>
                     </div>
                   </div>
                 </div>
@@ -695,4 +689,5 @@ TeamMatchupBanner.propTypes = {
   team: PropTypes.object,
   previewMode: PropTypes.bool
 };
+
 export default TeamMatchupBanner;
