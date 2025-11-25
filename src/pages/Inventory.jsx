@@ -199,7 +199,7 @@ export default function Inventory() {
       )}
 
       <div className="min-h-screen bg-primary-black-950">
-        <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 py-3 sm:py-8">
+        <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 pt-3 sm:pt-8 pb-0">
           <PageHeader
             title="Inventory"
             subtitle={`Roster: ${inventory.players?.length || 0}/20`}
