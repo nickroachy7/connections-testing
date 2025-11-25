@@ -689,5 +689,3 @@ TeamMatchupBanner.propTypes = {
   team: PropTypes.object,
   previewMode: PropTypes.bool
 };
-
-export default TeamMatchupBanner;
