@@ -117,6 +117,40 @@ App.jsx (Root Router)
 
 ## 🧩 Core Reusable Components
 
+### **PageHeader** ⭐ (NEW)
+- **Location**: `src/components/PageHeader.jsx`
+- **Purpose**: Consistent header design across all pages
+- **Layout**:
+  - **Left**: Page name (large) + helpful info/status below (smaller)
+  - **Right**: Actions (filters, buttons, view toggles, etc.)
+- **Key Features**:
+  - Isolated component that doesn't affect other page layouts
+  - Responsive design with mobile-optimized sizing
+  - Flexible actions prop for custom buttons/controls
+  - Optional subtitle prop for dynamic status text
+- **Used by**: All main pages (TeamManager, Inventory, PackShop, Leaderboard, Activity)
+- **Props**:
+  - `title` (required) - Page name displayed prominently
+  - `subtitle` (optional) - Status text or helpful info (can be string or JSX)
+  - `actions` (optional) - JSX for buttons, filters, controls on the right
+  - `className` (optional) - Additional CSS classes for spacing
+
+**Example Usage**:
+```jsx
+<PageHeader
+  title="Inventory"
+  subtitle={`Roster: ${inventory.players?.length || 0}/20`}
+  actions={
+    <>
+      <ViewToggleButtons />
+      <FilterTabs />
+    </>
+  }
+/>
+```
+
+---
+
 ### **BenchFilterManager** ⭐ (NEW NAME)
 - **Location**: `src/components/BenchFilterManager.jsx`
 - **Old Name**: BenchAndTokensPanel

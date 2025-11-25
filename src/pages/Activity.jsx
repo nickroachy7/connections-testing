@@ -1,5 +1,6 @@
 import { useOutletContext } from 'react-router-dom';
 import RecentActivityFeed from '../components/RecentActivityFeed';
+import PageHeader from '../components/PageHeader';
 
 export default function Activity() {
   const { user, activeTeam } = useOutletContext() || {};
@@ -17,11 +18,10 @@ export default function Activity() {
   return (
     <div className="min-h-screen bg-primary-black-950">
       <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 py-3 sm:py-8">
-        {/* Page Header */}
-        <div className="mb-3 sm:mb-4 px-3 sm:px-4 py-2 sm:py-4">
-          <h1 className="text-sm sm:text-xl font-bold text-primary-black-50">Activity</h1>
-          <p className="text-[10px] sm:text-xs text-primary-black-400 mt-0.5">Track your recent transactions</p>
-        </div>
+        <PageHeader
+          title="Activity"
+          subtitle="Track your recent transactions"
+        />
 
         {/* Recent Activity Feed */}
         <RecentActivityFeed 

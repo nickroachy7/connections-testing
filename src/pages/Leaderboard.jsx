@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
 import LeaderboardTable from '../components/tables/LeaderboardTable';
 import LoadingSpinner from '../components/LoadingSpinner';
+import PageHeader from '../components/PageHeader';
 
 export default function Leaderboard() {
   const { user, profile, loading } = useAuth();
@@ -29,10 +30,12 @@ export default function Leaderboard() {
 
   return (
     <div className="pb-4 sm:pb-8">
-      {/* Page Header */}
-      <div className="mb-3 sm:mb-4 px-2 sm:px-4 py-2 sm:py-4 mt-3 sm:mt-6 max-w-7xl mx-auto">
-        <h1 className="text-sm sm:text-xl font-bold text-primary-black-50">Leaderboard</h1>
-        <p className="text-[10px] sm:text-xs text-primary-black-400 mt-0.5">See how you rank against others</p>
+      <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8">
+        <PageHeader
+          title="Leaderboard"
+          subtitle="See how you rank against others"
+          className="mt-3 sm:mt-6"
+        />
       </div>
       
       <LeaderboardTable 

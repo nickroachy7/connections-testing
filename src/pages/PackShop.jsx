@@ -5,6 +5,7 @@ import { getUserTeams, getAvailablePacks, openPack, getUserInventory, supabase }
 import { getRosterStatus } from '../utils/rosterLimits';
 import RosterLimitBanner from '../components/RosterLimitBanner';
 import RosterCount from '../components/RosterCount';
+import PageHeader from '../components/PageHeader';
 
 // Helper function for baseline projections
 function getBaselineProjection(position) {
@@ -161,11 +162,11 @@ export default function PackShop() {
     <>
       {/* Main Content Section */}
       <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 pb-4 sm:pb-8">
-        {/* Page Header */}
-        <div className="mb-3 sm:mb-4 px-3 sm:px-4 py-2 sm:py-4 mt-3 sm:mt-6">
-          <h1 className="text-sm sm:text-xl font-bold text-primary-black-50">Pack Shop</h1>
-          <p className="text-[10px] sm:text-xs text-primary-black-400 mt-0.5">Purchase packs to expand your roster</p>
-        </div>
+        <PageHeader
+          title="Pack Shop"
+          subtitle="Purchase packs to expand your roster"
+          className="mt-3 sm:mt-6"
+        />
 
         {/* Team Selector Section - Removed */}
 

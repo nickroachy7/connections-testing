@@ -15,6 +15,7 @@ import TokenApplicationModal from '../components/TokenApplicationModal';
 import TokenSelectionModal from '../components/TokenSelectionModal';
 import RosterCount from '../components/RosterCount';
 import SellConfirmationModal from '../components/SellConfirmationModal';
+import PageHeader from '../components/PageHeader';
 
 // Helper function for baseline projections
 function getBaselineProjection(position) {
@@ -1601,36 +1602,31 @@ export default function TeamManager() {
         )}
 
         {/* Starting Lineup Display Section */}
-        <section className={`max-w-7xl mx-auto pb-0 ${error ? 'mt-0' : 'mt-3 sm:mt-6'}`} aria-label="Starting Lineup">
-          {/* Page Header */}
-          <div className="mb-3 sm:mb-4 px-2 sm:px-4 py-2 sm:py-4">
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2 sm:gap-3">
-                <h1 className="text-sm sm:text-xl font-bold text-primary-black-50 truncate">Starting Lineup</h1>
-                {/* Save Status */}
-                <div className="text-[10px] sm:text-xs">
-                  {autoSaving ? (
-                    <div className="flex items-center gap-1 sm:gap-1.5 text-primary-black-400">
-                      <div className="animate-spin h-2.5 w-2.5 sm:h-3 sm:w-3 border-2 border-primary-green-500 border-t-transparent rounded-full"></div>
-                      <span>Saving...</span>
-                    </div>
-                  ) : lastSaved ? (
-                    <div className="flex items-center gap-1 sm:gap-1.5 text-primary-green-500">
-                      <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                      </svg>
-                      <span>Lineup Saved</span>
-                    </div>
-                  ) : (
-                    <div className="text-primary-black-500">
-                      <span>No changes</span>
-                    </div>
-                  )}
-                </div>
+        <section className={`max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 pb-0 ${error ? 'mt-0' : 'mt-3 sm:mt-6'}`} aria-label="Starting Lineup">
+          <PageHeader
+            title="Starting Lineup"
+            subtitle={
+              <div className="flex items-center gap-1 sm:gap-1.5">
+                {autoSaving ? (
+                  <>
+                    <div className="animate-spin h-2.5 w-2.5 sm:h-3 sm:w-3 border-2 border-primary-green-500 border-t-transparent rounded-full"></div>
+                    <span>Saving...</span>
+                  </>
+                ) : lastSaved ? (
+                  <>
+                    <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    <span className="text-primary-green-500">Lineup Saved</span>
+                  </>
+                ) : (
+                  <span>No changes</span>
+                )}
               </div>
-            </div>
-          </div>
+            }
+          />
           
+          <div className="-mx-2 sm:-mx-4 lg:-mx-8">
           <LineupListView
             lineup={lineup}
             onPlayerClick={handleLineupPlayerClick}
@@ -1642,12 +1638,13 @@ export default function TeamManager() {
             onSell={handleSwipeToSell}
             isMobile={isMobile}
           />
+          </div>
         </section>
       </div>
 
       {/* Bench and Inventory Section - Separate section for reserves */}
       <section aria-label="Bench and Tokens Inventory" className="mt-3">
-        <div className="max-w-7xl mx-auto">
+        <div className="max-w-7xl mx-auto -mx-2 sm:-mx-4 lg:-mx-8">
           <BenchFilterManager
             benchPlayers={inventory?.players?.filter(p => !p.is_in_lineup) || []}
             availableTokens={availableTokens}
