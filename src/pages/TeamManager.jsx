@@ -117,12 +117,6 @@ export default function TeamManager() {
   const [selectedPlayerForSlot, setSelectedPlayerForSlot] = useState(null);
   const [selectedTokenForPlayer, setSelectedTokenForPlayer] = useState(null);
   
-  // No players modal state
-  const [noPlayersModal, setNoPlayersModal] = useState({
-    isOpen: false,
-    positionName: ''
-  });
-  
   // Roster limit modal state
   const [rosterLimitModal, setRosterLimitModal] = useState({
     isOpen: false,
@@ -880,36 +874,8 @@ export default function TeamManager() {
       return;
     }
     
-    // Get available players for this position
-    const availablePlayers = getAvailablePlayersForPosition(position);
-    
-    console.log('🎯 handleClickToAdd:', { 
-      position, 
-      availableCount: availablePlayers.length,
-      inventoryPlayerCount: inventory?.players?.length || 0
-    });
-    
-    // If no players available, show notification and suggest pack shop
-    if (!availablePlayers || availablePlayers.length === 0) {
-      const positionName = position === 'QB' ? 'Quarterback' 
-        : position.startsWith('RB') ? 'Running Back'
-        : position.startsWith('WR') ? 'Wide Receiver'
-        : position === 'TE' ? 'Tight End'
-        : 'Flex';
-      
-      console.log('⚠️ No players available for', positionName, '- showing modal');
-      setNoPlayersModal({ isOpen: true, positionName });
-      return;
-    }
-    
-    setBenchFilterPosition(position);
-    // Scroll to bench section smoothly with centered positioning
-    setTimeout(() => {
-      const benchSection = document.querySelector('[data-bench-section]');
-      if (benchSection) {
-        benchSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }
-    }, 100); // Small delay to ensure state updates first
+    // Always open the slot-to-bench modal - it will show shop button if no players
+    setPlayerSelectionModal({ isOpen: true, position: position, slotKey: position });
   };
 
   // Handle click to add token to player
@@ -1056,19 +1022,8 @@ export default function TeamManager() {
     // If first arg is a string, it's a position (empty slot)
     if (typeof playerOrPosition === 'string') {
       const position = playerOrPosition;
-      const availablePlayers = getAvailablePlayersForPosition(position);
       
-      if (!availablePlayers || availablePlayers.length === 0) {
-        const positionName = position === 'QB' ? 'Quarterback' 
-          : position.startsWith('RB') ? 'Running Back'
-          : position.startsWith('WR') ? 'Wide Receiver'
-          : position === 'TE' ? 'Tight End'
-          : 'Flex';
-        setNoPlayersModal({ isOpen: true, positionName });
-        return;
-      }
-      
-      // On mobile, open BenchPlayerSwapModal in slot-to-bench mode
+      // Always open the modal - it will show shop button if no players available
       if (isMobile) {
         setPlayerSelectionModal({ isOpen: true, position: position, slotKey: slotKey });
       } else {
@@ -1734,6 +1689,7 @@ export default function TeamManager() {
           availablePlayers={getAvailablePlayersForPosition(playerSelectionModal.position)}
           onSwap={(player) => handleSelectPlayer(player)}
           onClose={() => setPlayerSelectionModal({ isOpen: false, position: null, slotKey: null })}
+          onNavigateToShop={() => navigate(`/teams/${activeTeam.id}/pack-shop`)}
           liveGameData={isPreviewMode ? new Map() : liveGameData}
           projections={projections}
           // Not needed for slot-to-bench mode
@@ -1791,43 +1747,6 @@ export default function TeamManager() {
           onApply={handleApplyTokenToPlayer}
           onClose={() => setTokenSelectionModal({ isOpen: false, targetPlayer: null })}
         />
-      )}
-
-      {/* No Players Available Modal */}
-      {noPlayersModal.isOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-          <div className="bg-primary-black-800 rounded-2xl max-w-md w-full p-6 border-2 border-primary-black-700 shadow-2xl">
-            {/* Header */}
-            <div className="text-center mb-6">
-              <div className="text-5xl mb-3">📦</div>
-              <h2 className="text-2xl font-bold text-primary-black-50 mb-2">
-                No {noPlayersModal.positionName}s Available
-              </h2>
-              <p className="text-primary-black-400">
-                You don't have any {noPlayersModal.positionName}s in your collection. Visit the Pack Shop to get more players!
-              </p>
-            </div>
-
-            {/* Buttons */}
-            <div className="flex gap-3">
-              <button
-                onClick={() => setNoPlayersModal({ isOpen: false, positionName: '' })}
-                className="flex-1 px-4 py-3 bg-primary-black-700 hover:bg-primary-black-600 text-primary-black-300 rounded-lg font-semibold transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  setNoPlayersModal({ isOpen: false, positionName: '' });
-                  navigate(`/teams/${activeTeam.id}/pack-shop`);
-                }}
-                className="flex-1 px-4 py-3 bg-primary-green-500 hover:bg-primary-green-400 text-primary-black-950 rounded-lg font-semibold transition-colors"
-              >
-                Go to Pack Shop
-              </button>
-            </div>
-          </div>
-        </div>
       )}
 
       {/* Roster Limit Modal */}

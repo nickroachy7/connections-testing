@@ -27,7 +27,8 @@ export default function BenchPlayerSwapModal({
   // New props for reverse mode (empty slot → select bench player)
   mode = 'bench-to-lineup', // 'bench-to-lineup' or 'slot-to-bench'
   targetSlot = null,
-  availablePlayers = []
+  availablePlayers = [],
+  onNavigateToShop = null
 }) {
   const modalRef = useRef(null);
 
@@ -351,14 +352,26 @@ export default function BenchPlayerSwapModal({
                     })}
                   </div>
                 ) : (
-                  <div className="py-8 text-center">
+                  <div className="py-8 text-center px-4">
                     <div className="text-4xl mb-2 opacity-30">📭</div>
                     <p className="text-primary-black-400 font-semibold">
-                      No available players
+                      No players available
                     </p>
-                    <p className="text-xs text-primary-black-500 mt-1">
-                      All eligible players are already in your lineup
+                    <p className="text-xs text-primary-black-500 mt-1 mb-4">
+                      Visit the Pack Shop to add more players to your collection
                     </p>
+                    {onNavigateToShop && (
+                      <button
+                        onClick={() => {
+                          onNavigateToShop();
+                          onClose();
+                        }}
+                        className="px-6 py-3 bg-primary-green-500 hover:bg-primary-green-400 text-primary-black-950 rounded-xl font-semibold transition-colors active:scale-[0.98] inline-flex items-center gap-2"
+                      >
+                        <span>🏪</span>
+                        <span>Go to Pack Shop</span>
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
@@ -418,5 +431,6 @@ BenchPlayerSwapModal.propTypes = {
   projections: PropTypes.instanceOf(Map),
   mode: PropTypes.oneOf(['bench-to-lineup', 'slot-to-bench']),
   targetSlot: PropTypes.string,
-  availablePlayers: PropTypes.array
+  availablePlayers: PropTypes.array,
+  onNavigateToShop: PropTypes.func
 };
