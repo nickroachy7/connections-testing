@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import TeamHeader from './TeamHeader';
 import WeekStatusBar from './WeekStatusBar';
+import { supabase } from '../services/supabase';
 
 // v2.0 - Unified background with dark gradients (900/950 shades)
 const BANNER_THEMES = [
@@ -34,6 +35,7 @@ export default function TeamInfoBanner({
   previewMode = false
 }) {
   const [bannerTheme, setBannerTheme] = useState('forest');
+  const [globalRank, setGlobalRank] = useState(null);
 
   useEffect(() => {
     if (teamId) {
@@ -51,7 +53,38 @@ export default function TeamInfoBanner({
     }
   }, [teamId]);
 
+  // Fetch global rank
+  useEffect(() => {
+    if (!teamId) return;
+
+    const fetchGlobalRank = async () => {
+      try {
+        const { data: allTeams } = await supabase
+          .from('teams')
+          .select('id, wins, losses, total_points')
+          .eq('is_active', true)
+          .order('wins', { ascending: false })
+          .order('total_points', { ascending: false });
+
+        if (allTeams) {
+          const rank = allTeams.findIndex(t => t.id === teamId) + 1;
+          setGlobalRank(rank > 0 ? rank : null);
+        }
+      } catch (error) {
+        console.error('Error fetching global rank:', error);
+      }
+    };
+
+    fetchGlobalRank();
+    const interval = setInterval(fetchGlobalRank, 60000); // Refresh every minute
+    return () => clearInterval(interval);
+  }, [teamId, wins, losses]);
+
   const getCurrentTheme = () => BANNER_THEMES.find(t => t.id === bannerTheme) || BANNER_THEMES[2];
+
+  // Calculate lives remaining
+  const maxLosses = team?.contest_type?.max_losses || 3;
+  const livesRemaining = maxLosses - (losses || 0);
 
   return (
     <div className={`${getCurrentTheme().bg} transition-all duration-300`}>
@@ -63,6 +96,8 @@ export default function TeamInfoBanner({
         wins={wins}
         losses={losses}
         coins={coins}
+        lives={livesRemaining}
+        rank={globalRank}
         bannerTheme={bannerTheme}
         setBannerTheme={setBannerTheme}
       />
