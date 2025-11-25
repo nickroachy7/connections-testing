@@ -512,11 +512,9 @@ const LeaderboardRow = ({
 LeaderboardRow.propTypes = {
   entry: PropTypes.object.isRequired,
   index: PropTypes.number.isRequired,
-  sortBy: PropTypes.string.isRequired,
   currentUserId: PropTypes.string,
   currentWeek: PropTypes.number,
   showAvatars: PropTypes.bool,
-  showRecordColumn: PropTypes.bool,
   gridTemplate: PropTypes.string.isRequired,
   mobileGridTemplate: PropTypes.string.isRequired,
   getRankIcon: PropTypes.func.isRequired,
@@ -524,16 +522,13 @@ LeaderboardRow.propTypes = {
   onTeamClick: PropTypes.func
 };
 
-export default LeaderboardTable;
-LeaderboardRow.propTypes = {
-  entry: PropTypes.object.isRequired,
-  index: PropTypes.number.isRequired,
+LeaderboardTable.propTypes = {
   currentUserId: PropTypes.string,
-  currentWeek: PropTypes.number,
+  limit: PropTypes.number,
   showAvatars: PropTypes.bool,
-  gridTemplate: PropTypes.string.isRequired,
-  mobileGridTemplate: PropTypes.string.isRequired,
-  getRankIcon: PropTypes.func.isRequired,
-  getRankDisplay: PropTypes.func.isRequired,
-  onTeamClick: PropTypes.func
+  showRecordColumn: PropTypes.bool,
+  onTeamClick: PropTypes.func,
+  defaultSort: PropTypes.string
 };
+
+export default LeaderboardTable;
