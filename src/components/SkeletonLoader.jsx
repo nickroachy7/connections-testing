@@ -66,20 +66,31 @@ export function StatCardSkeleton() {
 
 export function PackCardSkeleton() {
   return (
-    <div className="odds-card animate-pulse">
-      <div className="space-y-4">
-        {/* Icon skeleton */}
-        <div className="w-24 h-24 bg-primary-black-800 rounded-2xl mx-auto"></div>
-        
-        {/* Title skeleton */}
-        <div className="h-6 bg-primary-black-800 rounded-lg w-3/4 mx-auto"></div>
-        
-        {/* Description skeleton */}
-        <div className="h-4 bg-primary-black-800 rounded w-full"></div>
-        <div className="h-4 bg-primary-black-800 rounded w-5/6 mx-auto"></div>
-        
-        {/* Price skeleton */}
-        <div className="h-8 bg-primary-black-800 rounded-full w-24 mx-auto"></div>
+    <div className="w-full bg-primary-black-800 border border-primary-black-700 rounded-xl p-3 sm:p-4 animate-pulse">
+      <div className="flex items-center gap-3 sm:gap-4">
+        {/* LEFT SECTION: Icon + Pack Info */}
+        <div className="flex items-center gap-2.5 sm:gap-3 flex-1 min-w-0">
+          {/* Icon skeleton */}
+          <div className="w-12 h-12 sm:w-14 sm:h-14 bg-primary-black-700 rounded-lg flex-shrink-0"></div>
+          
+          {/* Name & Tier skeleton */}
+          <div className="flex flex-col gap-1.5 min-w-0 flex-1">
+            <div className="h-4 sm:h-5 bg-primary-black-700 rounded w-32 sm:w-40"></div>
+            <div className="h-4 bg-primary-black-700 rounded w-16 sm:w-20"></div>
+          </div>
+        </div>
+
+        {/* MIDDLE SECTION: Stats skeleton */}
+        <div className="flex flex-col gap-1.5 flex-shrink-0">
+          <div className="h-3 sm:h-4 bg-primary-black-700 rounded w-16 sm:w-20"></div>
+          <div className="h-3 sm:h-4 bg-primary-black-700 rounded w-16 sm:w-20"></div>
+        </div>
+
+        {/* RIGHT SECTION: Price + CTA skeleton */}
+        <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+          <div className="h-5 sm:h-6 bg-primary-black-700 rounded w-20 sm:w-24"></div>
+          <div className="h-4 bg-primary-black-700 rounded w-16 sm:w-20"></div>
+        </div>
       </div>
     </div>
   );
