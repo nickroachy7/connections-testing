@@ -2,8 +2,8 @@ const Footer = () => {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="bg-primary-black-900/80 backdrop-blur-md border-t border-primary-black-700 mt-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-6">
+    <footer className="bg-primary-black-900/80 backdrop-blur-md border-t border-primary-black-700">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-4 md:pt-6 md:pb-6">
         {/* Mobile: Compact layout with just logo and copyright */}
         <div className="md:hidden text-center">
           <img 
