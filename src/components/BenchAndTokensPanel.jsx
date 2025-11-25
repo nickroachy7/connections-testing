@@ -1,20 +1,20 @@
 import { useState } from 'react';
 import PropTypes from 'prop-types';
-import PlayerTable from './tables/PlayerTable';
-import TokenTable from './tables/TokenTable';
+import UnifiedItemList from './tables/UnifiedItemList';
 import { enrichPlayerData, enrichTokenData } from './tables/tableHelpers.jsx';
 import { useIsMobile } from '../hooks';
 
 /**
  * BenchAndTokensPanel Component
  * 
- * Displays bench players and tokens with filtering tabs.
+ * Manages filtering and display logic for bench players and tokens with tabs.
  * Features:
  * - ALL tab: Shows both players and tokens
  * - PLAYERS tab: Only bench players
  * - TOKENS tab: Only tokens
  * - Click-to-add actions for lineup building
- * - Filters by position
+ * - Filters by position (when clicking empty lineup slot)
+ * - Filters tokens for specific player (when clicking + token button)
  */
 export default function BenchAndTokensPanel({
   benchPlayers,
@@ -61,6 +61,9 @@ export default function BenchAndTokensPanel({
         const playerPos = p.player_card.position;
         if (filterPosition === 'FLEX') {
           return ['Running Back', 'Wide Receiver', 'Tight End'].includes(playerPos);
+        }
+        if (filterPosition === 'SUPERFLEX') {
+          return true; // All positions eligible for superflex
         }
         // Map position abbreviations to full names
         const positionMap = {
@@ -163,8 +166,11 @@ export default function BenchAndTokensPanel({
         {shouldShowPlayers && enrichedPlayers.length > 0 && (
           <>
             <h3 className="text-sm sm:text-xl font-bold text-primary-black-50 px-2">Bench</h3>
-            <PlayerTable
-              players={enrichedPlayers}
+            <UnifiedItemList
+              items={enrichedPlayers}
+              itemType="player"
+              mode="bench"
+              viewMode="list"
               showAddButton={true}
               showBenchBadge={true}
               onRowDragStart={onPlayerDragStart}
@@ -193,7 +199,9 @@ export default function BenchAndTokensPanel({
                   const isGameLiveOrFinal = gameStatus === 'live' || gameStatus === 'halftime' || gameStatus === 'final';
                   return player.is_locked || isGameLiveOrFinal;
                 }}
-                selectedPlayerId={selectedPlayerForSlot?.id}
+                selectedItemId={selectedPlayerForSlot?.id}
+                liveGameData={liveGameData}
+                projections={projections}
                 emptyMessage="No bench players"
                 emptyIcon="🏈"
               />
@@ -209,37 +217,39 @@ export default function BenchAndTokensPanel({
                 Tap a token to apply it to this player
               </div>
             )}
-            <TokenTable
-            tokens={enrichedTokens}
-            onRowDragStart={onTokenDragStart}
-            onDragEnd={onTokenDragEnd}
-            onRowClick={(token) => {
-              // If filtering for a specific player, apply token immediately (mobile or desktop)
-              if (tokenFilterPlayerId && onApplyTokenToPlayer) {
-                onApplyTokenToPlayer(token, tokenFilterPlayerId);
-              }
-              // Mobile without filter: Open modal to select player
-              else if (isMobile && onTokenClick) {
-                onTokenClick(token);
-              }
-              // Desktop without filter: Select token for later application
-              else if (onSelectTokenForPlayer) {
-                onSelectTokenForPlayer(token);
-              }
-            }}
-            onAddButtonClick={(token) => {
-              if (tokenFilterPlayerId && onApplyTokenToPlayer) {
-                onApplyTokenToPlayer(token, tokenFilterPlayerId);
-              } else if (onSelectTokenForPlayer) {
-                onSelectTokenForPlayer(token);
-              }
-            }}
-            inventory={inventory}
-            onRemove={onRemoveToken}
-            selectedTokenId={selectedTokenForPlayer?.id}
-            emptyMessage={tokenFilterPlayerId ? "No available tokens for this player" : "No tokens available"}
-            emptyIcon="💎"
-          />
+            <UnifiedItemList
+              items={enrichedTokens}
+              itemType="token"
+              mode="bench"
+              viewMode="list"
+              onRowDragStart={onTokenDragStart}
+              onRowDragEnd={onTokenDragEnd}
+              onRowClick={(token) => {
+                // If filtering for a specific player, apply token immediately (mobile or desktop)
+                if (tokenFilterPlayerId && onApplyTokenToPlayer) {
+                  onApplyTokenToPlayer(token, tokenFilterPlayerId);
+                }
+                // Mobile without filter: Open modal to select player
+                else if (isMobile && onTokenClick) {
+                  onTokenClick(token);
+                }
+                // Desktop without filter: Select token for later application
+                else if (onSelectTokenForPlayer) {
+                  onSelectTokenForPlayer(token);
+                }
+              }}
+              onAddButtonClick={(token) => {
+                if (tokenFilterPlayerId && onApplyTokenToPlayer) {
+                  onApplyTokenToPlayer(token, tokenFilterPlayerId);
+                } else if (onSelectTokenForPlayer) {
+                  onSelectTokenForPlayer(token);
+                }
+              }}
+              inventory={inventory}
+              selectedItemId={selectedTokenForPlayer?.id}
+              emptyMessage={tokenFilterPlayerId ? "No available tokens for this player" : "No tokens available"}
+              emptyIcon="💎"
+            />
           </>
         )}
 
