@@ -1035,13 +1035,13 @@ export default function TeamManager() {
 
   // Handle opening bench player swap modal
   const handleBenchPlayerClick = (player) => {
-    // Check if player's game is live
+    // Check if player's game is live, halftime, or final
     const gameData = liveGameData?.get(player.player_card.player_id);
-    const isGameLive = gameData && (gameData.gameStatus?.toLowerCase() === 'live' || gameData.gameStatus?.toLowerCase() === 'halftime');
+    const gameStatus = gameData?.gameStatus?.toLowerCase();
+    const isGameLiveOrFinal = gameStatus === 'live' || gameStatus === 'halftime' || gameStatus === 'final';
     
-    if (player.is_locked || isGameLive) {
-      setError(`${player.player_card.player_name} is locked and cannot be added to lineup (game in progress)`);
-      setTimeout(() => setError(''), 3000);
+    if (player.is_locked || isGameLiveOrFinal) {
+      // Silent blocking - no error popup
       return;
     }
     
@@ -1115,11 +1115,12 @@ export default function TeamManager() {
       const currentPlayer = lineup[slotKey];
       if (!currentPlayer) return true; // Empty slot is eligible
       
-      // Check if current player is locked
+      // Check if current player is locked or game is live/halftime/final
       const gameData = liveGameData?.get(currentPlayer.player_card.player_id);
-      const isGameLive = gameData && (gameData.gameStatus?.toLowerCase() === 'live' || gameData.gameStatus?.toLowerCase() === 'halftime');
+      const gameStatus = gameData?.gameStatus?.toLowerCase();
+      const isGameLiveOrFinal = gameStatus === 'live' || gameStatus === 'halftime' || gameStatus === 'final';
       
-      return !currentPlayer.is_locked && !isGameLive;
+      return !currentPlayer.is_locked && !isGameLiveOrFinal;
     });
   };
 
