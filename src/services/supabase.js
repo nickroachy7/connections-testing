@@ -159,6 +159,9 @@ export const getUserTeams = async (userId) => {
         total_weeks,
         max_losses,
         scoring_type
+      ),
+      users(
+        username
       )
     `)
     .eq('user_id', userId)

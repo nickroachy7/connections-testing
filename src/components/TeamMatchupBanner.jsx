@@ -4,6 +4,7 @@ import { supabase } from '../services/supabase';
 import { useFantasy } from '../contexts/FantasyContext';
 import { useProjectedMedian } from '../hooks/fantasy';
 import TeamCustomizationModal from './TeamCustomizationModal';
+import TeamScoreBanner from './TeamScoreBanner';
 
 const BANNER_THEMES = [
   { id: 'default', name: 'Classic Dark', bg: 'bg-dk-black-secondary' },
@@ -478,53 +479,18 @@ export default function TeamMatchupBanner({
             </div>
 
             {/* Week Status + Score */}
-            <div className="bg-black/20 backdrop-blur-sm rounded-lg px-3 py-2 border border-white/10">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-dk-display font-black text-white">
-                    Week {displayWeek?.week || '—'}
-                  </span>
-                  <span className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded ${
-                    isFinal ? 'bg-blue-500/20 text-blue-300' :
-                    isLive ? 'bg-red-500/20 text-red-300' :
-                    'bg-white/10 text-white/70'
-                  }`}>
-                    {isFinal ? 'Final' : isLive ? 'Live' : 'Proj'}
-                  </span>
-                </div>
-                <div className="text-2xl font-black text-white leading-none">
-                  {userScore.toFixed(1)}
-                </div>
-              </div>
-
-              {/* Progress Bar */}
-              <div className="space-y-1">
-                <div className="relative h-2 bg-white/10 rounded-full overflow-hidden">
-                  {/* Median marker */}
-                  <div 
-                    className="absolute top-0 bottom-0 w-0.5 bg-yellow-400 z-10" 
-                    style={{ left: `${medianPercentage}%` }}
-                  />
-                  {/* Score bar */}
-                  <div
-                    className={`absolute top-0 bottom-0 left-0 transition-all duration-500 rounded-full ${
-                      isAboveMedian 
-                        ? 'bg-gradient-to-r from-green-500 to-green-400'
-                        : 'bg-gradient-to-r from-red-500 to-red-400'
-                    }`}
-                    style={{ width: `${userPercentage}%` }}
-                  />
-                </div>
-                <div className="flex items-center justify-between text-[10px]">
-                  <span className="text-white/60">
-                    {winPercentage}% WIN
-                  </span>
-                  <span className="text-yellow-400/80 font-medium">
-                    Median: {medianScore.toFixed(1)}
-                  </span>
-                </div>
-              </div>
-            </div>
+            <TeamScoreBanner
+              week={displayWeek?.week}
+              isLive={isLive}
+              isFinal={isFinal}
+              userScore={userScore}
+              medianScore={medianScore}
+              winPercentage={winPercentage}
+              userPercentage={userPercentage}
+              medianPercentage={medianPercentage}
+              isAboveMedian={isAboveMedian}
+              size="mobile"
+            />
           </div>
 
           {/* Desktop Layout */}
@@ -590,48 +556,18 @@ export default function TeamMatchupBanner({
 
               {/* Center: Score Battle */}
               <div className="flex-1 max-w-md">
-                <div className="bg-black/20 backdrop-blur-sm rounded-lg px-4 py-3 border border-white/10">
-                  {/* Row 1: Week, Status, Score */}
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <span className="text-base font-dk-display font-black text-white">
-                        Week {displayWeek?.week || '—'}
-                      </span>
-                      <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded ${
-                        isFinal ? 'bg-blue-500/20 text-blue-300' :
-                        isLive ? 'bg-red-500/20 text-red-300' :
-                        'bg-white/10 text-white/70'
-                      }`}>
-                        {isFinal ? 'Final' : isLive ? 'Live' : 'Proj'}
-                      </span>
-                    </div>
-                    <div className="text-3xl font-black text-white leading-none">
-                      {userScore.toFixed(1)}
-                    </div>
-                  </div>
-
-                  {/* Row 2: Win %, Progress Bar, Median */}
-                  <div className="space-y-1">
-                    <div className="relative h-2.5 bg-white/10 rounded-full overflow-hidden">
-                      <div 
-                        className="absolute top-0 bottom-0 w-0.5 bg-yellow-400 z-10" 
-                        style={{ left: `${medianPercentage}%` }}
-                      />
-                      <div
-                        className={`absolute top-0 bottom-0 left-0 transition-all duration-500 rounded-full ${
-                          isAboveMedian 
-                            ? 'bg-gradient-to-r from-green-500 to-green-400'
-                            : 'bg-gradient-to-r from-red-500 to-red-400'
-                        }`}
-                        style={{ width: `${userPercentage}%` }}
-                      />
-                    </div>
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-white/60 font-medium">{winPercentage}% WIN</span>
-                      <span className="text-yellow-400/90 font-medium">Median: {medianScore.toFixed(1)}</span>
-                    </div>
-                  </div>
-                </div>
+                <TeamScoreBanner
+                  week={displayWeek?.week}
+                  isLive={isLive}
+                  isFinal={isFinal}
+                  userScore={userScore}
+                  medianScore={medianScore}
+                  winPercentage={winPercentage}
+                  userPercentage={userPercentage}
+                  medianPercentage={medianPercentage}
+                  isAboveMedian={isAboveMedian}
+                  size="desktop"
+                />
               </div>
 
               {/* Right: Week Info + Customize */}

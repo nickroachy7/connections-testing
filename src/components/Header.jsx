@@ -2,6 +2,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { signOut, getUserTeams } from '../services/supabase'
+import TeamMenuCard from './TeamMenuCard'
 
 const Header = () => {
   const location = useLocation()
@@ -9,6 +10,34 @@ const Header = () => {
   const { user, profile } = useAuth()
   const [teams, setTeams] = useState([])
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+
+  // Prevent body scroll when menu is open
+  useEffect(() => {
+    if (isMobileMenuOpen) {
+      // Save current scroll position
+      const scrollY = window.scrollY
+      document.body.style.position = 'fixed'
+      document.body.style.top = `-${scrollY}px`
+      document.body.style.width = '100%'
+      document.body.style.overflow = 'hidden'
+    } else {
+      // Restore scroll position
+      const scrollY = document.body.style.top
+      document.body.style.position = ''
+      document.body.style.top = ''
+      document.body.style.width = ''
+      document.body.style.overflow = ''
+      window.scrollTo(0, parseInt(scrollY || '0') * -1)
+    }
+    
+    // Cleanup on unmount
+    return () => {
+      document.body.style.position = ''
+      document.body.style.top = ''
+      document.body.style.width = ''
+      document.body.style.overflow = ''
+    }
+  }, [isMobileMenuOpen])
 
   // Load user's teams when logged in
   useEffect(() => {
@@ -199,13 +228,14 @@ const Header = () => {
         <>
           {/* Backdrop blur */}
           <div 
-            className="md:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-[101]"
+            className="md:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-[101] overflow-hidden"
             onClick={() => setIsMobileMenuOpen(false)}
           />
           
           {/* Menu Panel - Full Width */}
-          <div className="md:hidden fixed inset-0 bg-primary-black-900 z-[105] overflow-y-auto pt-[57px]">
-            <div className="min-h-full p-6">
+          <div className="md:hidden fixed inset-0 z-[105] flex flex-col overflow-hidden pt-[57px]">
+            {/* Scrollable Content */}
+            <div className="flex-1 overflow-y-auto bg-primary-black-900 p-6 pb-4">
               {/* Fantasy Home */}
               {user && teams.length > 0 && (
                 <button
@@ -228,27 +258,17 @@ const Header = () => {
                   <h3 className="text-xs font-semibold text-primary-black-400 uppercase tracking-wider mb-3 px-2">
                     Your Teams
                   </h3>
-                  <nav className="space-y-1">
+                  <nav className="space-y-2">
                     {teams.map((team) => (
-                      <button
+                      <TeamMenuCard
                         key={team.id}
+                        team={team}
+                        isActive={location.pathname.includes(`/teams/${team.id}`)}
                         onClick={() => {
                           navigate(`/teams/${team.id}/starting-lineup`)
                           setIsMobileMenuOpen(false)
                         }}
-                        className={`w-full text-left px-4 py-3 rounded-lg transition-all duration-200 ${
-                          location.pathname.includes(`/teams/${team.id}`)
-                            ? 'bg-primary-green-500 text-primary-black-950 font-semibold'
-                            : 'text-primary-black-300 hover:text-primary-black-50 hover:bg-primary-black-800'
-                        }`}
-                      >
-                        <div className="flex flex-col">
-                          <span className="text-sm font-medium">{team.team_name}</span>
-                          <span className="text-xs opacity-75 mt-0.5">
-                            {team.wins || 0}-{team.losses || 0} • {team.coins || 0} coins
-                          </span>
-                        </div>
-                      </button>
+                      />
                     ))}
                   </nav>
                   
@@ -264,24 +284,23 @@ const Header = () => {
                   </button>
                 </div>
               )}
-              
-              {/* User Profile Section */}
-              <div className="pt-6 border-t border-primary-black-700">
+            </div>
+
+            {/* Fixed Bottom: User Profile Section */}
+            <div className="bg-primary-black-900 border-t border-primary-black-700 p-4 flex-shrink-0">
                 {user ? (
-                  <>
-                    <div className="mb-4 px-4 py-3 bg-primary-black-800 rounded-lg border border-primary-black-700">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 bg-primary-green-500 rounded-full flex items-center justify-center text-primary-black-950 font-bold text-base">
-                          {profile?.username?.charAt(0).toUpperCase() || 'U'}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-primary-black-50 truncate">
-                            {profile?.username || 'User'}
-                          </p>
-                          <p className="text-xs text-primary-black-400 truncate">
-                            {teams.length} {teams.length === 1 ? 'team' : 'teams'}
-                          </p>
-                        </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <div className="w-8 h-8 bg-primary-green-500 rounded-full flex items-center justify-center text-primary-black-950 font-bold text-sm flex-shrink-0">
+                        {profile?.username?.charAt(0).toUpperCase() || 'U'}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium text-primary-black-50 truncate">
+                          {profile?.username || 'User'}
+                        </p>
+                        <p className="text-[10px] text-primary-black-400 truncate">
+                          {teams.length} {teams.length === 1 ? 'team' : 'teams'}
+                        </p>
                       </div>
                     </div>
                     <button
@@ -289,35 +308,34 @@ const Header = () => {
                         handleSignOut()
                         setIsMobileMenuOpen(false)
                       }}
-                      className="w-full px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors duration-200 text-sm"
+                      className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors duration-200 text-xs whitespace-nowrap flex-shrink-0"
                     >
                       Sign Out
                     </button>
-                  </>
+                  </div>
                 ) : (
-                  <div className="space-y-3">
+                  <div className="space-y-2">
                     <button
                       onClick={() => {
                         navigate('/login')
                         setIsMobileMenuOpen(false)
                       }}
-                      className="block w-full px-4 py-3 text-center text-primary-black-50 border border-primary-black-600 hover:bg-primary-black-800 rounded-lg font-medium transition-colors duration-200 text-sm"
+                      className="block w-full px-3 py-2 text-center text-primary-black-50 border border-primary-black-600 hover:bg-primary-black-800 rounded-lg font-medium transition-colors duration-200 text-xs"
                     >
                       Login
                     </button>
                     <button
-                      onClick={() => {
+                      onClick(() => {
                         navigate('/signup')
                         setIsMobileMenuOpen(false)
                       }}
-                      className="block w-full px-4 py-3 text-center bg-primary-green-500 hover:bg-primary-green-400 text-primary-black-950 rounded-lg font-semibold transition-colors duration-200 text-sm"
+                      className="block w-full px-3 py-2 text-center bg-primary-green-500 hover:bg-primary-green-400 text-primary-black-950 rounded-lg font-semibold transition-colors duration-200 text-xs"
                     >
                       Sign Up
                     </button>
                   </div>
                 )}
               </div>
-            </div>
           </div>
         </>
         )}
