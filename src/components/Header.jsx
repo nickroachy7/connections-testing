@@ -287,58 +287,60 @@ const Header = () => {
             </div>
 
             {/* Fixed Bottom: User Profile Section */}
+
+            {/* Fixed Bottom: User Profile Section */}
             <div className="bg-primary-black-900 border-t border-primary-black-700 p-4 flex-shrink-0">
-                {user ? (
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-2 flex-1 min-w-0">
-                      <div className="w-8 h-8 bg-primary-green-500 rounded-full flex items-center justify-center text-primary-black-950 font-bold text-sm flex-shrink-0">
-                        {profile?.username?.charAt(0).toUpperCase() || 'U'}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium text-primary-black-50 truncate">
-                          {profile?.username || 'User'}
-                        </p>
-                        <p className="text-[10px] text-primary-black-400 truncate">
-                          {teams.length} {teams.length === 1 ? 'team' : 'teams'}
-                        </p>
-                      </div>
+              {user ? (
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <div className="w-8 h-8 bg-primary-green-500 rounded-full flex items-center justify-center text-primary-black-950 font-bold text-sm flex-shrink-0">
+                      {profile?.username?.charAt(0).toUpperCase() || 'U'}
                     </div>
-                    <button
-                      onClick={() => {
-                        handleSignOut()
-                        setIsMobileMenuOpen(false)
-                      }}
-                      className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors duration-200 text-xs whitespace-nowrap flex-shrink-0"
-                    >
-                      Sign Out
-                    </button>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium text-primary-black-50 truncate">
+                        {profile?.username || 'User'}
+                      </p>
+                      <p className="text-[10px] text-primary-black-400 truncate">
+                        {teams.length} {teams.length === 1 ? 'team' : 'teams'}
+                      </p>
+                    </div>
                   </div>
-                ) : (
-                  <div className="space-y-2">
-                    <button
-                      onClick={() => {
-                        navigate('/login')
-                        setIsMobileMenuOpen(false)
-                      }}
-                      className="block w-full px-3 py-2 text-center text-primary-black-50 border border-primary-black-600 hover:bg-primary-black-800 rounded-lg font-medium transition-colors duration-200 text-xs"
-                    >
-                      Login
-                    </button>
-                    <button
-                      onClick(() => {
-                        navigate('/signup')
-                        setIsMobileMenuOpen(false)
-                      }}
-                      className="block w-full px-3 py-2 text-center bg-primary-green-500 hover:bg-primary-green-400 text-primary-black-950 rounded-lg font-semibold transition-colors duration-200 text-xs"
-                    >
-                      Sign Up
-                    </button>
-                  </div>
-                )}
-              </div>
+                  <button
+                    onClick={() => {
+                      handleSignOut()
+                      setIsMobileMenuOpen(false)
+                    }}
+                    className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors duration-200 text-xs whitespace-nowrap flex-shrink-0"
+                  >
+                    Sign Out
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <button
+                    onClick={() => {
+                      navigate('/login')
+                      setIsMobileMenuOpen(false)
+                    }}
+                    className="block w-full px-3 py-2 text-center text-primary-black-50 border border-primary-black-600 hover:bg-primary-black-800 rounded-lg font-medium transition-colors duration-200 text-xs"
+                  >
+                    Login
+                  </button>
+                  <button
+                    onClick={() => {
+                      navigate('/signup')
+                      setIsMobileMenuOpen(false)
+                    }}
+                    className="block w-full px-3 py-2 text-center bg-primary-green-500 hover:bg-primary-green-400 text-primary-black-950 rounded-lg font-semibold transition-colors duration-200 text-xs"
+                  >
+                    Sign Up
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </>
-        )}
+      )}
     </>
   )
 }
