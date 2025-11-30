@@ -76,16 +76,16 @@ const TokenTable = ({
     return columns.join(' ');
   };
 
-  // Mobile grid template - match BenchPlayerSwapModal exactly
+  // Mobile grid template - optimized for touch and readability
   const getMobileGridTemplate = () => {
     let columns = [];
     
-    // Mobile columns - exact match to swap modal dimensions
+    // Mobile columns - optimized for touch targets and readability
     columns.push(
-      '32px',   // TK badge (matches position badge width)
-      '40px',   // Token icon (matches player icon)
-      '1fr',    // Token name & description (matches modal)
-      '60px'    // Bonus (matches FPTS column)
+      '32px',   // TK badge (optimized size)
+      '40px',   // Token icon (optimized size)
+      '1fr',    // Token name & description (flexible)
+      '56px'    // Bonus (optimized width)
     );
     
     return columns.join(' ');
@@ -146,7 +146,7 @@ const TokenTable = ({
       {tokens.map((token, index) => {
         const isLocked = isRowLocked ? isRowLocked(token) : false;
         const defaultClassName = `
-          grid transition-all md:border-l-4 md:border-transparent min-h-[64px] md:min-h-[48px]
+          grid transition-all md:border-l-4 md:border-transparent min-h-[72px] md:min-h-[48px]
           ${
             isLocked
               ? 'cursor-not-allowed opacity-60'
@@ -302,15 +302,15 @@ const TokenTable = ({
                 className="md:hidden"
               >
                 <div
-                  className={`grid ${customClassName} py-2 px-2 bg-primary-black-900`}
+                  className={`grid ${customClassName} py-2.5 px-3 bg-primary-black-900`}
                   style={{
                     gridTemplateColumns: mobileGridTemplate,
-                    gap: '4px',
+                    gap: '10px',
                     alignItems: 'center',
-                    minHeight: '56px'
+                    minHeight: '76px'
                   }}
                 >
-                  {/* COLUMN 1: TK Badge - match modal styling - CLICKABLE ONLY */}
+                  {/* COLUMN 1: TK Badge - optimized for touch */}
                   <div 
                     className="flex items-center justify-center cursor-pointer"
                     onClick={(e) => {
@@ -318,34 +318,31 @@ const TokenTable = ({
                       handleClick();
                     }}
                   >
-                    <span className="px-1 py-0.5 bg-primary-black-700 text-primary-black-400 rounded text-[9px] font-semibold text-center">
+                    <span className="px-1.5 py-0.5 bg-primary-black-700 text-primary-black-400 rounded text-[10px] font-bold text-center min-w-[28px]">
                       TK
                     </span>
                   </div>
 
-                  {/* COLUMN 2: Token Icon - match modal dimensions */}
+                  {/* COLUMN 2: Token Icon - optimized size */}
                   <div className={`rounded flex items-center justify-center text-xl bg-gradient-to-br ${getTokenRarityColor(token.token_card.rarity)} w-10 h-10`}>
                     💎
                   </div>
 
-                  {/* COLUMN 3: Token Name with Description - Sleeper-style dense layout */}
+                  {/* COLUMN 3: Token Name with Description - three-line layout */}
                   <div className="min-w-0">
-                    {/* Line 1: Name + Type */}
-                    <div className="flex items-baseline gap-1 mb-0.5">
-                      <h4 className="font-bold text-primary-black-50 truncate text-[11px] leading-tight">
+                    {/* Line 1: Name */}
+                    <div className="flex items-center gap-1.5 mb-0.5">
+                      <h4 className="font-bold text-primary-black-50 truncate text-sm leading-tight">
                         {token.token_card.token_name}
                       </h4>
-                      <span className="text-[9px] text-primary-black-400 font-semibold flex-shrink-0 uppercase">
-                        {token.token_card.token_type}
-                      </span>
                     </div>
-                    {/* Line 2: Description */}
-                    <p className="text-[9px] text-primary-black-400 truncate leading-tight">
+                    {/* Line 2-3: Description (two lines) */}
+                    <p className="text-[11px] text-primary-black-400 leading-snug line-clamp-2">
                       {token.token_card.description}
                     </p>
                   </div>
 
-                  {/* COLUMN 4: Bonus - match modal styling */}
+                  {/* COLUMN 4: Bonus - optimized size */}
                   <div className="text-center">
                     <span className="text-sm font-bold text-primary-green-400">
                       +{token.token_card.bonus_points}
@@ -361,15 +358,15 @@ const TokenTable = ({
                 draggable={!isLocked}
                 onDragStart={handleDragStart}
                 onDragEnd={onRowDragEnd}
-                className={`grid md:hidden ${customClassName} py-2 px-2`}
+                className={`grid md:hidden ${customClassName} py-2.5 px-3`}
                 style={{
                   gridTemplateColumns: mobileGridTemplate,
-                  gap: '4px',
+                  gap: '10px',
                   alignItems: 'center',
-                  minHeight: '56px'
+                  minHeight: '76px'
                 }}
               >
-                {/* COLUMN 1: TK Badge - match modal styling - CLICKABLE ONLY */}
+                {/* COLUMN 1: TK Badge - optimized for touch */}
                 <div 
                   className="flex items-center justify-center cursor-pointer"
                   onClick={(e) => {
@@ -377,34 +374,31 @@ const TokenTable = ({
                     handleClick();
                   }}
                 >
-                  <span className="px-1 py-0.5 bg-primary-black-700 text-primary-black-400 rounded text-[9px] font-semibold text-center">
+                  <span className="px-1.5 py-0.5 bg-primary-black-700 text-primary-black-400 rounded text-[10px] font-bold text-center min-w-[28px]">
                     TK
                   </span>
                 </div>
 
-                {/* COLUMN 2: Token Icon - match modal dimensions */}
+                {/* COLUMN 2: Token Icon - optimized size */}
                 <div className={`rounded flex items-center justify-center text-xl bg-gradient-to-br ${getTokenRarityColor(token.token_card.rarity)} w-10 h-10`}>
                   💎
                 </div>
 
-                {/* COLUMN 3: Token Name with Description - Sleeper-style dense layout */}
+                {/* COLUMN 3: Token Name with Description - three-line layout */}
                 <div className="min-w-0">
-                  {/* Line 1: Name + Type */}
-                  <div className="flex items-baseline gap-1 mb-0.5">
-                    <h4 className="font-bold text-primary-black-50 truncate text-[11px] leading-tight">
+                  {/* Line 1: Name */}
+                  <div className="flex items-center gap-1.5 mb-0.5">
+                    <h4 className="font-bold text-primary-black-50 truncate text-sm leading-tight">
                       {token.token_card.token_name}
                     </h4>
-                    <span className="text-[9px] text-primary-black-400 font-semibold flex-shrink-0 uppercase">
-                      {token.token_card.token_type}
-                    </span>
                   </div>
-                  {/* Line 2: Description */}
-                  <p className="text-[9px] text-primary-black-400 truncate leading-tight">
+                  {/* Line 2-3: Description (two lines) */}
+                  <p className="text-[11px] text-primary-black-400 leading-snug line-clamp-2">
                     {token.token_card.description}
                   </p>
                 </div>
 
-                {/* COLUMN 4: Bonus - match modal styling */}
+                {/* COLUMN 4: Bonus - optimized size */}
                 <div className="text-center">
                   <span className="text-sm font-bold text-primary-green-400">
                     +{token.token_card.bonus_points}

@@ -75,11 +75,10 @@ const LeaderboardTable = ({
     setError(null);
 
     try {
-      // Get all teams
+      // Get all teams (don't filter by is_active - leaderboard should show all competing teams)
       const { data: teams, error: teamsError } = await supabase
         .from('teams')
-        .select('id, team_name, user_id, wins, losses, users(username, avatar_url)')
-        .eq('is_active', true);
+        .select('id, team_name, user_id, wins, losses, users(username, avatar_url)');
 
       if (teamsError) throw teamsError;
       if (!teams?.length) {
@@ -290,9 +289,9 @@ const LeaderboardTable = ({
 
   const getMobileGridTemplate = () => {
     const columns = [
-      '40px',   // Rank
+      '48px',   // Rank (larger touch target)
       '1fr',    // Team info
-      '80px'    // Points
+      '80px'    // Points (wider for readability)
     ];
     return columns.join(' ');
   };
@@ -392,7 +391,7 @@ const LeaderboardRow = ({
   const bgColor = index % 2 === 0 ? 'bg-primary-black-800/20' : 'bg-primary-black-800/40';
   
   const defaultClassName = `
-    grid transition-all min-h-[56px] cursor-pointer
+    grid transition-all min-h-[72px] md:min-h-[56px] cursor-pointer
     ${bgColor}
     hover:bg-primary-black-700/50
   `;
@@ -411,7 +410,7 @@ const LeaderboardRow = ({
         className={`hidden md:grid items-center py-2 px-2 ${defaultClassName}`}
         style={{ 
           gridTemplateColumns: gridTemplate,
-          gap: '4px'
+          gap: '8px'
         }}
       >
         {/* Rank */}
@@ -464,16 +463,16 @@ const LeaderboardRow = ({
       {/* Mobile Row */}
       <div
         onClick={handleClick}
-        className={`md:hidden grid items-center py-2 px-2 ${defaultClassName}`}
+        className={`md:hidden grid items-center py-3 px-4 ${defaultClassName}`}
         style={{ 
           gridTemplateColumns: mobileGridTemplate,
-          gap: '4px'
+          gap: '12px'
         }}
       >
         {/* Rank */}
         <div className="flex items-center justify-center">
           <span className={`font-bold ${
-            rank <= 3 ? 'text-sm' : 'text-[11px] text-primary-black-100'
+            rank <= 3 ? 'text-base' : 'text-sm text-primary-black-100'
           }`}>
             {rank <= 3 ? getRankDisplay(rank) : `#${rank}`}
           </span>
@@ -481,26 +480,26 @@ const LeaderboardRow = ({
 
         {/* Team Info */}
         <div className="min-w-0 overflow-hidden">
-          <div className="flex items-baseline gap-1 mb-0.5">
+          <div className="flex items-baseline gap-1.5 mb-1">
             {showAvatars && entry.avatar_url && (
               <img 
                 src={entry.avatar_url} 
                 alt="" 
-                className="w-5 h-5 rounded-full flex-shrink-0"
+                className="w-6 h-6 rounded-full flex-shrink-0"
               />
             )}
-            <h4 className="font-bold truncate text-[11px] leading-tight text-primary-black-50">
+            <h4 className="font-bold truncate text-sm leading-tight text-primary-black-50">
               {entry.team_name}
             </h4>
           </div>
-          <div className="text-[9px] text-primary-black-400 leading-tight">
+          <div className="text-xs text-primary-black-400 leading-tight">
             @{entry.username}
           </div>
         </div>
 
         {/* Points */}
         <div className="flex items-center justify-end">
-          <span className="font-bold text-primary-black-50 text-[11px]">
+          <span className="font-bold text-primary-black-50 text-sm">
             {entry.current_week_score !== undefined ? Number(entry.current_week_score).toFixed(1) : '0.0'}
           </span>
         </div>

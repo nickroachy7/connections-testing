@@ -82,16 +82,16 @@ const PlayerTable = ({
     return columns.join(' ');
   };
 
-  // Mobile grid template - match BenchPlayerSwapModal exactly
+  // Mobile grid template - optimized for touch and readability
   const getMobileGridTemplate = () => {
     let columns = [];
     
-    // Mobile columns - exact match to swap modal
+    // Mobile columns - optimized for touch targets and readability
     columns.push(
-      '32px',   // Position badge (matches modal)
-      '40px',   // Player icon (matches modal)
-      '1fr',    // Player name + team + opponent + game time (matches modal)
-      '60px'    // FPTS (matches modal)
+      '40px',   // Position badge (larger touch target)
+      '48px',   // Player icon (48px recommended touch target)
+      '1fr',    // Player name + team + opponent + game time
+      '68px'    // FPTS (wider for readability)
     );
     
     return columns.join(' ');
@@ -205,7 +205,7 @@ const PlayerTableRow = ({
   console.log('PlayerTable Row:', player.player_card?.player_name, 'onSell:', !!onSell, 'isLocked:', isLocked, 'will render SwipeableRow:', onSell && !isLocked);
   
   const defaultClassName = `
-    grid md:py-2 md:px-2 transition-all md:border-l-4 min-h-[64px] md:min-h-[48px]
+    grid md:py-2 md:px-2 transition-all md:border-l-4 min-h-[72px] md:min-h-[48px]
     ${isLocked ? 'cursor-not-allowed opacity-60 bg-primary-black-900 md:border-primary-black-600' : 'cursor-move md:border-transparent'}
     ${index % 2 === 0 && !isLocked ? 'bg-primary-black-800' : !isLocked ? 'bg-primary-black-900' : ''}
   `;
@@ -443,12 +443,12 @@ const PlayerTableRow = ({
           className="md:hidden"
         >
           <div
-            className={`grid ${customClassName} py-2 px-2 bg-primary-black-900`}
+            className={`grid ${customClassName} py-3 px-4 bg-primary-black-900`}
             style={{ 
               gridTemplateColumns: mobileGridTemplate,
-              gap: '4px',
+              gap: '12px',
               alignItems: 'center',
-              minHeight: '56px'
+              minHeight: '72px'
             }}
           >
             <MobileRowContent 
@@ -465,12 +465,12 @@ const PlayerTableRow = ({
           draggable={!isLocked}
           onDragStart={handleDragStart}
           onDragEnd={onDragEnd}
-          className={`grid md:hidden ${customClassName} py-2 px-2`}
+          className={`grid md:hidden ${customClassName} py-3 px-4`}
           style={{ 
             gridTemplateColumns: mobileGridTemplate,
-            gap: '4px',
+            gap: '12px',
             alignItems: 'center',
-            minHeight: '56px'
+            minHeight: '72px'
           }}
         >
           <MobileRowContent 
@@ -489,7 +489,7 @@ const PlayerTableRow = ({
 // Extract mobile row content to avoid duplication
 const MobileRowContent = ({ player, showBenchBadge, handleClick, renderExtraColumns, index }) => (
   <>
-    {/* COLUMN 1: Position Badge - exact match to modal - CLICKABLE ONLY */}
+    {/* COLUMN 1: Position Badge - optimized for touch */}
     <div 
       className="flex items-center justify-center cursor-pointer"
       onClick={(e) => {
@@ -497,36 +497,36 @@ const MobileRowContent = ({ player, showBenchBadge, handleClick, renderExtraColu
         handleClick();
       }}
     >
-      <span className="px-1 py-0.5 bg-primary-black-700 text-primary-black-300 rounded text-[9px] font-semibold text-center">
+      <span className="px-2 py-1 bg-primary-black-700 text-primary-black-300 rounded text-xs font-bold text-center min-w-[36px]">
         {showBenchBadge ? 'BN' : getPositionAbbr(player.player_card.position)}
       </span>
     </div>
 
-    {/* COLUMN 2: Player Icon - exact match to modal */}
-    <div className={`rounded bg-primary-black-700 flex items-center justify-center w-10 h-10 border-2 ${player.card_tier ? getTierBadgeInfo(player.card_tier).borderColor : 'border-gray-500'}`}>
-      <svg className="w-6 h-6 text-primary-black-300" fill="currentColor" viewBox="0 0 24 24">
+    {/* COLUMN 2: Player Icon - larger for better visibility */}
+    <div className={`rounded bg-primary-black-700 flex items-center justify-center w-11 h-11 border-2 ${player.card_tier ? getTierBadgeInfo(player.card_tier).borderColor : 'border-gray-500'}`}>
+      <svg className="w-7 h-7 text-primary-black-300" fill="currentColor" viewBox="0 0 24 24">
         <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
       </svg>
     </div>
 
-    {/* COLUMN 3: Player Name & Info - Sleeper-style dense layout */}
+    {/* COLUMN 3: Player Name & Info - optimized typography */}
     <div className="min-w-0">
       {/* Line 1: Name + Position + Team + Tier */}
-      <div className="flex items-baseline gap-1 mb-0.5">
-        <h4 className="font-bold text-primary-black-50 truncate text-[11px] leading-tight">
+      <div className="flex items-baseline gap-1.5 mb-1">
+        <h4 className="font-bold text-primary-black-50 truncate text-sm leading-tight">
           {player.player_card.player_name}
         </h4>
-        <span className="text-[9px] text-primary-black-400 font-semibold flex-shrink-0">
+        <span className="text-xs text-primary-black-400 font-semibold flex-shrink-0">
           {getPositionAbbr(player.player_card.position)} - {player.player_card.team_abbreviation}
         </span>
         {player.card_tier && (
-          <span className={`px-1 py-0 rounded text-[8px] font-bold uppercase ${getTierBadgeInfo(player.card_tier).color} flex-shrink-0 leading-tight`}>
+          <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase ${getTierBadgeInfo(player.card_tier).color} flex-shrink-0 leading-tight`}>
             {getTierBadgeInfo(player.card_tier).initial}
           </span>
         )}
       </div>
       {/* Line 2: Matchup info */}
-      <div className="flex items-center gap-1 text-[9px] leading-tight">
+      <div className="flex items-center gap-1.5 text-xs leading-tight">
         {player.isBye ? (
           <span className="text-primary-black-500 font-semibold">BYE</span>
         ) : (
@@ -591,24 +591,24 @@ const MobileRowContent = ({ player, showBenchBadge, handleClick, renderExtraColu
       </div>
     </div>
 
-    {/* COLUMN 4: FPTS - exact match to modal */}
+    {/* COLUMN 4: FPTS - larger fonts for readability */}
     <div className="text-center">
       {player.isLiveOrFinal && player.score !== undefined ? (
         <div className="flex flex-col items-center">
-          <span className="text-sm text-white font-bold leading-tight">{player.score.toFixed(1)}</span>
+          <span className="text-base text-white font-bold leading-tight">{player.score.toFixed(1)}</span>
           {player.projected && player.projected > 0 && (
-            <span className="text-[7px] text-primary-black-500 leading-tight">{player.projected.toFixed(1)}</span>
+            <span className="text-[10px] text-primary-black-500 leading-tight">{player.projected.toFixed(1)}</span>
           )}
         </div>
       ) : (
         <div className="flex flex-col items-center">
           {player.projected && player.projected > 0 ? (
             <>
-              <span className="text-[10px] text-primary-black-500">--</span>
-              <span className="text-[7px] text-primary-black-500 leading-tight">{player.projected.toFixed(1)}</span>
+              <span className="text-xs text-primary-black-500">--</span>
+              <span className="text-[10px] text-primary-black-500 leading-tight">{player.projected.toFixed(1)}</span>
             </>
           ) : (
-            <span className="text-[9px] text-primary-black-600">--</span>
+            <span className="text-xs text-primary-black-600">--</span>
           )}
         </div>
       )}

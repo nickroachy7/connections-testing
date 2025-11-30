@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import PropTypes from 'prop-types';
-import UnifiedItemList from './tables/UnifiedItemList';
+import InventoryList from './tables/InventoryList';
+import TokenTable from './tables/TokenTable';
 import PlayerCard from './PlayerCard';
 import { enrichPlayerData, enrichTokenData } from './tables/tableHelpers.jsx';
 import { getRosterCount, ROSTER_LIMIT } from '../utils/rosterLimits';
@@ -210,26 +211,16 @@ export default function InventoryPanel({
       {(activeTab === 'all' || activeTab === 'players') && filteredPlayers.length > 0 && (
         <>
           {viewMode === 'list' ? (
-            <UnifiedItemList
-              items={filteredPlayers}
-              itemType="player"
-              mode="inventory"
-              viewMode="list"
+            <InventoryList
+              players={filteredPlayers}
               showBulkSelect={true}
-              showTierLevel={true}
-              selectedIds={selectedPlayerIds}
-              onBulkSelectChange={handlePlayerBulkSelect}
               onSell={onSell}
+              onBulkSell={(players) => {
+                players.forEach(player => onSell(player));
+              }}
               liveGameData={liveGameData}
               projections={projections}
-              isRowLocked={(player) => {
-                const gameData = liveGameData?.get(player.player_card?.player_id);
-                const gameStatus = gameData?.gameStatus?.toLowerCase();
-                const isGameLiveOrFinal = gameStatus === 'live' || gameStatus === 'halftime' || gameStatus === 'final';
-                return player.is_locked || isGameLiveOrFinal;
-              }}
-              emptyMessage="No players in inventory"
-              emptyIcon="🏈"
+              isMobile={false}
             />
           ) : (
             <div className="grid grid-cols-3 gap-1 md:gap-4 mb-3 sm:mb-4">
@@ -258,17 +249,13 @@ export default function InventoryPanel({
 
       {/* Tokens Section */}
       {(activeTab === 'all' || activeTab === 'tokens') && filteredTokens.length > 0 && (
-        <UnifiedItemList
-          items={filteredTokens}
-          itemType="token"
-          mode="inventory"
-          viewMode="list"
+        <TokenTable
+          tokens={filteredTokens}
           showBulkSelect={true}
           selectedIds={selectedTokenIds}
           onBulkSelectChange={handleTokenBulkSelect}
           onSell={onSellToken}
           emptyMessage="No tokens available"
-          emptyIcon="💎"
         />
       )}
 

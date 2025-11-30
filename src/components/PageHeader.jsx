@@ -21,11 +21,11 @@ export default function PageHeader({
       <div className="flex items-center justify-between gap-4">
         {/* Left: Title and Subtitle */}
         <div className="min-w-0 flex-1">
-          <h1 className="text-sm sm:text-xl font-bold text-primary-black-50 truncate">
+          <h1 className="text-base sm:text-xl font-bold text-primary-black-50 truncate">
             {title}
           </h1>
           {subtitle && (
-            <p className="text-[10px] sm:text-xs text-primary-black-400 mt-0.5 truncate">
+            <p className="text-xs sm:text-sm text-primary-black-400 mt-0.5 truncate">
               {subtitle}
             </p>
           )}

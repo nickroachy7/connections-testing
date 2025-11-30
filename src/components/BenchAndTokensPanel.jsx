@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import PropTypes from 'prop-types';
-import UnifiedItemList from './tables/UnifiedItemList';
+import BenchList from './tables/BenchList';
+import TokenTable from './tables/TokenTable';
 import { enrichPlayerData, enrichTokenData } from './tables/tableHelpers.jsx';
 import { useIsMobile } from '../hooks';
 
@@ -166,15 +167,9 @@ export default function BenchAndTokensPanel({
         {shouldShowPlayers && enrichedPlayers.length > 0 && (
           <>
             <h3 className="text-sm sm:text-xl font-bold text-primary-black-50 px-2">Bench</h3>
-            <UnifiedItemList
-              items={enrichedPlayers}
-              itemType="player"
-              mode="bench"
-              viewMode="list"
-              showAddButton={true}
-              showBenchBadge={true}
-              onRowDragStart={onPlayerDragStart}
-              onRowClick={(player) => {
+            <BenchList
+              benchPlayers={enrichedPlayers}
+              onPlayerClick={(player) => {
                   // On mobile, always open the swap modal
                   if (isMobile && onBenchPlayerClick) {
                     onBenchPlayerClick(player);
@@ -186,25 +181,17 @@ export default function BenchAndTokensPanel({
                     onSelectPlayerForSlot(player);
                   }
                 }}
-                onAddButtonClick={(player) => {
-                  if (onMoveToSlot && filterPosition) {
-                    onMoveToSlot(player, filterPosition);
-                  } else if (onSelectPlayerForSlot) {
-                    onSelectPlayerForSlot(player);
-                  }
-                }}
-                isRowLocked={(player) => {
-                  const gameData = liveGameData?.get(player.player_card?.player_id);
-                  const gameStatus = gameData?.gameStatus?.toLowerCase();
-                  const isGameLiveOrFinal = gameStatus === 'live' || gameStatus === 'halftime' || gameStatus === 'final';
-                  return player.is_locked || isGameLiveOrFinal;
-                }}
-                selectedItemId={selectedPlayerForSlot?.id}
-                liveGameData={liveGameData}
-                projections={projections}
-                emptyMessage="No bench players"
-                emptyIcon="🏈"
-              />
+              onAddToLineup={(player) => {
+                if (onMoveToSlot && filterPosition) {
+                  onMoveToSlot(player, filterPosition);
+                } else if (onSelectPlayerForSlot) {
+                  onSelectPlayerForSlot(player);
+                }
+              }}
+              liveGameData={liveGameData}
+              projections={projections}
+              isMobile={isMobile}
+            />
           </>
         )}
 
@@ -217,13 +204,8 @@ export default function BenchAndTokensPanel({
                 Tap a token to apply it to this player
               </div>
             )}
-            <UnifiedItemList
-              items={enrichedTokens}
-              itemType="token"
-              mode="bench"
-              viewMode="list"
-              onRowDragStart={onTokenDragStart}
-              onRowDragEnd={onTokenDragEnd}
+            <TokenTable
+              tokens={enrichedTokens}
               onRowClick={(token) => {
                 // If filtering for a specific player, apply token immediately (mobile or desktop)
                 if (tokenFilterPlayerId && onApplyTokenToPlayer) {
@@ -245,7 +227,6 @@ export default function BenchAndTokensPanel({
                   onSelectTokenForPlayer(token);
                 }
               }}
-              inventory={inventory}
               selectedItemId={selectedTokenForPlayer?.id}
               emptyMessage={tokenFilterPlayerId ? "No available tokens for this player" : "No tokens available"}
               emptyIcon="💎"

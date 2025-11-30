@@ -57,9 +57,9 @@ export default function PackListItem({
           {/* Pack Name & Stats */}
           <div className="flex flex-col items-start min-w-0 flex-1">
             <h3 className="text-sm sm:text-base font-bold text-primary-black-50 truncate w-full text-left">
-              {pack.pack_name}
+              {pack.name}
             </h3>
-            <div className="flex items-center gap-2 text-[10px] sm:text-xs text-primary-black-400">
+            <div className="flex items-center gap-2 text-xs sm:text-sm text-primary-black-400">
               <div className="flex items-center gap-1">
                 <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" />
@@ -103,11 +103,11 @@ export default function PackListItem({
               <span className="text-xs font-medium text-primary-green-400">Opening...</span>
             </div>
           ) : !canAfford ? (
-            <span className="text-[10px] sm:text-xs bg-red-600/20 text-red-400 px-3 py-1 rounded-lg border border-red-600/30 font-medium">
+            <span className="text-xs sm:text-sm bg-red-600/20 text-red-400 px-3 py-1 rounded-lg border border-red-600/30 font-medium">
               Insufficient Coins
             </span>
           ) : disabled ? (
-            <span className="text-[10px] sm:text-xs bg-gray-600/20 text-gray-400 px-3 py-1 rounded-lg border border-gray-600/30 font-medium">
+            <span className="text-xs sm:text-sm bg-gray-600/20 text-gray-400 px-3 py-1 rounded-lg border border-gray-600/30 font-medium">
               Select Team
             </span>
           ) : (
@@ -126,7 +126,7 @@ export default function PackListItem({
       {/* Optional: Pack Description (Expandable on mobile) */}
       {pack.description && (
         <div className="mt-2 pt-2 border-t border-primary-black-700/50">
-          <p className="text-[10px] sm:text-xs text-primary-black-400 text-left line-clamp-1 sm:line-clamp-2">
+          <p className="text-xs sm:text-sm text-primary-black-400 text-left line-clamp-1 sm:line-clamp-2">
             {pack.description}
           </p>
         </div>

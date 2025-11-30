@@ -1,5 +1,5 @@
 import { Outlet, useLoaderData } from 'react-router-dom';
-import TeamsPageBanner from './TeamsPageBanner';
+import FantasyHomeBanner from './FantasyHomeBanner';
 import { useState, useEffect } from 'react';
 
 export default function TeamsLayout() {
@@ -16,13 +16,14 @@ export default function TeamsLayout() {
   }, [initialTeams]);
 
   return (
-    <div className="min-h-screen bg-primary-black-950">
-      {/* Header Section - Teams Banner - Persistent */}
+    <div className="min-h-screen bg-dk-black-primary">
+      {/* Header Section - Fantasy Home Banner - Persistent */}
       <header>
-        <TeamsPageBanner 
+        <FantasyHomeBanner 
           username={profile?.username}
           totalTeams={teams.length}
-          onCreateClick={() => setIsCreating(true)}
+          profile={profile}
+          teams={teams}
         />
       </header>
 

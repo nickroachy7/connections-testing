@@ -1,11 +1,11 @@
 import PropTypes from 'prop-types';
-import UnifiedItemList from './tables/UnifiedItemList';
+import StartingLineupList from './tables/StartingLineupList';
 
 /**
  * LineupListView Component
  * 
  * Traditional list view of lineup slots with player info.
- * Now uses UnifiedItemList with 'lineup' mode for consistency.
+ * Now uses StartingLineupList for consistency.
  */
 export default function LineupListView({
   lineup,
@@ -31,18 +31,17 @@ export default function LineupListView({
   ];
 
   return (
-    <UnifiedItemList
-      mode="lineup"
-      itemType="player"
+    <StartingLineupList
       positionSlots={positionSlots}
       lineup={lineup}
-      onRowClick={onPlayerClick}
+      onPlayerClick={onPlayerClick}
       liveGameData={liveGameData}
       projections={projections}
       inventory={inventory}
       isPreviewMode={isPreviewMode}
       onAddToken={onAddToken}
       onSell={onSell}
+      isMobile={isMobile}
     />
   );
 }
