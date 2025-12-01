@@ -2,10 +2,8 @@ import { useState } from 'react';
 import PropTypes from 'prop-types';
 import InventoryList from './tables/InventoryList';
 import TokenTable from './tables/TokenTable';
+import { enrichPlayerData, enrichTokenData } from '../utils/enrichPlayerData';
 import PlayerCard from './PlayerCard';
-import { enrichPlayerData, enrichTokenData } from './tables/tableHelpers.jsx';
-import { getRosterCount, ROSTER_LIMIT } from '../utils/rosterLimits';
-import { calculatePlayerSellValue, calculateTokenSellValue } from '../utils/sellValueCalculator';
 
 /**
  * InventoryPanel Component - REFACTORED VERSION
@@ -22,6 +20,7 @@ export default function InventoryPanel({
   onQuickSell,
   onSell,
   onSellToken,
+  onPlayerClick, // NEW: Handle player click to open profile modal
   onBulkSellComplete,
   onReloadProfile,
   selling,
@@ -53,7 +52,7 @@ export default function InventoryPanel({
     const enriched = enrichPlayerData(player, liveGameData, projections);
     return {
       ...enriched,
-      sellValue // Add sellValue to enriched data
+      sellValue
     };
   });
 
@@ -64,7 +63,7 @@ export default function InventoryPanel({
     const enriched = enrichTokenData(token);
     return {
       ...enriched,
-      sellValue // Add sellValue to enriched data
+      sellValue
     };
   });
 
@@ -79,52 +78,31 @@ export default function InventoryPanel({
 
   // Filter tokens
   const filteredTokens = enrichedTokens.filter(token => {
-    const matchesType = filters.tokenType === 'all' || 
-                       filters.tokenType === 'tokens-only' || 
-                       token.token_card.token_type === filters.tokenType;
     const matchesSearch = filters.search === '' || 
       token.token_card.token_name.toLowerCase().includes(filters.search.toLowerCase());
-    return matchesType && matchesSearch;
+    return matchesSearch;
   });
 
   // Bulk selection handlers
   const handlePlayerBulkSelect = (player, checked) => {
-    const itemId = player.id;
     if (checked) {
-      setSelectedForBulkAction([...selectedForBulkAction, { 
-        id: itemId, 
-        type: 'player', 
-        value: player.sellValue, 
-        item: player 
-      }]);
+      setSelectedForBulkAction([...selectedForBulkAction, { id: player.id, type: 'player', value: player.sellValue }]);
     } else {
-      setSelectedForBulkAction(selectedForBulkAction.filter(s => s.id !== itemId));
+      setSelectedForBulkAction(selectedForBulkAction.filter(s => s.id !== player.id));
     }
   };
 
   const handleTokenBulkSelect = (token, checked) => {
-    const itemId = token.id;
     if (checked) {
-      setSelectedForBulkAction([...selectedForBulkAction, { 
-        id: itemId, 
-        type: 'token', 
-        value: token.sellValue, 
-        item: token 
-      }]);
+      setSelectedForBulkAction([...selectedForBulkAction, { id: token.id, type: 'token', value: token.sellValue }]);
     } else {
-      setSelectedForBulkAction(selectedForBulkAction.filter(s => s.id !== itemId));
+      setSelectedForBulkAction(selectedForBulkAction.filter(s => s.id !== token.id));
     }
   };
 
   const handleSelectAllPlayers = () => {
-    const unlocked = filteredPlayers.filter(p => !p.is_locked);
-    const selections = unlocked.map(p => ({ 
-      id: p.id, 
-      type: 'player', 
-      value: p.sellValue, 
-      item: p 
-    }));
-    setSelectedForBulkAction([...selectedForBulkAction, ...selections]);
+    const allPlayerSelections = filteredPlayers.map(p => ({ id: p.id, type: 'player', value: p.sellValue }));
+    setSelectedForBulkAction(allPlayerSelections);
   };
 
   const handleDeselectAll = () => {
@@ -132,38 +110,29 @@ export default function InventoryPanel({
   };
 
   const handleBulkQuickSell = async () => {
-    const totalValue = selectedForBulkAction.reduce((sum, s) => sum + s.value, 0);
-    const playerCount = selectedForBulkAction.filter(s => s.type === 'player').length;
-    const tokenCount = selectedForBulkAction.filter(s => s.type === 'token').length;
-    
-    const itemText = playerCount && tokenCount 
-      ? `${playerCount} player${playerCount > 1 ? 's' : ''} and ${tokenCount} token${tokenCount > 1 ? 's' : ''}`
-      : playerCount 
-        ? `${playerCount} player${playerCount > 1 ? 's' : ''}`
-        : `${tokenCount} token${tokenCount > 1 ? 's' : ''}`;
-    
-    if (!window.confirm(`Sell ${itemText} for ${totalValue} coins total?`)) {
-      return;
+    const playerIds = selectedForBulkAction.filter(s => s.type === 'player').map(s => s.id);
+    const tokenIds = selectedForBulkAction.filter(s => s.type === 'token').map(s => s.id);
+
+    // Quick sell all selected players
+    for (const id of playerIds) {
+      const player = filteredPlayers.find(p => p.id === id);
+      if (player) {
+        await onQuickSell(player.id, 'player', player.sellValue, true);
+      }
     }
 
-    try {
-      await Promise.all(
-        selectedForBulkAction.map(selection => 
-          onQuickSell(selection.id, selection.type, selection.value, true)
-        )
-      );
-      
-      setSelectedForBulkAction([]);
-      
-      if (onReloadProfile) {
-        onReloadProfile();
+    // Quick sell all selected tokens
+    for (const id of tokenIds) {
+      const token = filteredTokens.find(t => t.id === id);
+      if (token) {
+        await onQuickSell(token.id, 'token', token.sellValue, true);
       }
-      
-      if (onBulkSellComplete) {
-        await onBulkSellComplete();
-      }
-    } catch (err) {
-      console.error('Error bulk selling:', err);
+    }
+
+    // Clear selections and reload
+    setSelectedForBulkAction([]);
+    if (onBulkSellComplete) {
+      onBulkSellComplete();
     }
   };
 
@@ -172,7 +141,7 @@ export default function InventoryPanel({
 
   return (
     <>
-      {/* Bulk Actions Bar - Only shown when items are selected */}
+      {/* Bulk Action Banner - Fixed at top when selections exist */}
       {selectedForBulkAction.length > 0 && (
         <div className="sticky top-0 z-20 bg-primary-black-900 border-2 border-primary-black-700 rounded-lg sm:rounded-xl mb-3 sm:mb-4">
           <div className="px-3 sm:px-4 py-2 sm:py-4">
@@ -213,7 +182,8 @@ export default function InventoryPanel({
           {viewMode === 'list' ? (
             <InventoryList
               players={filteredPlayers}
-              showBulkSelect={true}
+              showBulkSelect={false}
+              onPlayerClick={onPlayerClick}
               onSell={onSell}
               onBulkSell={(players) => {
                 players.forEach(player => onSell(player));
@@ -226,7 +196,17 @@ export default function InventoryPanel({
             <div className="grid grid-cols-3 gap-1 md:gap-4 mb-3 sm:mb-4">
               {filteredPlayers.map((player) => (
                 <div key={player.id} className="relative w-full">
-                  {/* Card Container with fixed aspect ratio - square on mobile, tall on desktop */}
+                  {/* Checkbox overlay for bulk selection */}
+                  {false && (
+                    <div className="absolute top-1 md:top-2 left-1 md:left-2 z-10">
+                      <input
+                        type="checkbox"
+                        checked={selectedPlayerIds.includes(player.id)}
+                        onChange={(e) => handlePlayerBulkSelect(player, e.target.checked)}
+                        className="w-4 h-4 md:w-5 md:h-5 rounded border-2 border-primary-black-500 bg-primary-black-800 text-primary-green-500 focus:ring-2 focus:ring-primary-green-500 cursor-pointer"
+                      />
+                    </div>
+                  )}
                   <div className="aspect-square md:aspect-[3.2/5] relative">
                     <PlayerCard
                       player={player}
@@ -288,6 +268,7 @@ InventoryPanel.propTypes = {
   onQuickSell: PropTypes.func.isRequired,
   onSell: PropTypes.func,
   onSellToken: PropTypes.func,
+  onPlayerClick: PropTypes.func,
   onBulkSellComplete: PropTypes.func,
   onReloadProfile: PropTypes.func,
   selling: PropTypes.bool,
