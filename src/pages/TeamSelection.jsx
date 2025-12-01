@@ -179,8 +179,10 @@ export default function TeamSelection() {
 
   if (!user) return null
 
-  // Ensure teams is an array
+  // Ensure teams is an array and separate by type
   const teamsList = Array.isArray(teams) ? teams : [];
+  const publicTeams = teamsList.filter(t => t.team_type === 'public' || !t.team_type);
+  const privateTeams = teamsList.filter(t => t.team_type === 'private');
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -294,36 +296,64 @@ export default function TeamSelection() {
       </div>
 
       {/* Teams Grid */}
-      {teamsList.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {teamsList.map((team) => (
-            <TeamMenuCard
-              key={team.id}
-              team={team}
-              isActive={team.is_active}
-              onClick={() => handleSelectTeam(team.id)}
-              onDelete={handleDeleteTeam}
-              showDelete={true}
-              isDeleting={deletingTeamId === team.id}
-            />
-          ))}
-        </div>
-      ) : (
-        !isCreating && (
-          <div className="bg-dk-black-secondary border-2 border-dk-black-light rounded-lg p-12 text-center">
-            <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-dk-black-tertiary flex items-center justify-center">
-              <svg className="w-10 h-10 text-dk-white-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-              </svg>
-            </div>
-            <p className="text-dk-white-secondary text-xl font-dk-display font-bold mb-2">
-              No teams yet
-            </p>
-            <p className="text-dk-white-muted text-sm">
-              Use the button above to create your first team
-            </p>
+      {publicTeams.length > 0 && (
+        <div className="mb-8">
+          <h2 className="text-2xl font-dk-display font-bold text-dk-white-primary mb-4">
+            Public Teams <span className="text-dk-white-muted text-base font-normal">({publicTeams.length})</span>
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {publicTeams.map((team) => (
+              <TeamMenuCard
+                key={team.id}
+                team={team}
+                isActive={team.is_active}
+                onClick={() => handleSelectTeam(team.id)}
+                onDelete={handleDeleteTeam}
+                showDelete={true}
+                isDeleting={deletingTeamId === team.id}
+              />
+            ))}
           </div>
-        )
+        </div>
+      )}
+
+      {/* Private Teams (League Teams) */}
+      {privateTeams.length > 0 && (
+        <div className="mb-8">
+          <h2 className="text-2xl font-dk-display font-bold text-dk-white-primary mb-4">
+            Private League Teams <span className="text-dk-white-muted text-base font-normal">({privateTeams.length})</span>
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {privateTeams.map((team) => (
+              <TeamMenuCard
+                key={team.id}
+                team={team}
+                isActive={team.is_active}
+                onClick={() => handleSelectTeam(team.id)}
+                onDelete={handleDeleteTeam}
+                showDelete={true}
+                isDeleting={deletingTeamId === team.id}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* No Teams Message */}
+      {teamsList.length === 0 && !isCreating && (
+        <div className="bg-dk-black-secondary border-2 border-dk-black-light rounded-lg p-12 text-center">
+          <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-dk-black-tertiary flex items-center justify-center">
+            <svg className="w-10 h-10 text-dk-white-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+          </div>
+          <p className="text-dk-white-secondary text-xl font-dk-display font-bold mb-2">
+            No teams yet
+          </p>
+          <p className="text-dk-white-muted text-sm">
+            Use the button above to create your first team
+          </p>
+        </div>
       )}
     </div>
   )

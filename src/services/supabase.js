@@ -130,12 +130,13 @@ export const getStarterPack = async () => {
 };
 
 // Team helpers
-export const startNewTeam = async (teamName, contestTypeId = null, teamImageUrl = null) => {
+export const startNewTeam = async (teamName, contestTypeId = null, teamImageUrl = null, teamType = 'public') => {
   const { data, error } = await supabase.functions.invoke('start-new-team', {
     body: { 
       team_name: teamName,
       contest_type_id: contestTypeId,
-      team_image_url: teamImageUrl
+      team_image_url: teamImageUrl,
+      team_type: teamType
     },
   });
   

@@ -31,7 +31,7 @@ serve(async (req) => {
       )
     }
 
-    const { team_name, contest_type_id, team_image_url } = await req.json()
+    const { team_name, contest_type_id, team_image_url, team_type } = await req.json()
 
     if (!team_name) {
       return new Response(
@@ -47,7 +47,8 @@ serve(async (req) => {
         p_user_id: user.id,
         p_team_name: team_name,
         p_contest_type_id: contest_type_id || null,
-        p_team_image_url: team_image_url || null
+        p_team_image_url: team_image_url || null,
+        p_team_type: team_type || 'public'
       })
 
     if (teamError) {

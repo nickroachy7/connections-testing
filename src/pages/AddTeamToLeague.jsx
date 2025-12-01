@@ -116,7 +116,7 @@ export default function AddTeamToLeague() {
     setCreating(true);
 
     try {
-      const result = await startNewTeam(teamName);
+      const result = await startNewTeam(teamName, null, null, 'private');
       
       // Automatically add team to league
       const { data: { session } } = await supabase.auth.getSession();
