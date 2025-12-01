@@ -93,9 +93,19 @@ export default function TeamMenuCard({
 
           {/* Team Info */}
           <div className="flex-1 min-w-0">
-            <h3 className="text-sm sm:text-base font-dk-display font-black text-white truncate leading-tight">
-              {team.team_name}
-            </h3>
+            <div className="flex items-center gap-2 mb-0.5">
+              <h3 className="text-sm sm:text-base font-dk-display font-black text-white truncate leading-tight">
+                {team.team_name}
+              </h3>
+              {/* Team Type Badge */}
+              <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                team.team_type === 'private' 
+                  ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' 
+                  : 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
+              }`}>
+                {team.team_type === 'private' ? 'PRIVATE' : 'PUBLIC'}
+              </span>
+            </div>
             {team.users?.username && (
               <div className="text-xs sm:text-sm text-white/70 truncate">
                 @{team.users.username}

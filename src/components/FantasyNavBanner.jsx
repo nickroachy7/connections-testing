@@ -30,7 +30,7 @@ export default function FantasyNavBanner({
         team={team}
         previewMode={previewMode}
       />
-      <FantasyNavigation teamId={teamId} />
+      <FantasyNavigation teamId={teamId} teamType={team?.team_type} />
     </>
   );
 }

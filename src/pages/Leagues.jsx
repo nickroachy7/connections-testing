@@ -32,12 +32,7 @@ export default function Leagues() {
         .select(`
           *,
           leagues!inner (
-            *,
-            league_teams!left (
-              id,
-              user_id,
-              is_active
-            )
+            *
           )
         `)
         .eq('user_id', user.id)
@@ -45,7 +40,7 @@ export default function Leagues() {
 
       if (error) throw error;
 
-      // Enrich with member counts and user's team count
+      // Enrich with member counts and user's team info
       const enrichedLeagues = await Promise.all((data || []).map(async (membership) => {
         const league = membership.leagues;
         
@@ -55,8 +50,21 @@ export default function Leagues() {
           .select('id', { count: 'exact', head: true })
           .eq('league_id', league.id);
 
-        // Count user's teams in this league
-        const userTeamsCount = league.league_teams?.filter(lt => lt.user_id === user.id).length || 0;
+        // Get user's teams in this league
+        const { data: userTeams } = await supabase
+          .from('league_teams')
+          .select(`
+            id,
+            team_id,
+            is_active,
+            teams!inner (
+              id,
+              team_name
+            )
+          `)
+          .eq('league_id', league.id)
+          .eq('user_id', user.id)
+          .eq('is_active', true);
 
         // Count total active teams
         const { count: totalTeams } = await supabase
@@ -68,7 +76,8 @@ export default function Leagues() {
         return {
           ...league,
           memberCount: memberCount || 0,
-          userTeamsCount,
+          userTeams: userTeams || [],
+          userTeamsCount: userTeams?.length || 0,
           totalTeams: totalTeams || 0,
           is_commissioner: membership.is_commissioner
         };
@@ -89,10 +98,15 @@ export default function Leagues() {
     loadLeagues();
   };
 
-  const handleLeagueJoined = () => {
-    success('Successfully joined league!');
-    setShowJoinModal(false);
-    loadLeagues();
+  const handleLeagueClick = (league) => {
+    // If user has a team in the league, navigate to that team's league view
+    if (league.userTeams && league.userTeams.length > 0) {
+      const primaryTeam = league.userTeams[0]; // Use first team if multiple
+      navigate(`/teams/${primaryTeam.team_id}/league`);
+    } else {
+      // No team yet, go to league page to add one
+      navigate(`/leagues/${league.id}`);
+    }
   };
 
   if (loading) {
@@ -186,7 +200,7 @@ export default function Leagues() {
             {leagues.map((league) => (
               <div
                 key={league.id}
-                onClick={() => navigate(`/leagues/${league.id}`)}
+                onClick={() => handleLeagueClick(league)}
                 className="bg-primary-black-800 rounded-lg border border-primary-black-700 hover:border-primary-green-500/50 p-6 cursor-pointer transition-all duration-200 group"
               >
                 {/* League Header */}

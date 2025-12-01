@@ -1,26 +1,44 @@
 import { useNavigate, useLocation } from 'react-router-dom';
 import PropTypes from 'prop-types';
 
-export default function FantasyNavigation({ teamId }) {
+export default function FantasyNavigation({ teamId, teamType = 'public' }) {
   const navigate = useNavigate();
   const location = useLocation();
 
   const isViewMode = location.pathname.includes('/view');
+  const isPublicTeam = teamType === 'public';
 
-  const allNavItems = [
-    { path: `/teams/${teamId}/starting-lineup`, label: 'STARTING LINEUP' },
+  // Base navigation items (same for both types)
+  const baseNavItems = [
+    { path: `/teams/${teamId}/starting-lineup`, label: 'LINEUP' },
     { path: `/teams/${teamId}/inventory`, label: 'INVENTORY' },
-    { path: `/teams/${teamId}/pack-shop`, label: 'PACK SHOP' },
-    { path: `/teams/${teamId}/leaderboard`, label: 'LEADERBOARD' },
-    { path: `/teams/${teamId}/activity`, label: 'ACTIVITY' }
+    { path: `/teams/${teamId}/pack-shop`, label: 'SHOP' }
+  ];
+
+  // Public team specific items
+  const publicOnlyItems = [
+    { path: `/teams/${teamId}/contests`, label: 'CONTESTS' },
+    { path: `/teams/${teamId}/info`, label: 'INFO' }
+  ];
+
+  // Private team specific items
+  const privateOnlyItems = [
+    { path: `/teams/${teamId}/league`, label: 'LEAGUE' },
+    { path: `/teams/${teamId}/info`, label: 'INFO' }
+  ];
+
+  // Build full nav based on team type
+  const allNavItems = [
+    ...baseNavItems,
+    ...(isPublicTeam ? publicOnlyItems : privateOnlyItems)
   ];
 
   const navItems = isViewMode 
-    ? allNavItems.filter(item => item.label === 'STARTING LINEUP' || item.label === 'INVENTORY')
+    ? allNavItems.filter(item => item.label === 'LINEUP' || item.label === 'INVENTORY')
     : allNavItems;
 
   const navIcons = {
-    'STARTING LINEUP': (
+    'LINEUP': (
       <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
       </svg>
@@ -30,19 +48,24 @@ export default function FantasyNavigation({ teamId }) {
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
       </svg>
     ),
-    'PACK SHOP': (
+    'SHOP': (
       <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
       </svg>
     ),
-    'LEADERBOARD': (
+    'CONTESTS': (
       <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
       </svg>
     ),
-    'ACTIVITY': (
+    'LEAGUE': (
       <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+      </svg>
+    ),
+    'INFO': (
+      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
       </svg>
     )
   };
@@ -65,11 +88,7 @@ export default function FantasyNavigation({ teamId }) {
               <span className={`text-[10px] font-medium ${
                 location.pathname === item.path ? 'text-primary-green-500' : 'text-primary-black-400'
               }`}>
-                {item.label === 'STARTING LINEUP' ? 'Lineup' : 
-                 item.label === 'INVENTORY' ? 'Inventory' :
-                 item.label === 'PACK SHOP' ? 'Shop' :
-                 item.label === 'LEADERBOARD' ? 'Leaders' :
-                 'Activity'}
+                {item.label}
               </span>
             </button>
           ))}
@@ -97,5 +116,6 @@ export default function FantasyNavigation({ teamId }) {
 }
 
 FantasyNavigation.propTypes = {
-  teamId: PropTypes.string.isRequired
+  teamId: PropTypes.string.isRequired,
+  teamType: PropTypes.oneOf(['public', 'private'])
 };
