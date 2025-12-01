@@ -6,6 +6,7 @@ import InventoryPanel from '../components/InventoryPanel';
 import RosterLimitBanner from '../components/RosterLimitBanner';
 import RosterCount from '../components/RosterCount';
 import SellConfirmationModal from '../components/SellConfirmationModal';
+import PlayerProfileModal from '../components/PlayerProfileModal';
 import PageHeader from '../components/PageHeader';
 
 export default function Inventory() {
@@ -29,6 +30,12 @@ export default function Inventory() {
     player: null,
     sellValue: 0,
     cardType: 'player'
+  });
+
+  // Player profile modal state
+  const [playerProfileModal, setPlayerProfileModal] = useState({
+    isOpen: false,
+    player: null
   });
 
   // Sync inventory when context changes
@@ -76,6 +83,25 @@ export default function Inventory() {
   const handleSwipeToSell = (player) => {
     // Use the sellValue already calculated in enrichedPlayers
     const sellValue = player.sellValue || calculatePlayerSellValue(player);
+    setSellConfirmationModal({
+      isOpen: true,
+      player,
+      sellValue,
+      cardType: 'player'
+    });
+  };
+
+  // Handle player click to open profile modal
+  const handlePlayerClick = (player) => {
+    setPlayerProfileModal({
+      isOpen: true,
+      player
+    });
+  };
+
+  // Handle sell from profile modal
+  const handleSellFromProfile = (player) => {
+    const sellValue = calculatePlayerSellValue(player);
     setSellConfirmationModal({
       isOpen: true,
       player,
@@ -284,6 +310,7 @@ export default function Inventory() {
               onQuickSell={handleQuickSell}
               onSell={handleSwipeToSell}
               onSellToken={handleSwipeToSellToken}
+              onPlayerClick={handlePlayerClick}
               onBulkSellComplete={reloadInventory}
               onReloadProfile={refreshProfile}
               selling={Object.keys(selling).length > 0}
@@ -304,6 +331,16 @@ export default function Inventory() {
         onConfirm={handleConfirmSell}
         onCancel={handleCancelSell}
         isOpen={sellConfirmationModal.isOpen}
+      />
+
+      {/* Player Profile Modal */}
+      <PlayerProfileModal
+        player={playerProfileModal.player}
+        isOpen={playerProfileModal.isOpen}
+        onClose={() => setPlayerProfileModal({ isOpen: false, player: null })}
+        onSell={handleSellFromProfile}
+        isInLineup={false}
+        isLocked={false}
       />
     </>
   );
