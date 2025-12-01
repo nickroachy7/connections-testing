@@ -16,6 +16,7 @@ export default function SwipeableRow({
 }) {
   const [swipeOffset, setSwipeOffset] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
+  const [hasSwiped, setHasSwiped] = useState(false); // Track if user actually swiped
   const startXRef = useRef(0);
   const startYRef = useRef(0);
   const currentXRef = useRef(0);
@@ -41,7 +42,7 @@ export default function SwipeableRow({
     currentXRef.current = swipeOffset;
     isHorizontalSwipeRef.current = false;
     setIsDragging(true);
-    console.log('Touch start:', touch.clientX, touch.clientY);
+    setHasSwiped(false); // Reset swipe flag
   };
 
   const handleTouchMove = (e) => {
@@ -51,23 +52,19 @@ export default function SwipeableRow({
     const deltaX = startXRef.current - touch.clientX;
     const deltaY = Math.abs(startYRef.current - touch.clientY);
     
-    console.log('Touch move - deltaX:', deltaX, 'deltaY:', deltaY);
-    
     // Determine if this is a horizontal swipe
     if (!isHorizontalSwipeRef.current && Math.abs(deltaX) > 5) {
       isHorizontalSwipeRef.current = Math.abs(deltaX) > deltaY;
-      console.log('Horizontal swipe detected:', isHorizontalSwipeRef.current);
     }
     
     // Only process horizontal swipes
     if (isHorizontalSwipeRef.current) {
       const newOffset = currentXRef.current + deltaX;
       
-      console.log('New offset:', newOffset);
-      
       // Only allow left swipe (positive offset)
       if (newOffset >= 0 && newOffset <= MAX_SWIPE) {
         setSwipeOffset(newOffset);
+        setHasSwiped(true); // Mark that user has swiped
         // Prevent vertical scrolling during horizontal swipe
         if (e.cancelable) {
           e.preventDefault();
@@ -79,18 +76,18 @@ export default function SwipeableRow({
   const handleTouchEnd = () => {
     if (disabled) return;
     
-    console.log('Touch end - swipeOffset:', swipeOffset);
-    
     setIsDragging(false);
     isHorizontalSwipeRef.current = false;
 
     // Snap to either closed or open based on threshold
     if (swipeOffset > SWIPE_THRESHOLD / 2) {
       setSwipeOffset(SWIPE_THRESHOLD); // Snap to open
-      console.log('Snapped to open');
     } else {
       setSwipeOffset(0); // Snap to closed
-      console.log('Snapped to closed');
+      // If we're closing and didn't actually swipe, reset the flag
+      if (!hasSwiped) {
+        setHasSwiped(false);
+      }
     }
   };
 
@@ -103,11 +100,13 @@ export default function SwipeableRow({
     setSwipeOffset(0);
   };
 
-  const handleBackgroundClick = () => {
+  const handleBackgroundClick = (e) => {
     // Close swipe when tapping the background
     if (swipeOffset > 0) {
+      e.stopPropagation();
       setSwipeOffset(0);
     }
+    // If swipeOffset is 0, allow click to propagate to children
   };
 
   return (
