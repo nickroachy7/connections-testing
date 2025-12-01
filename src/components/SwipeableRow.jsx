@@ -41,16 +41,27 @@ export default function SwipeableRow({
     startYRef.current = touch.clientY;
     currentXRef.current = swipeOffset;
     isHorizontalSwipeRef.current = false;
-    setIsDragging(true);
+    // Only set dragging for touch events or when already swiped open
+    // This allows mouse clicks to pass through without triggering drag state
+    if (e.touches || swipeOffset > 0) {
+      setIsDragging(true);
+    }
     setHasSwiped(false); // Reset swipe flag
   };
 
   const handleTouchMove = (e) => {
-    if (disabled || !isDragging) return;
+    if (disabled) return;
 
     const touch = e.touches ? e.touches[0] : e;
     const deltaX = startXRef.current - touch.clientX;
     const deltaY = Math.abs(startYRef.current - touch.clientY);
+    
+    // Start dragging if user has moved enough (prevents accidental drags on clicks)
+    if (!isDragging && Math.abs(deltaX) > 5) {
+      setIsDragging(true);
+    }
+    
+    if (!isDragging) return;
     
     // Determine if this is a horizontal swipe
     if (!isHorizontalSwipeRef.current && Math.abs(deltaX) > 5) {
@@ -145,15 +156,10 @@ export default function SwipeableRow({
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
-        onMouseDown={handleTouchStart}
-        onMouseMove={handleTouchMove}
-        onMouseUp={handleTouchEnd}
-        onMouseLeave={handleTouchEnd}
         style={{
           transform: `translateX(-${swipeOffset}px)`,
           transition: isDragging ? 'none' : 'transform 0.2s ease-out',
           WebkitTransform: `translateX(-${swipeOffset}px)`, // Safari support
-          cursor: isDragging ? 'grabbing' : 'grab'
         }}
         className="w-full touch-pan-y relative z-10 bg-primary-black-900"
       >
