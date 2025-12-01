@@ -99,7 +99,7 @@ const PlayerRow = ({
         onDragStart={handleDragStart}
         onDragEnd={onDragEnd}
         onClick={handleClick}
-        className={`hidden md:grid items-center ${customClassName} md:py-2 md:px-2 md:border-l-4`}
+        className={`hidden md:grid items-center ${customClassName} md:py-2 md:px-2 md:border-l-4 ${onClick ? 'cursor-pointer hover:bg-primary-black-700/50' : ''}`}
         style={{ 
           gridTemplateColumns: desktopGridTemplate,
           gap: '8px'
@@ -287,7 +287,8 @@ const PlayerRow = ({
           className="md:hidden"
         >
           <div
-            className={`grid ${customClassName} py-2.5 px-3`}
+            onClick={handleClick}
+            className={`grid ${customClassName} py-2.5 px-3 ${onClick ? 'cursor-pointer active:bg-primary-black-700/50' : ''}`}
             style={{ 
               gridTemplateColumns: mobileGridTemplate,
               gap: '10px',
@@ -315,7 +316,8 @@ const PlayerRow = ({
           draggable={!isLocked}
           onDragStart={handleDragStart}
           onDragEnd={onDragEnd}
-          className={`grid md:hidden ${customClassName} py-2.5 px-3`}
+          onClick={handleClick}
+          className={`grid md:hidden ${customClassName} py-2.5 px-3 ${onClick ? 'cursor-pointer active:bg-primary-black-700/50' : ''}`}
           style={{ 
             gridTemplateColumns: mobileGridTemplate,
             gap: '10px',
@@ -360,13 +362,7 @@ const MobileRowContent = ({
 }) => (
   <>
     {/* Position Badge */}
-    <div 
-      className="flex items-center justify-center cursor-pointer"
-      onClick={(e) => {
-        e.stopPropagation();
-        handleClick();
-      }}
-    >
+    <div className="flex items-center justify-center">
       <span className="px-1.5 py-0.5 bg-primary-black-700 text-primary-black-300 rounded text-[10px] font-bold text-center min-w-[28px]">
         {showBenchBadge ? 'BN' : getPositionAbbr(player.player_card.position)}
       </span>
