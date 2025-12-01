@@ -130,11 +130,7 @@ export const getStarterPack = async () => {
 };
 
 // Team helpers
-export const startNewTeam = async (teamName, contestTypeId, teamImageUrl = null) => {
-  if (!contestTypeId) {
-    throw new Error('Contest type is required');
-  }
-
+export const startNewTeam = async (teamName, contestTypeId = null, teamImageUrl = null) => {
   const { data, error } = await supabase.functions.invoke('start-new-team', {
     body: { 
       team_name: teamName,

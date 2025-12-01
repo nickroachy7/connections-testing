@@ -40,20 +40,13 @@ serve(async (req) => {
       )
     }
 
-    if (!contest_type_id) {
-      return new Response(
-        JSON.stringify({ error: 'Contest type is required' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-      )
-    }
-
     // Call the database function to create team with smart week assignment
     // Note: RPC now returns a table with team_id and starter_pack_user_pack_id columns
     const { data: result, error: teamError } = await supabaseClient
       .rpc('create_new_team', {
         p_user_id: user.id,
         p_team_name: team_name,
-        p_contest_type_id: contest_type_id,
+        p_contest_type_id: contest_type_id || null,
         p_team_image_url: team_image_url || null
       })
 

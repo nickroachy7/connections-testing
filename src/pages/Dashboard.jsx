@@ -863,6 +863,52 @@ export default function Dashboard() {
       // Result now contains {team, starter_pack_id, message}
       // Note: starter_pack_contents is not returned anymore
       setPackContents(null); // Clear pack contents
+      
+      // Check if user came from league add-team flow
+      const pendingLeagueId = sessionStorage.getItem('pendingLeagueId');
+      if (pendingLeagueId && result.team?.id) {
+        console.log('🏆 Auto-adding team to league:', pendingLeagueId);
+        
+        try {
+          // Call add-team-to-league Edge Function
+          const { data: { session } } = await supabase.auth.getSession();
+          
+          const response = await fetch(
+            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/add-team-to-league`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session.access_token}`
+              },
+              body: JSON.stringify({
+                league_id: pendingLeagueId,
+                team_id: result.team.id
+              })
+            }
+          );
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            console.error('Failed to add team to league:', errorData);
+            // Don't block team creation if league add fails
+          } else {
+            console.log('✅ Team automatically added to league');
+            // Clean up session storage
+            sessionStorage.removeItem('pendingLeagueId');
+            // Navigate back to league standings
+            navigate(`/leagues/${pendingLeagueId}`);
+            return; // Exit early - don't do normal team creation flow
+          }
+        } catch (leagueErr) {
+          console.error('Error adding team to league:', leagueErr);
+          // Don't block team creation if league add fails
+        } finally {
+          // Clean up session storage if still exists
+          sessionStorage.removeItem('pendingLeagueId');
+        }
+      }
+      
       // Reload teams via revalidator
       revalidator.revalidate();
       setShowCreateTeam(false);

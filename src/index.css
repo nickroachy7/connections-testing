@@ -150,4 +150,20 @@
   .animate-shake {
     animation: shake 0.5s ease-in-out;
   }
+
+  /* Slide Up Animation for Mobile Modals */
+  @keyframes slideUp {
+    from {
+      transform: translateY(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  .animate-slide-up {
+    animation: slideUp 0.3s ease-out;
+  }
 }
