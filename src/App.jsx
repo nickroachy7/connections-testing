@@ -44,6 +44,9 @@ const LeagueStandings = lazy(() => import('./pages/LeagueStandings'))
 const LeagueMembers = lazy(() => import('./pages/LeagueMembers'))
 const LeagueSettings = lazy(() => import('./pages/LeagueSettings'))
 const AddTeamToLeague = lazy(() => import('./pages/AddTeamToLeague'))
+const TeamInfo = lazy(() => import('./pages/TeamInfo'))
+const Contests = lazy(() => import('./pages/Contests'))
+const TeamLeague = lazy(() => import('./pages/TeamLeague'))
 
 // Loading fallback component
 function PageLoader() {
@@ -188,6 +191,18 @@ const router = createBrowserRouter([
           {
             path: 'pack-shop',
             element: <PackShop />
+          },
+          {
+            path: 'info',
+            element: <TeamInfo />
+          },
+          {
+            path: 'contests',
+            element: <Contests />
+          },
+          {
+            path: 'league',
+            element: <TeamLeague />
           },
           {
             path: 'activity',
