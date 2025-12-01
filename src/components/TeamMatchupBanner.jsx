@@ -212,7 +212,7 @@ export default function TeamMatchupBanner({
       try {
         const { data: lineupData } = await supabase
           .from('weekly_lineups')
-          .select('total_points, projected_points, status')
+          .select('total_points, status')
           .eq('team_id', teamId)
           .eq('week_number', displayWeek.week)
           .eq('season_year', displayWeek.year)
@@ -221,7 +221,8 @@ export default function TeamMatchupBanner({
         if (lineupData) {
           setHasWeeklyLineup(true);
           setLivePoints(parseFloat(lineupData.total_points || 0));
-          setProjectedFinal(parseFloat(lineupData.projected_points || 0));
+          // projected_points is calculated from lineupStats.projectedPoints
+          setProjectedFinal(projectedPoints || 0);
         } else {
           setHasWeeklyLineup(false);
           setLivePoints(0);

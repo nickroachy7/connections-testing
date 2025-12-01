@@ -150,7 +150,7 @@ export default function WeekStatusBar({ teamId, team, previewMode = false }) {
       try {
         const { data: lineupData } = await supabase
           .from('weekly_lineups')
-          .select('total_points, projected_points, status')
+          .select('total_points, status')
           .eq('team_id', teamId)
           .eq('week_number', displayWeek.week)
           .eq('season_year', displayWeek.year)
@@ -159,8 +159,8 @@ export default function WeekStatusBar({ teamId, team, previewMode = false }) {
         if (lineupData) {
           setHasWeeklyLineup(true);
           setLivePoints(parseFloat(lineupData.total_points || 0));
-          setProjectedFinal(parseFloat(lineupData.projected_points || 0));
-          // Don't override global week status - it's already set from nfl_season_config
+          // projected_points is calculated from lineupStats.projectedPoints
+          setProjectedFinal(projectedPoints || 0);
         } else {
           setHasWeeklyLineup(false);
           setLivePoints(0);

@@ -407,7 +407,87 @@ Each contest type offers Standard, Half PPR, and Full PPR variants.
 
 ---
 
-### 13. User States & Flows
+### 13. Private Leagues & Contest Configuration
+
+#### Creating a League
+
+Commissioners create private leagues with full control over contest rules:
+
+**Step 1: Basic Settings**
+- League name
+- Maximum users (5-100)
+- Teams per user (1-3)
+- Fresh start required (must create new team to join)
+
+**Step 2: Contest Configuration**
+
+| Setting | Options | Description |
+|---------|---------|-------------|
+| **Scoring Format** | Standard, Half PPR, Full PPR | PPR bonus for receptions |
+| **Win Condition** | Beat the Median, H2H*, Both* | How wins are determined |
+| **Elimination Mode** | None, Strike System, Survivor | How elimination works |
+| **Lives (Strikes)** | 1-7 | Losses before elimination (strike mode) |
+| **Restarts Allowed** | Yes/No | Can eliminated teams restart? |
+| **Max Restarts** | Unlimited or 1-5 | How many times can restart |
+| **Season Length** | 1, 4, 9, or 18 weeks | Contest duration |
+
+*Coming soon
+
+#### Win Conditions
+
+**Beat the Median** (Default)
+- Each week, all league teams submit lineups
+- System calculates the league's median score
+- Score ≥ Median = Win
+- Score < Median = Loss
+
+**Head-to-Head** (Coming Soon)
+- Weekly matchups against another team
+- Higher score wins the matchup
+- Bye weeks for odd number of teams
+
+**Both (Hardcore)** (Coming Soon)
+- Must beat your H2H opponent AND the league median
+- Ultimate competitive mode
+
+#### Elimination Modes
+
+**No Elimination**
+- Season-long record tracking
+- No one gets eliminated
+- Final standings based on W-L record
+
+**Strike System** (Default)
+- Start with X lives (configurable: 1-7)
+- Lose a life for each loss
+- Eliminated when all lives are lost
+- Optional: Restart to reset lives
+
+**Survivor Mode**
+- Single-elimination - one loss and you're out!
+- Most intense competition format
+- Restarts can be allowed/disabled
+
+#### Restart Rules
+- Restarts are **free** (no coin cost)
+- Commissioner controls if restarts are allowed
+- Can require a **new team** on restart
+- Can limit **max restarts** per user
+
+#### League Start Week
+- Leagues start from the **current NFL week** when created
+- Mid-season leagues are fully supported
+- Season length determines how many weeks to play
+
+#### Private League Teams
+- Teams in leagues are marked as `team_type: 'private'`
+- League-specific W-L record tracked in `league_teams` table
+- Teams compete against league median (not global)
+- Future: H2H matchups stored in `league_matchups` table
+
+---
+
+### 14. User States & Flows
 
 #### New User → First Team
 ```
@@ -500,6 +580,6 @@ Before implementing any feature, ensure:
 
 ---
 
-**Document Version**: 1.0  
-**Last Updated**: November 21, 2025  
+**Document Version**: 1.1  
+**Last Updated**: December 1, 2025  
 **Status**: Living Document - Update as features change

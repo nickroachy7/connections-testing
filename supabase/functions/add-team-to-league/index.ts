@@ -54,19 +54,25 @@ serve(async (req) => {
       )
     }
 
-    // Get league settings
+    // Get league settings with contest config
     const { data: league, error: leagueError} = await supabaseClient
       .from('leagues')
-      .select('*')
+      .select('*, league_contest_config(*)')
       .eq('id', league_id)
       .single()
 
     if (leagueError || !league) {
+      console.error('League fetch error:', leagueError)
       return new Response(
         JSON.stringify({ error: 'League not found' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
       )
     }
+
+    // Get contest config - use first element if array, or direct object
+    const contestConfig = Array.isArray(league.league_contest_config) 
+      ? league.league_contest_config[0] 
+      : league.league_contest_config
 
     // Verify team belongs to user
     const { data: team, error: teamError } = await supabaseClient
@@ -138,6 +144,22 @@ serve(async (req) => {
       )
     }
 
+    // Determine starting lives based on contest config
+    // For 'none' elimination, lives don't matter but set to a high number
+    // For 'survivor', lives = 1
+    // For 'strike', lives = max_losses from config
+    let startingLives = 3 // default
+    if (contestConfig) {
+      if (contestConfig.elimination_type === 'none') {
+        startingLives = 99 // Effectively unlimited for no elimination
+      } else if (contestConfig.elimination_type === 'survivor') {
+        startingLives = 1
+      } else {
+        // 'strike' mode - use max_losses from config
+        startingLives = contestConfig.max_losses || 3
+      }
+    }
+
     // Add team to league
     const { data: leagueTeam, error: leagueTeamError } = await supabaseClient
       .from('league_teams')
@@ -146,7 +168,7 @@ serve(async (req) => {
         team_id,
         user_id: user.id,
         is_active: true,
-        league_lives: 3,
+        league_lives: startingLives,
         league_losses: 0,
         league_wins: 0,
       })

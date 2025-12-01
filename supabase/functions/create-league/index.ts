@@ -38,7 +38,21 @@ serve(async (req) => {
       restart_allowed = false,
       fresh_start_required = false,
       restart_requires_new_team = false,
+      // Contest configuration
+      contest_config = {},
     } = await req.json()
+
+    // Extract contest config with defaults
+    const {
+      scoring_type = 'half_ppr',
+      win_condition = 'median',
+      elimination_type = elimination_enabled ? 'strike' : 'none',
+      max_losses = 3,
+      max_restarts = null, // null = unlimited
+      restart_reset_record = true,
+      total_weeks = 18,
+      starter_tier_config = { role_player: 1, starter: 0, all_star: 0 },
+    } = contest_config
 
     // Validation
     if (!name || name.trim().length === 0) {
@@ -58,6 +72,46 @@ serve(async (req) => {
     if (max_teams_per_user < 1 || max_teams_per_user > 3) {
       return new Response(
         JSON.stringify({ error: 'Max teams per user must be between 1 and 3' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      )
+    }
+
+    // Validate contest config
+    const validScoringTypes = ['standard', 'half_ppr', 'full_ppr']
+    const validWinConditions = ['median', 'h2h', 'both']
+    const validEliminationTypes = ['none', 'strike', 'survivor']
+
+    if (!validScoringTypes.includes(scoring_type)) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid scoring type' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      )
+    }
+
+    if (!validWinConditions.includes(win_condition)) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid win condition' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      )
+    }
+
+    if (!validEliminationTypes.includes(elimination_type)) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid elimination type' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      )
+    }
+
+    if (max_losses < 1 || max_losses > 18) {
+      return new Response(
+        JSON.stringify({ error: 'Max losses must be between 1 and 18' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      )
+    }
+
+    if (total_weeks < 1 || total_weeks > 18) {
+      return new Response(
+        JSON.stringify({ error: 'Total weeks must be between 1 and 18' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       )
     }
@@ -98,17 +152,17 @@ serve(async (req) => {
       )
     }
 
-    // Get current season
-    const { data: weekData } = await supabaseClient
-      .from('game_weeks')
-      .select('season')
-      .order('season', { ascending: false })
-      .limit(1)
+    // Get current season and week
+    const { data: nflConfig } = await supabaseClient
+      .from('nfl_season_config')
+      .select('season_year, current_week')
+      .eq('is_active', true)
       .single()
 
-    const currentSeason = weekData?.season || 2024
+    const currentSeason = nflConfig?.season_year || 2024
+    const currentWeek = nflConfig?.current_week || 1
 
-    // Create league
+    // Create league (trigger will create default contest config)
     const { data: league, error: leagueError } = await supabaseClient
       .from('leagues')
       .insert({
@@ -116,7 +170,7 @@ serve(async (req) => {
         commissioner_id: user.id,
         max_users,
         max_teams_per_user,
-        elimination_enabled,
+        elimination_enabled: elimination_type !== 'none',
         restart_allowed,
         fresh_start_required,
         restart_requires_new_team,
@@ -134,10 +188,43 @@ serve(async (req) => {
       )
     }
 
+    // Update contest config with commissioner's settings
+    // The trigger creates a default config, now we update it with actual settings
+    const { error: configError } = await supabaseClient
+      .from('league_contest_config')
+      .update({
+        scoring_type,
+        win_condition,
+        elimination_type,
+        max_losses: elimination_type === 'survivor' ? 1 : max_losses,
+        restart_allowed,
+        max_restarts,
+        restart_reset_record,
+        total_weeks,
+        start_week: currentWeek,
+        starter_tier_config,
+      })
+      .eq('league_id', league.id)
+
+    if (configError) {
+      console.error('Error updating contest config:', configError)
+      // Non-fatal - league was created, just with defaults
+    }
+
+    // Fetch the updated config to return with the league
+    const { data: contestConfig } = await supabaseClient
+      .from('league_contest_config')
+      .select('*')
+      .eq('league_id', league.id)
+      .single()
+
     return new Response(
       JSON.stringify({
         success: true,
-        league,
+        league: {
+          ...league,
+          contest_config: contestConfig,
+        },
         message: 'League created successfully',
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
