@@ -112,12 +112,14 @@ export default function SwipeableRow({
   };
 
   const handleBackgroundClick = (e) => {
-    // Close swipe when tapping the background
+    // Close swipe when tapping the background (only if user actually swiped)
     if (swipeOffset > 0) {
       e.stopPropagation();
       setSwipeOffset(0);
+      return;
     }
-    // If swipeOffset is 0, allow click to propagate to children
+    // If swipeOffset is 0 and user didn't swipe, allow click to propagate to children
+    // This enables onClick on PlayerRow to work for opening the modal
   };
 
   return (
