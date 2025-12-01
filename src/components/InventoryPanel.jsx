@@ -2,8 +2,10 @@ import { useState } from 'react';
 import PropTypes from 'prop-types';
 import InventoryList from './tables/InventoryList';
 import TokenTable from './tables/TokenTable';
-import { enrichPlayerData, enrichTokenData } from '../utils/enrichPlayerData';
 import PlayerCard from './PlayerCard';
+import { enrichPlayerData, enrichTokenData } from './tables/tableHelpers.jsx';
+import { getRosterCount, ROSTER_LIMIT } from '../utils/rosterLimits';
+import { calculatePlayerSellValue, calculateTokenSellValue } from '../utils/sellValueCalculator';
 
 /**
  * InventoryPanel Component - REFACTORED VERSION
@@ -47,23 +49,19 @@ export default function InventoryPanel({
 
   // Enrich player data with live game info and projections
   const enrichedPlayers = sortedPlayers.map(player => {
-    // Use base_value from player_cards table as sell value
-    const sellValue = player.player_card?.base_value || 0;
     const enriched = enrichPlayerData(player, liveGameData, projections);
     return {
       ...enriched,
-      sellValue
+      sellValue: calculatePlayerSellValue(enriched)
     };
   });
 
   // Enrich token data
   const enrichedTokens = tokens.map(token => {
-    // Use base_value from token_cards table as sell value
-    const sellValue = token.token_card?.base_value || 0;
     const enriched = enrichTokenData(token);
     return {
       ...enriched,
-      sellValue
+      sellValue: calculateTokenSellValue(enriched)
     };
   });
 
