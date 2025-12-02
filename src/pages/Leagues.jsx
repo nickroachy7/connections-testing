@@ -262,8 +262,13 @@ export default function Leagues() {
       setShowCreateTeamModal(false);
       setShowAddTeamModal(false);
       
-      // Navigate to the team's league tab
-      navigate(`/teams/${result.team.id}/league`);
+      // Navigate to pack opening experience for starter pack
+      if (result.user_pack_id) {
+        navigate(`/teams/${result.team.id}/open-pack/${result.user_pack_id}`);
+      } else {
+        // Fallback to league tab if no pack
+        navigate(`/teams/${result.team.id}/league`);
+      }
     } catch (err) {
       console.error('Error creating team:', err);
       setCreateError(err.message || 'Failed to create team');

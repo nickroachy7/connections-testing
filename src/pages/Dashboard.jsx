@@ -909,9 +909,14 @@ export default function Dashboard() {
         }
       }
       
-      // Reload teams via revalidator
-      revalidator.revalidate();
-      setShowCreateTeam(false);
+      // Navigate to pack opening experience for starter pack
+      if (result.user_pack_id && result.team?.id) {
+        navigate(`/teams/${result.team.id}/open-pack/${result.user_pack_id}`);
+      } else {
+        // Fallback: reload teams and close modal
+        revalidator.revalidate();
+        setShowCreateTeam(false);
+      }
     } catch (err) {
       setError(err.message || 'Failed to create team');
     } finally {
