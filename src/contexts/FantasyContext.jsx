@@ -144,6 +144,8 @@ export function FantasyProvider({ children, user, activeTeam, initialInventory }
         .eq('week_number', teamWeek)
         .eq('season_year', seasonYear);
       
+      console.log('🎮 [FantasyContext] Games query result:', { teamWeek, seasonYear, gamesCount: gamesData?.length, error: gamesError });
+      
       if (gamesError) {
         console.error('🎮 [FantasyContext] Error loading games:', gamesError);
         return;
@@ -227,7 +229,7 @@ export function FantasyProvider({ children, user, activeTeam, initialInventory }
     } catch (err) {
       console.error('Error loading live game data:', err);
     }
-  }, [activeTeam?.current_week, inventory?.players]); // Stable primitive dependencies only
+  }, [activeTeam?.current_week]); // Only depend on activeTeam week - uses passed inventoryData parameter
 
   // Helper: Load projections and game data (without fetching inventory)
   // FIXED: Removed query to non-existent weekly_projections table
