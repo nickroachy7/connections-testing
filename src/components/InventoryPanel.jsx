@@ -30,7 +30,8 @@ export default function InventoryPanel({
   onFilterChange,
   inventory,
   viewMode = 'list', // 'list' or 'grid'
-  teamStartsNextWeek = false
+  teamStartsNextWeek = false,
+  lineup = null // NEW: Lineup to determine which players are in the starting lineup
 }) {
   const [selectedForBulkAction, setSelectedForBulkAction] = useState([]);
   
@@ -191,38 +192,50 @@ export default function InventoryPanel({
               projections={projections}
               isMobile={false}
               teamStartsNextWeek={teamStartsNextWeek}
+              lineup={lineup}
             />
           ) : (
             <div className="grid grid-cols-3 gap-1 md:gap-4 mb-3 sm:mb-4">
-              {filteredPlayers.map((player) => (
-                <div key={player.id} className="relative w-full">
-                  {/* Checkbox overlay for bulk selection */}
-                  {false && (
-                    <div className="absolute top-1 md:top-2 left-1 md:left-2 z-10">
-                      <input
-                        type="checkbox"
-                        checked={selectedPlayerIds.includes(player.id)}
-                        onChange={(e) => handlePlayerBulkSelect(player, e.target.checked)}
-                        className="w-4 h-4 md:w-5 md:h-5 rounded border-2 border-primary-black-500 bg-primary-black-800 text-primary-green-500 focus:ring-2 focus:ring-primary-green-500 cursor-pointer"
+              {filteredPlayers.map((player) => {
+                // Check if player is in lineup
+                const isInLineup = lineup && Object.values(lineup).some(p => p && p.id === player.id);
+                
+                return (
+                  <div key={player.id} className="relative w-full">
+                    {/* In Lineup Badge - shows when player is in starting lineup */}
+                    {isInLineup && (
+                      <div className="absolute top-1 right-1 z-10 bg-primary-green-500/90 text-white px-1.5 py-0.5 rounded text-[8px] font-bold shadow-lg">
+                        IN LINEUP
+                      </div>
+                    )}
+                    {/* Checkbox overlay for bulk selection */}
+                    {false && (
+                      <div className="absolute top-1 md:top-2 left-1 md:left-2 z-10">
+                        <input
+                          type="checkbox"
+                          checked={selectedPlayerIds.includes(player.id)}
+                          onChange={(e) => handlePlayerBulkSelect(player, e.target.checked)}
+                          className="w-4 h-4 md:w-5 md:h-5 rounded border-2 border-primary-black-500 bg-primary-black-800 text-primary-green-500 focus:ring-2 focus:ring-primary-green-500 cursor-pointer"
+                        />
+                      </div>
+                    )}
+                    <div className="aspect-square md:aspect-[3.2/5] relative">
+                      <PlayerCard
+                        player={player}
+                        projectedPoints={projections.get(player.player_card?.player_id)}
+                        gameData={liveGameData.get(player.player_card?.player_id)}
+                        projection={projections.get(player.player_card?.player_id)}
+                        isLocked={player.is_locked}
+                        size="small"
+                        showStats={true}
+                        showNameOutside={false}
+                        className="w-full h-full rounded-xl"
+                        teamStartsNextWeek={teamStartsNextWeek}
                       />
                     </div>
-                  )}
-                  <div className="aspect-square md:aspect-[3.2/5] relative">
-                    <PlayerCard
-                      player={player}
-                      projectedPoints={projections.get(player.player_card?.player_id)}
-                      gameData={liveGameData.get(player.player_card?.player_id)}
-                      projection={projections.get(player.player_card?.player_id)}
-                      isLocked={player.is_locked}
-                      size="small"
-                      showStats={true}
-                      showNameOutside={false}
-                      className="w-full h-full rounded-xl"
-                      teamStartsNextWeek={teamStartsNextWeek}
-                    />
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </>

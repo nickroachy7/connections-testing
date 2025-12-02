@@ -19,6 +19,41 @@ import {
  * - 48px touch targets
  * - 16px padding, 12px gaps
  */
+// Position color helper functions
+const getPositionColorClasses = (slotKey, position, isLocked) => {
+  // Only use colored badges when slotKey is explicitly provided (from starting lineup)
+  // Inventory and bench should use default grey styling
+  if (!slotKey) {
+    return 'bg-primary-black-700 text-primary-black-300';
+  }
+  
+  // Get the base colors for each position slot
+  const colorMap = {
+    'QB': { bg: 'bg-purple-600/80', text: 'text-purple-400' },
+    'RB': { bg: 'bg-cyan-600/80', text: 'text-cyan-400' },
+    'RB1': { bg: 'bg-cyan-600/80', text: 'text-cyan-400' },
+    'RB2': { bg: 'bg-cyan-600/80', text: 'text-cyan-400' },
+    'WR': { bg: 'bg-blue-600/80', text: 'text-blue-400' },
+    'WR1': { bg: 'bg-blue-600/80', text: 'text-blue-400' },
+    'WR2': { bg: 'bg-blue-600/80', text: 'text-blue-400' },
+    'WR3': { bg: 'bg-blue-600/80', text: 'text-blue-400' },
+    'TE': { bg: 'bg-yellow-600/80', text: 'text-yellow-400' },
+    'FLEX': { bg: 'bg-orange-600/80', text: 'text-orange-400' },
+    'FLX': { bg: 'bg-orange-600/80', text: 'text-orange-400' },
+    'SUPERFLEX': { bg: 'bg-pink-600/80', text: 'text-pink-400' },
+    'SFLX': { bg: 'bg-pink-600/80', text: 'text-pink-400' },
+  };
+  
+  const colors = colorMap[slotKey] || { bg: 'bg-primary-black-700', text: 'text-primary-black-300' };
+  
+  if (isLocked) {
+    // When locked: grey background with colored text
+    return `bg-primary-black-700 ${colors.text}`;
+  }
+  // When unlocked: colored background with white text
+  return `${colors.bg} text-white`;
+};
+
 const PlayerRow = ({
   player,
   index = 0,
@@ -28,16 +63,20 @@ const PlayerRow = ({
   showAddButton = false,
   showBulkSelect = false,
   showTierBadge = true,
+  showInLineupBadge = false, // NEW: Show "IN LINEUP" badge for inventory
   
   // State
   isSelected = false,
   isLocked = false,
   isSelectedForAction = false,
   teamStartsNextWeek = false,
+  isInLineup = false, // NEW: Whether this player is in the starting lineup
   
   // Data
   liveGameData = null,
   projections = null,
+  slotKey = null, // NEW: The lineup slot key (QB, RB1, WR1, etc.) for position coloring
+  appliedToken = null, // NEW: Token applied to this player
   
   // Interactions
   onClick = null,
@@ -46,6 +85,7 @@ const PlayerRow = ({
   onBulkSelectChange = null,
   onAddButtonClick = null,
   onSell = null,
+  onAddToken = null, // NEW: Handler for adding/viewing token
   
   // Customization
   getRowClassName = null,
@@ -77,8 +117,11 @@ const PlayerRow = ({
     ? '24px 40px 50px 1fr 90px 90px 80px auto' // Use 1fr for player info to be flexible
     : '24px 40px 50px 1fr 90px 90px 80px'; // Use 1fr instead of 400px for better responsiveness
   
-  // Mobile grid: badge | icon | info | fpts (optimized for space)
-  const mobileGridTemplate = '32px 40px 1fr 56px';
+  // Mobile grid: badge | icon | info | [token] | fpts (optimized for space)
+  // Add token column (28px) when onAddToken is provided
+  const mobileGridTemplate = onAddToken 
+    ? '32px 40px 1fr 28px 56px'  // With token column
+    : '32px 40px 1fr 56px';       // Without token column
 
   const handleDragStart = (e) => {
     if (isLocked) {
@@ -159,21 +202,33 @@ const PlayerRow = ({
 
         {/* Position Badge */}
         <div className="flex items-center justify-center">
-          <span className="px-2 py-1 bg-primary-black-700 text-primary-black-300 rounded text-xs font-bold">
+          <span className={`px-2 py-1 rounded text-xs font-bold ${
+            showBenchBadge 
+              ? 'bg-primary-black-700 text-primary-black-300'
+              : getPositionColorClasses(slotKey, player.player_card.position, isLocked)
+          }`}>
             {showBenchBadge ? 'BN' : getPositionAbbr(player.player_card.position)}
           </span>
         </div>
 
         {/* Player Icon */}
-        <div className={`rounded bg-primary-black-700 flex items-center justify-center w-12 h-12 border-2 ${player.card_tier ? getTierBadgeInfo(player.card_tier).borderColor : 'border-gray-500'}`}>
+        <div className={`relative rounded bg-primary-black-700 flex items-center justify-center w-12 h-12 border-2 ${player.card_tier ? getTierBadgeInfo(player.card_tier).borderColor : 'border-gray-500'}`}>
           <svg className="w-7 h-7 text-primary-black-300" fill="currentColor" viewBox="0 0 24 24">
             <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
           </svg>
+          {/* In Lineup Badge - shows on inventory when player is in lineup */}
+          {showInLineupBadge && isInLineup && (
+            <div className="absolute -top-1 -right-1 bg-primary-green-500 rounded-full w-4 h-4 flex items-center justify-center">
+              <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+              </svg>
+            </div>
+          )}
         </div>
 
         {/* Player Info - Name + Metadata */}
         <div className="min-w-0 overflow-hidden">
-          {/* Line 1: Name + Position + Tier */}
+          {/* Line 1: Name + Position + Tier + In Lineup Badge */}
           <div className="flex items-center gap-2 mb-1">
             <h4 className="font-bold text-primary-black-50 truncate text-sm leading-tight">
               {player.player_card.player_name}
@@ -184,6 +239,11 @@ const PlayerRow = ({
             {showTierBadge && player.card_tier && (
               <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${getTierBadgeInfo(player.card_tier).color} flex-shrink-0 leading-tight`}>
                 {getTierBadgeInfo(player.card_tier).initial}
+              </span>
+            )}
+            {showInLineupBadge && isInLineup && (
+              <span className="px-1.5 py-0.5 bg-primary-green-500/20 text-primary-green-400 rounded text-[9px] font-bold uppercase flex-shrink-0 leading-tight">
+                IN LINEUP
               </span>
             )}
           </div>
@@ -313,6 +373,12 @@ const PlayerRow = ({
               player={player}
               showBenchBadge={showBenchBadge}
               showTierBadge={showTierBadge}
+              showInLineupBadge={showInLineupBadge}
+              isInLineup={isInLineup}
+              slotKey={slotKey}
+              isLocked={isLocked}
+              appliedToken={appliedToken}
+              onAddToken={onAddToken}
               handleClick={handleClick}
               gameData={gameData}
               projection={projection}
@@ -342,6 +408,12 @@ const PlayerRow = ({
             player={player}
             showBenchBadge={showBenchBadge}
             showTierBadge={showTierBadge}
+            showInLineupBadge={showInLineupBadge}
+            isInLineup={isInLineup}
+            slotKey={slotKey}
+            isLocked={isLocked}
+            appliedToken={appliedToken}
+            onAddToken={onAddToken}
             handleClick={handleClick}
             gameData={gameData}
             projection={projection}
@@ -364,6 +436,12 @@ const MobileRowContent = ({
   player,
   showBenchBadge,
   showTierBadge,
+  showInLineupBadge = false,
+  isInLineup = false,
+  slotKey = null,
+  isLocked = false,
+  appliedToken = null,
+  onAddToken = null,
   handleClick,
   gameData,
   projection,
@@ -372,45 +450,74 @@ const MobileRowContent = ({
   isGameLiveOrFinal,
   renderExtraColumns,
   index
-}) => (
-  <>
-    {/* Position Badge */}
-    <div className="flex items-center justify-center">
-      <span className="px-1.5 py-0.5 bg-primary-black-700 text-primary-black-300 rounded text-[10px] font-bold text-center min-w-[28px]">
-        {showBenchBadge ? 'BN' : getPositionAbbr(player.player_card.position)}
-      </span>
-    </div>
+}) => {
+  // Helper to get token emoji
+  const getTokenEmoji = (tokenName) => {
+    const emojiMap = {
+      'multi-td': '🏈',
+      'elite performance': '⭐',
+      'td scorer': '🎯',
+      'big game': '💥'
+    };
+    return emojiMap[tokenName?.toLowerCase()] || '💎';
+  };
 
-    {/* Player Icon */}
-    <div className={`rounded bg-primary-black-700 flex items-center justify-center w-10 h-10 border-2 ${player.card_tier ? getTierBadgeInfo(player.card_tier).borderColor : 'border-gray-500'}`}>
-      <svg className="w-6 h-6 text-primary-black-300" fill="currentColor" viewBox="0 0 24 24">
-        <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
-      </svg>
-    </div>
-
-    {/* Player Info */}
-    <div className="min-w-0">
-      {/* Line 1: Name + Tier */}
-      <div className="flex items-center gap-1.5 mb-0.5">
-        <h4 className="font-bold text-primary-black-50 truncate text-sm leading-tight">
-          {player.player_card.player_name}
-        </h4>
-        {showTierBadge && player.card_tier && (
-          <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${getTierBadgeInfo(player.card_tier).color} flex-shrink-0 leading-tight`}>
-            {getTierBadgeInfo(player.card_tier).initial}
-          </span>
-        )}
-      </div>
-      
-      {/* Line 2: Position + Team */}
-      <div className="flex items-center gap-1 mb-0.5">
-        <span className="text-[11px] text-primary-black-400 font-semibold">
-          {getPositionAbbr(player.player_card.position)} - {player.player_card.team_abbreviation}
+  return (
+    <>
+      {/* Position Badge - Now with slot-based coloring */}
+      <div className="flex items-center justify-center">
+        <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold text-center min-w-[28px] ${
+          showBenchBadge 
+            ? 'bg-primary-black-700 text-primary-black-300'
+            : getPositionColorClasses(slotKey, player.player_card.position, isLocked)
+        }`}>
+          {showBenchBadge ? 'BN' : getPositionAbbr(player.player_card.position)}
         </span>
       </div>
-      
-      {/* Line 3: Matchup Info */}
-      <div className="flex items-center gap-1.5 text-[11px] leading-tight">
+
+      {/* Player Icon */}
+      <div className={`relative rounded bg-primary-black-700 flex items-center justify-center w-10 h-10 border-2 ${player.card_tier ? getTierBadgeInfo(player.card_tier).borderColor : 'border-gray-500'}`}>
+        <svg className="w-6 h-6 text-primary-black-300" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+        </svg>
+        {/* In Lineup Badge - shows on inventory when player is in lineup */}
+        {showInLineupBadge && isInLineup && (
+          <div className="absolute -top-1 -right-1 bg-primary-green-500 rounded-full w-4 h-4 flex items-center justify-center">
+            <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+            </svg>
+          </div>
+        )}
+      </div>
+
+      {/* Player Info */}
+      <div className="min-w-0">
+        {/* Line 1: Name + Tier + In Lineup text badge */}
+        <div className="flex items-center gap-1.5 mb-0.5">
+          <h4 className="font-bold text-primary-black-50 truncate text-sm leading-tight">
+            {player.player_card.player_name}
+          </h4>
+          {showTierBadge && player.card_tier && (
+            <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${getTierBadgeInfo(player.card_tier).color} flex-shrink-0 leading-tight`}>
+              {getTierBadgeInfo(player.card_tier).initial}
+            </span>
+          )}
+          {showInLineupBadge && isInLineup && (
+            <span className="px-1.5 py-0.5 bg-primary-green-500/20 text-primary-green-400 rounded text-[8px] font-bold uppercase flex-shrink-0 leading-tight">
+              IN LINEUP
+            </span>
+          )}
+        </div>
+        
+        {/* Line 2: Position + Team */}
+        <div className="flex items-center gap-1 mb-0.5">
+          <span className="text-[11px] text-primary-black-400 font-semibold">
+            {getPositionAbbr(player.player_card.position)} - {player.player_card.team_abbreviation}
+          </span>
+        </div>
+        
+        {/* Line 3: Matchup Info */}
+        <div className="flex items-center gap-1.5 text-[11px] leading-tight">
         {isBye ? (
           <span className="text-primary-black-500 font-semibold">BYE</span>
         ) : (gameStatus === 'live' || gameStatus === 'halftime') && gameData ? (
@@ -454,6 +561,38 @@ const MobileRowContent = ({
       </div>
     </div>
 
+    {/* Token Button - Mobile only, shown when onAddToken is provided */}
+    {onAddToken && (
+      <div className="flex items-center justify-center">
+        {appliedToken ? (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onAddToken(player);
+            }}
+            className="w-7 h-7 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center text-sm hover:scale-110 transition-transform shadow-lg"
+            title={`${appliedToken.token_card?.token_name || 'Token'} (+${appliedToken.token_card?.bonus_points || 0})`}
+          >
+            {getTokenEmoji(appliedToken.token_card?.token_name)}
+          </button>
+        ) : (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onAddToken(player);
+            }}
+            disabled={isLocked}
+            className="w-7 h-7 rounded-full border-2 border-dashed border-primary-black-600 hover:border-yellow-500 flex items-center justify-center text-primary-black-500 hover:text-yellow-500 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+            title="Add token"
+          >
+            <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" />
+            </svg>
+          </button>
+        )}
+      </div>
+    )}
+
     {/* FPTS */}
     <div className="text-center">
       {gameData?.currentPoints !== undefined && isGameLiveOrFinal ? (
@@ -479,7 +618,8 @@ const MobileRowContent = ({
 
     {renderExtraColumns && renderExtraColumns(player, index)}
   </>
-);
+  );
+};
 
 PlayerRow.propTypes = {
   player: PropTypes.object.isRequired,
@@ -488,18 +628,23 @@ PlayerRow.propTypes = {
   showAddButton: PropTypes.bool,
   showBulkSelect: PropTypes.bool,
   showTierBadge: PropTypes.bool,
+  showInLineupBadge: PropTypes.bool,
   isSelected: PropTypes.bool,
   isLocked: PropTypes.bool,
   isSelectedForAction: PropTypes.bool,
   teamStartsNextWeek: PropTypes.bool,
+  isInLineup: PropTypes.bool,
   liveGameData: PropTypes.object,
   projections: PropTypes.object,
+  slotKey: PropTypes.string,
+  appliedToken: PropTypes.object,
   onClick: PropTypes.func,
   onDragStart: PropTypes.func,
   onDragEnd: PropTypes.func,
   onBulkSelectChange: PropTypes.func,
   onAddButtonClick: PropTypes.func,
   onSell: PropTypes.func,
+  onAddToken: PropTypes.func,
   getRowClassName: PropTypes.func,
   renderExtraColumns: PropTypes.func
 };
@@ -508,6 +653,12 @@ MobileRowContent.propTypes = {
   player: PropTypes.object.isRequired,
   showBenchBadge: PropTypes.bool,
   showTierBadge: PropTypes.bool,
+  showInLineupBadge: PropTypes.bool,
+  isInLineup: PropTypes.bool,
+  slotKey: PropTypes.string,
+  isLocked: PropTypes.bool,
+  appliedToken: PropTypes.object,
+  onAddToken: PropTypes.func,
   handleClick: PropTypes.func.isRequired,
   gameData: PropTypes.object,
   projection: PropTypes.object,

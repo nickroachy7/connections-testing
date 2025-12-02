@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types';
 import PlayerRow from './PlayerRow';
 import { getPositionAbbr } from './tableHelpers.jsx';
+import { calculatePlayerSellValue } from '../../utils/sellValueCalculator';
 
 /**
  * StartingLineupList - Position slots view for starting lineup
@@ -55,15 +56,24 @@ const StartingLineupList = ({
 
         // If player exists, use PlayerRow
         if (player) {
+          // Calculate sell value for the player
+          const playerWithSellValue = {
+            ...player,
+            sellValue: player.sellValue || calculatePlayerSellValue(player)
+          };
+          
           return (
             <div key={slot.key} className="relative">
               <PlayerRow
-                player={player}
+                player={playerWithSellValue}
                 index={index}
+                slotKey={slot.key}
                 liveGameData={liveGameData}
                 projections={projections}
                 isLocked={isLocked}
                 teamStartsNextWeek={teamStartsNextWeek}
+                appliedToken={appliedToken}
+                onAddToken={onAddToken}
                 onClick={() => {
                   if (!isLocked && onPlayerClick) {
                     onPlayerClick(player, slot.key);

@@ -20,9 +20,16 @@ const InventoryList = ({
   projections = null,
   isMobile = false,
   showBulkSelect = false,
-  teamStartsNextWeek = false
+  teamStartsNextWeek = false,
+  lineup = null // NEW: Lineup to determine which players are in the starting lineup
 }) => {
   const [selectedPlayers, setSelectedPlayers] = useState(new Set());
+
+  // Helper to check if a player is in the lineup
+  const isPlayerInLineup = (playerId) => {
+    if (!lineup) return false;
+    return Object.values(lineup).some(p => p && p.id === playerId);
+  };
 
   const handleToggleSelect = (playerId) => {
     setSelectedPlayers(prev => {
@@ -117,6 +124,7 @@ const InventoryList = ({
         const isGameLiveOrFinal = gameStatus === 'live' || gameStatus === 'halftime' || gameStatus === 'final';
         const isLocked = player?.is_locked || isGameLiveOrFinal;
         const isSelected = selectedPlayers.has(player.id);
+        const isInLineup = isPlayerInLineup(player.id);
 
         return (
           <div key={player.id} className="relative">
@@ -126,8 +134,10 @@ const InventoryList = ({
               liveGameData={liveGameData}
               projections={projections}
               showBulkSelect={showBulkSelect}
+              showInLineupBadge={true}
               isSelected={isSelected}
               isLocked={isLocked}
+              isInLineup={isInLineup}
               teamStartsNextWeek={teamStartsNextWeek}
               onClick={() => {
                 if (showBulkSelect) {
@@ -154,7 +164,8 @@ InventoryList.propTypes = {
   projections: PropTypes.object,
   isMobile: PropTypes.bool,
   showBulkSelect: PropTypes.bool,
-  teamStartsNextWeek: PropTypes.bool
+  teamStartsNextWeek: PropTypes.bool,
+  lineup: PropTypes.object
 };
 
 export default InventoryList;

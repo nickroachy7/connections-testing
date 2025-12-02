@@ -2,6 +2,7 @@ import PropTypes from 'prop-types';
 import BenchList from './tables/BenchList';
 import TokenTable from './tables/TokenTable';
 import { enrichPlayerData, enrichTokenData } from './tables/tableHelpers.jsx';
+import { calculatePlayerSellValue, calculateTokenSellValue } from '../utils/sellValueCalculator';
 
 /**
  * BenchFilterManager Component
@@ -23,13 +24,23 @@ export default function BenchFilterManager({
   // Use tokens or availableTokens (for backward compatibility)
   const tokensList = tokens || availableTokens || [];
 
-  // Enrich bench players with game data
-  const enrichedBench = (benchPlayers || []).map(player => 
-    enrichPlayerData(player, liveGameData, projections)
-  );
+  // Enrich bench players with game data and calculate sell value
+  const enrichedBench = (benchPlayers || []).map(player => {
+    const enriched = enrichPlayerData(player, liveGameData, projections);
+    return {
+      ...enriched,
+      sellValue: enriched.sellValue || calculatePlayerSellValue(enriched)
+    };
+  });
 
-  // Enrich tokens
-  const enrichedTokens = tokensList.map(token => enrichTokenData(token));
+  // Enrich tokens and calculate sell value
+  const enrichedTokens = tokensList.map(token => {
+    const enriched = enrichTokenData(token);
+    return {
+      ...enriched,
+      sellValue: enriched.sellValue || calculateTokenSellValue(enriched)
+    };
+  });
 
   return (
     <div className="space-y-4">

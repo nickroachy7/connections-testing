@@ -152,7 +152,8 @@ export default function TeamManager() {
   const [sellConfirmationModal, setSellConfirmationModal] = useState({
     isOpen: false,
     player: null,
-    sellValue: 0
+    sellValue: 0,
+    cardType: 'player'
   });
   
   // Projections state - use context data
@@ -798,26 +799,39 @@ export default function TeamManager() {
     setSellConfirmationModal({
       isOpen: true,
       player,
-      sellValue
+      sellValue,
+      cardType: 'player'
+    });
+  };
+
+  // Swipe-to-sell handler for tokens (opens confirmation modal)
+  const handleSwipeToSellToken = (token) => {
+    const sellValue = calculateTokenSellValue(token);
+    setSellConfirmationModal({
+      isOpen: true,
+      player: token, // Reuse same modal structure
+      sellValue,
+      cardType: 'token'
     });
   };
 
   // Confirm sell from modal
   const handleConfirmSell = async () => {
-    const { player, sellValue } = sellConfirmationModal;
+    const { player, sellValue, cardType } = sellConfirmationModal;
     if (!player) return;
 
     setSelling(prev => ({ ...prev, [player.id]: true }));
     setError('');
 
     try {
-      await quickSellCard(player.id, 'player');
+      await quickSellCard(player.id, cardType || 'player');
       
       // Close modal
       setSellConfirmationModal({
         isOpen: false,
         player: null,
-        sellValue: 0
+        sellValue: 0,
+        cardType: 'player'
       });
 
       // Reload inventory via context
@@ -836,7 +850,8 @@ export default function TeamManager() {
     setSellConfirmationModal({
       isOpen: false,
       player: null,
-      sellValue: 0
+      sellValue: 0,
+      cardType: 'player'
     });
   };
 
@@ -1675,6 +1690,8 @@ export default function TeamManager() {
             selectedTokenForPlayer={selectedTokenForPlayer}
             onBenchPlayerClick={handleBenchPlayerClick}
             onTokenClick={handleTokenClick}
+            onSell={handleSwipeToSell}
+            onSellToken={handleSwipeToSellToken}
             teamStartsNextWeek={teamStartsNextWeek}
           />
         </div>
