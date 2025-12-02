@@ -227,7 +227,7 @@ export function FantasyProvider({ children, user, activeTeam, initialInventory }
     } catch (err) {
       console.error('Error loading live game data:', err);
     }
-  }, [currentWeek]); // Include currentWeek as dependency
+  }, [activeTeam?.current_week, inventory?.players]); // Stable primitive dependencies only
 
   // Helper: Load projections and game data (without fetching inventory)
   // FIXED: Removed query to non-existent weekly_projections table
@@ -260,13 +260,12 @@ export function FantasyProvider({ children, user, activeTeam, initialInventory }
       
       console.log('📊 [FantasyContext] Projections loaded from player_cards:', dbProjections.size, 'players');
       setProjections(dbProjections);
-      await loadLiveGameData(inventoryData);
       setLoading(false);
     } catch (err) {
       console.error('Error loading projections:', err);
       setLoading(false);
     }
-  }, [currentWeek?.week, currentWeek?.year, loadLiveGameData]);
+  }, [currentWeek?.week, currentWeek?.year]); // Stable primitive dependencies
 
   // Load inventory and lineup (only called when explicitly needed, e.g., after pack opening)
   const loadInventory = useCallback(async () => {
@@ -290,13 +289,14 @@ export function FantasyProvider({ children, user, activeTeam, initialInventory }
       setInventory(inventoryData);
       console.log('📦 [FantasyContext] Inventory loaded:', inventoryData.players?.length, 'players');
       
-      // Load projections after inventory is ready
+      // Load projections and game data
       await loadProjectionsAndGameData(inventoryData);
+      await loadLiveGameData(inventoryData);
     } catch (err) {
       console.error('Error in loadInventory:', err);
       setLoading(false);
     }
-  }, [user?.id, activeTeam?.id, currentWeek?.week, currentWeek?.year, loadProjectionsAndGameData]);
+  }, [user?.id, activeTeam?.id]); // No function dependencies to avoid loops
 
   // Load projections and game data from initial inventory on mount
   // AND rebuild lineup whenever inventory changes (including lineup position changes)
@@ -316,7 +316,8 @@ export function FantasyProvider({ children, user, activeTeam, initialInventory }
     
     // Load projections and game data from inventory
     loadProjectionsAndGameData(inventory);
-  }, [currentWeek?.week, inventory, user?.id, activeTeam?.id, loadProjectionsAndGameData]); // Trigger when inventory object changes
+    loadLiveGameData(inventory);
+  }, [currentWeek?.week, inventory, user?.id, activeTeam?.id]); // Removed function dependencies
 
   // Subscribe to live updates
   useEffect(() => {
@@ -359,7 +360,7 @@ export function FantasyProvider({ children, user, activeTeam, initialInventory }
           event: '*',
           schema: 'public',
           table: 'player_game_stats',
-          filter: `player_card_id=in.(${playerCardIds.join(',')})`
+          filter: `player_card_id=in.(${playerCardIds.join(',')})` 
         },
         async (payload) => {
           console.log('🔄 [FantasyContext] Player stat updated:', payload.new);
@@ -527,7 +528,7 @@ FantasyProvider.propTypes = {
 };
 
 export function useFantasy() {
-  const context = useContext(FantasyContext);
+  const context = useContext(FantasyContext);  
   if (!context) {
     throw new Error('useFantasy must be used within a FantasyProvider');
   }
