@@ -55,8 +55,11 @@ const PlayerRow = ({
   const gameData = liveGameData?.get(player.player_card?.player_id);
   const projection = projections?.get(player.player_card?.player_id);
   const gameStatus = gameData?.gameStatus?.toLowerCase();
-  // Only show BYE if team has started - otherwise show nothing for waiting teams
-  const isBye = !gameData && !teamStartsNextWeek;
+  // Show BYE if:
+  // 1. liveGameData has loaded (size > 0) AND this player has no game data
+  // This correctly shows BYE for players on actual bye weeks, even for teams waiting to start
+  const hasGameDataLoaded = liveGameData && liveGameData.size > 0;
+  const isBye = hasGameDataLoaded && !gameData;
   const isGameLiveOrFinal = gameStatus === 'live' || gameStatus === 'halftime' || gameStatus === 'final';
 
   // Default row styling

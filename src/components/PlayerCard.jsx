@@ -148,19 +148,14 @@ export default function PlayerCard({
 
   // Get game status badge
   const getGameStatusBadge = () => {
-    // Only show BYE if liveGameData exists but this player isn't in it
-    // Don't show BYE if team hasn't started yet (teamStartsNextWeek)
-    if (!teamStartsNextWeek && liveGameData && liveGameData.size > 0 && !gameData) {
+    // Show BYE if no game data exists for this player
+    // (teamStartsNextWeek no longer matters since we now fetch upcoming games from API)
+    if (!gameData) {
       return (
         <div className="absolute top-2 right-2 bg-primary-black-700 text-primary-black-300 px-2 py-1 rounded text-xs font-bold">
           BYE
         </div>
       );
-    }
-    
-    // If no game data and data hasn't loaded, don't show badge
-    if (!gameData) {
-      return null;
     }
 
     const { gameStatus, gameStartTime } = gameData;
@@ -616,7 +611,7 @@ export default function PlayerCard({
                   }).replace(' ', '')}
                 </div>
               )
-            ) : !gameData && !teamStartsNextWeek ? (
+            ) : !gameData ? (
               <div className={`${sizeClasses.stats} text-primary-black-500 font-medium leading-tight text-left`}>
                 On Bye Week
               </div>
@@ -654,7 +649,7 @@ export default function PlayerCard({
                 </div>
               )}
             </div>
-          ) : !gameData && !teamStartsNextWeek ? (
+          ) : !gameData ? (
             <div className="mb-2 text-center flex-shrink-0">
               <div className={`${sizeClasses.stats} text-primary-black-500 font-semibold`}>
                 On Bye Week
@@ -698,7 +693,7 @@ export default function PlayerCard({
                 }).replace(' ', '')}
               </div>
             )
-          ) : !gameData && !teamStartsNextWeek ? (
+          ) : !gameData ? (
             <div className="text-[10px] text-primary-black-500 font-medium leading-tight mt-0.5">
               On Bye Week
             </div>
