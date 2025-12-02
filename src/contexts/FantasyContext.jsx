@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useCallback, useEffect, useRef, us
 import PropTypes from 'prop-types';
 import { supabase } from '../services/supabase';
 import { getUserInventory } from '../services/supabase';
+import { getGames } from '../services/nflApi';
 import { EMPTY_LINEUP, createEmptyLineup } from '../constants/lineup';
 import { useLineupStats } from '../hooks/fantasy/useLineupStats';
 
@@ -127,10 +128,65 @@ export function FantasyProvider({ children, user, activeTeam, initialInventory }
       // This prevents showing stale data when team is behind/ahead of real NFL schedule
       const teamWeek = activeTeam?.current_week || weekNumber;
       
-      // If team hasn't started yet (team.current_week > NFL week), don't load any game data
+      // If team hasn't started yet (team.current_week > NFL week), fetch NEXT week's games from API
       if (activeTeam?.current_week && activeTeam.current_week > weekNumber) {
-        console.log('🎮 [FantasyContext] Team hasnt started yet (starts week', activeTeam.current_week, ') - clearing game data');
-        setLiveGameData(new Map());
+        console.log('🎮 [FantasyContext] Team starts week', activeTeam.current_week, '- fetching upcoming games from API');
+        
+        try {
+          // Fetch next week's games from BallDontLie API
+          const response = await getGames({ 
+            seasons: [seasonYear], 
+            weeks: [activeTeam.current_week],
+            per_page: 100 
+          });
+          
+          const upcomingGames = response?.data || [];
+          console.log('🎮 [FantasyContext] Fetched', upcomingGames.length, 'games for week', activeTeam.current_week);
+          
+          if (upcomingGames.length > 0 && playersData && playersData.length > 0) {
+            const gameDataMap = new Map();
+            
+            for (const playerCard of playersData) {
+              const playerTeamAbbr = playerCard.player_card.team_abbreviation;
+              
+              // Find if this player's team has a game next week
+              // API returns team objects, so we need to match by abbreviation
+              const teamGame = upcomingGames.find(g => 
+                g.home_team?.abbreviation === playerTeamAbbr || 
+                g.visitor_team?.abbreviation === playerTeamAbbr
+              );
+              
+              if (teamGame) {
+                const isHome = teamGame.home_team?.abbreviation === playerTeamAbbr;
+                const opponent = isHome ? teamGame.visitor_team?.abbreviation : teamGame.home_team?.abbreviation;
+                
+                gameDataMap.set(playerCard.player_card.player_id, {
+                  gameStatus: 'scheduled',
+                  currentPoints: 0,
+                  weekNumber: activeTeam.current_week,
+                  homeTeam: teamGame.home_team?.abbreviation,
+                  awayTeam: teamGame.visitor_team?.abbreviation,
+                  homeScore: null,
+                  awayScore: null,
+                  gameStartTime: teamGame.date,
+                  opponent: opponent,
+                  isHome: isHome,
+                  isUpcoming: true // Flag to indicate this is a future game
+                });
+              }
+              // If no game found, player is on bye - don't add to map
+            }
+            
+            console.log('🎮 [FantasyContext] Built matchup data for', gameDataMap.size, 'players');
+            setLiveGameData(gameDataMap);
+          } else {
+            // No games found for next week - clear data
+            setLiveGameData(new Map());
+          }
+        } catch (apiError) {
+          console.error('🎮 [FantasyContext] Error fetching upcoming games from API:', apiError);
+          setLiveGameData(new Map());
+        }
         return;
       }
       

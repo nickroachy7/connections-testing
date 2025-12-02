@@ -225,11 +225,19 @@ const PlayerRow = ({
               </span>
             )}
             
-            {!isBye && gameStatus === 'scheduled' && gameData?.gameStartTime && (
+            {!isBye && gameStatus === 'scheduled' && (gameData?.gameStartTime || gameData?.isUpcoming) && (
               <>
-                <span className="text-primary-black-400">
-                  {new Date(gameData.gameStartTime).toLocaleDateString('en-US', { weekday: 'short' })} {new Date(gameData.gameStartTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
-                </span>
+                {/* Show week number prefix for upcoming games (team hasn't started yet) */}
+                {gameData.isUpcoming && gameData.weekNumber && (
+                  <span className="text-amber-400 font-semibold">
+                    Wk {gameData.weekNumber}
+                  </span>
+                )}
+                {gameData.gameStartTime && (
+                  <span className="text-primary-black-400">
+                    {new Date(gameData.gameStartTime).toLocaleDateString('en-US', { weekday: 'short' })} {new Date(gameData.gameStartTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+                  </span>
+                )}
                 {gameData.opponent && (
                   <span className="text-primary-black-300 font-semibold">
                     {gameData.isHome ? 'vs' : '@'} {gameData.opponent}
