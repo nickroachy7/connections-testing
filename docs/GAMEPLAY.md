@@ -78,8 +78,26 @@ Players acquire NFL player cards through pack openings, build weekly lineups, an
 #### Pack Shop
 
 **Available Packs**
-- Standard Pack: 500 coins
-- Premium Pack: 1000 coins (coming soon)
+
+| Pack | Players | Tokens | Cost | Best For |
+|------|---------|--------|------|----------|
+| 🎁 Starter Pack | 12 | 3 | Free | New teams - full starting lineup + 3 bench |
+| 🥉 Bronze Pack | 3 | 1 | 150 | Budget roster additions |
+| 🥈 Silver Pack | 5 | 2 | 400 | Good value upgrade |
+| 🥇 Gold Pack | 8 | 3 | 750 | Premium roster boost |
+| 💎 Elite Pack | 12 | 5 | 1500 | Major roster overhaul |
+
+**Starter Pack Contents (Team Creation)**
+- 2 QB (for QB and SUPERFLEX slots)
+- 3 RB (for RB1, RB2, and FLEX option)
+- 4 WR (for WR1, WR2, WR3, and bench)
+- 2 TE (for TE slot and FLEX option)
+- 1 Flex-eligible (random RB/WR/TE bonus)
+- 3 Tokens (strategic boosts)
+
+Total: 12 players + 3 tokens = **Complete starting lineup + 3 bench players**
+
+**Roster Limit**: 20 cards maximum (players + tokens combined)
 
 **Pack Opening Flow**
 1. User navigates to Pack Shop
