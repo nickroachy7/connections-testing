@@ -99,19 +99,27 @@ serve(async (req) => {
     // If pack contents don't exist (old packs before migration), generate them now
     let contents = userPack.pack_contents
     if (!contents) {
-      console.log('Legacy pack detected - generating contents on-the-fly')
-      contents = { players: [], tokens: [] }
+      console.log('Pack contents not pre-generated - generating on-the-fly')
       
-      // Generate players
-      for (let i = 0; i < pack.player_count; i++) {
-        const playerCard = await generatePlayerCard(supabaseClient)
-        if (playerCard) contents.players.push(playerCard)
-      }
-      
-      // Generate tokens
-      for (let i = 0; i < pack.token_count; i++) {
-        const tokenCard = await generateTokenCard(supabaseClient)
-        if (tokenCard) contents.tokens.push(tokenCard)
+      // For starter packs, generate with guaranteed position distribution
+      if (is_starter_pack || pack.pack_type === 'starter') {
+        console.log('Generating starter pack with guaranteed positions')
+        contents = await generateStarterPackContents(supabaseClient, pack)
+      } else {
+        // Regular pack - random generation
+        contents = { players: [], tokens: [] }
+        
+        // Generate players
+        for (let i = 0; i < pack.player_count; i++) {
+          const playerCard = await generatePlayerCard(supabaseClient)
+          if (playerCard) contents.players.push(playerCard)
+        }
+        
+        // Generate tokens
+        for (let i = 0; i < pack.token_count; i++) {
+          const tokenCard = await generateTokenCard(supabaseClient)
+          if (tokenCard) contents.tokens.push(tokenCard)
+        }
       }
       
       // Update user_packs with generated contents
@@ -291,7 +299,7 @@ async function generateTokenCard(supabaseClient: any) {
   // All tokens are equally likely to drop
   const { data: tokenCards, error } = await supabaseClient
     .from('token_cards')
-    .select('id, token_name, token_type, icon_url, condition, bonus_points')
+    .select('id, token_name, token_type, icon_url, condition, bonus_points, emoji')
 
   if (error || !tokenCards || tokenCards.length === 0) {
     console.error('Error fetching token card:', error)
@@ -302,4 +310,133 @@ async function generateTokenCard(supabaseClient: any) {
   const tokenCard = tokenCards[Math.floor(Math.random() * tokenCards.length)]
 
   return tokenCard
+}
+
+/**
+ * Generate starter pack contents with guaranteed position distribution
+ * Ensures at least one of each position so users can build a complete lineup:
+ * - 2 QB (1 starter, 1 backup)
+ * - 3 RB (2 for lineup, 1 for flex/backup)
+ * - 4 WR (3 for lineup, 1 backup)
+ * - 2 TE (1 for lineup, 1 for flex/backup)
+ * - 1 Flex-eligible bonus (random RB/WR/TE)
+ * Total: 12 players + 3 tokens
+ */
+async function generateStarterPackContents(supabaseClient: any, pack: any) {
+  const contents = { players: [], tokens: [] }
+  
+  // Position requirements for a complete starting lineup + backups
+  const positionConfig = [
+    { position: 'Quarterback', count: 2 },
+    { position: 'Running Back', count: 3 },
+    { position: 'Wide Receiver', count: 4 },
+    { position: 'Tight End', count: 2 },
+  ]
+  
+  // Track which players we've already pulled to avoid duplicates
+  const pulledPlayerIds = new Set<string>()
+  
+  for (const config of positionConfig) {
+    const players = await generatePlayersForPosition(
+      supabaseClient, 
+      config.position, 
+      config.count,
+      pulledPlayerIds
+    )
+    contents.players.push(...players)
+    players.forEach((p: any) => pulledPlayerIds.add(p.id))
+  }
+  
+  // Add 1 flex-eligible bonus player (random RB, WR, or TE)
+  const flexPositions = ['Running Back', 'Wide Receiver', 'Tight End']
+  const randomFlexPosition = flexPositions[Math.floor(Math.random() * flexPositions.length)]
+  const flexPlayers = await generatePlayersForPosition(
+    supabaseClient,
+    randomFlexPosition,
+    1,
+    pulledPlayerIds
+  )
+  contents.players.push(...flexPlayers)
+  
+  console.log(`Generated ${contents.players.length} players for starter pack:`, 
+    contents.players.map((p: any) => `${p.player_name} (${p.position})`).join(', ')
+  )
+  
+  // Generate tokens (use pack.token_count or default to 3)
+  const tokenCount = pack.token_count || 3
+  for (let i = 0; i < tokenCount; i++) {
+    const tokenCard = await generateTokenCard(supabaseClient)
+    if (tokenCard) contents.tokens.push(tokenCard)
+  }
+  
+  console.log(`Generated ${contents.tokens.length} tokens for starter pack`)
+  
+  return contents
+}
+
+/**
+ * Generate players for a specific position using weighted random selection
+ * Prioritizes common/rare players for starter packs (not elite players)
+ */
+async function generatePlayersForPosition(
+  supabaseClient: any, 
+  position: string, 
+  count: number,
+  excludeIds: Set<string>
+) {
+  // Get players for this position, prioritizing common/rare tiers for starter packs
+  const { data: playerCards, error } = await supabaseClient
+    .from('player_cards')
+    .select('id, player_name, position, team_abbreviation, image_url, projected_points, pull_percentage, pack_weight, rarity_tier, season_ppg, team')
+    .eq('position', position)
+    .eq('is_active', true)
+    .in('rarity_tier', ['common', 'rare']) // Only common/rare for starter packs
+  
+  if (error || !playerCards || playerCards.length === 0) {
+    console.error(`Error fetching ${position} players:`, error)
+    // Fallback: try without rarity filter
+    const { data: fallbackCards } = await supabaseClient
+      .from('player_cards')
+      .select('id, player_name, position, team_abbreviation, image_url, projected_points, pull_percentage, pack_weight, rarity_tier, season_ppg, team')
+      .eq('position', position)
+      .eq('is_active', true)
+    
+    if (!fallbackCards || fallbackCards.length === 0) {
+      return []
+    }
+    
+    return selectRandomPlayers(fallbackCards, count, excludeIds)
+  }
+  
+  return selectRandomPlayers(playerCards, count, excludeIds)
+}
+
+/**
+ * Select random players using weighted selection, avoiding duplicates
+ */
+function selectRandomPlayers(playerCards: any[], count: number, excludeIds: Set<string>) {
+  const selected: any[] = []
+  const available = playerCards.filter((p: any) => !excludeIds.has(p.id))
+  
+  for (let i = 0; i < count && available.length > 0; i++) {
+    // Weighted random selection using pack_weight
+    const totalWeight = available.reduce((sum: number, p: any) => sum + (p.pack_weight || 25), 0)
+    let randomValue = Math.random() * totalWeight
+    
+    let selectedIndex = 0
+    for (let j = 0; j < available.length; j++) {
+      randomValue -= (available[j].pack_weight || 25)
+      if (randomValue <= 0) {
+        selectedIndex = j
+        break
+      }
+    }
+    
+    const player = available[selectedIndex]
+    selected.push(player)
+    // Remove from available to prevent duplicates
+    available.splice(selectedIndex, 1)
+  }
+  
+  return selected
 }

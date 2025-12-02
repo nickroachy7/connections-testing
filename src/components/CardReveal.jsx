@@ -341,7 +341,7 @@ function CardReveal({ items, onRevealComplete, isStarterPack = false, tierConfig
           )}
         </div>
       </div>
-      <style jsx>{`@keyframes shimmerSlide { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }`}</style>
+      <style>{`@keyframes shimmerSlide { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }`}</style>
     </div>
   );
 }
