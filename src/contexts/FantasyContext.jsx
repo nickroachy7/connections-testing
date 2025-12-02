@@ -513,6 +513,13 @@ export function FantasyProvider({ children, user, activeTeam, initialInventory }
   // Calculate derived lineup statistics using custom hook
   const lineupStats = useLineupStats(lineup, projections, liveGameData);
 
+  // Derived: Check if team hasn't started yet (team.current_week > NFL current_week)
+  // This is used to hide "BYE" indicators and show "Season starts Week X" instead
+  const teamStartsNextWeek = useMemo(() => {
+    if (!activeTeam?.current_week || !currentWeek?.week) return false;
+    return activeTeam.current_week > currentWeek.week;
+  }, [activeTeam?.current_week, currentWeek?.week]);
+
   // Memoize context value to prevent unnecessary re-renders
   const value = useMemo(() => ({
     lineup,
@@ -531,7 +538,8 @@ export function FantasyProvider({ children, user, activeTeam, initialInventory }
     loading,
     loadInventory,
     loadLiveGameData,
-    lineupStats
+    lineupStats,
+    teamStartsNextWeek
   }), [
     lineup,
     setLineup,
@@ -549,7 +557,8 @@ export function FantasyProvider({ children, user, activeTeam, initialInventory }
     loading,
     loadInventory,
     loadLiveGameData,
-    lineupStats
+    lineupStats,
+    teamStartsNextWeek
   ]);
 
   return (

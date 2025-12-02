@@ -17,7 +17,8 @@ export default function BenchFilterManager({
   liveGameData,
   projections,
   onSell,
-  onSellToken
+  onSellToken,
+  teamStartsNextWeek = false
 }) {
   // Use tokens or availableTokens (for backward compatibility)
   const tokensList = tokens || availableTokens || [];
@@ -44,6 +45,7 @@ export default function BenchFilterManager({
             onSell={onSell}
             liveGameData={liveGameData}
             projections={projections}
+            teamStartsNextWeek={teamStartsNextWeek}
           />
         </div>
       )}
@@ -84,5 +86,6 @@ BenchFilterManager.propTypes = {
   liveGameData: PropTypes.object,
   projections: PropTypes.object,
   onSell: PropTypes.func,
-  onSellToken: PropTypes.func
+  onSellToken: PropTypes.func,
+  teamStartsNextWeek: PropTypes.bool
 };

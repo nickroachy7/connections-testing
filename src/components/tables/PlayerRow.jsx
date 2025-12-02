@@ -33,6 +33,7 @@ const PlayerRow = ({
   isSelected = false,
   isLocked = false,
   isSelectedForAction = false,
+  teamStartsNextWeek = false,
   
   // Data
   liveGameData = null,
@@ -54,7 +55,8 @@ const PlayerRow = ({
   const gameData = liveGameData?.get(player.player_card?.player_id);
   const projection = projections?.get(player.player_card?.player_id);
   const gameStatus = gameData?.gameStatus?.toLowerCase();
-  const isBye = !gameData;
+  // Only show BYE if team has started - otherwise show nothing for waiting teams
+  const isBye = !gameData && !teamStartsNextWeek;
   const isGameLiveOrFinal = gameStatus === 'live' || gameStatus === 'halftime' || gameStatus === 'final';
 
   // Default row styling
@@ -478,6 +480,7 @@ PlayerRow.propTypes = {
   isSelected: PropTypes.bool,
   isLocked: PropTypes.bool,
   isSelectedForAction: PropTypes.bool,
+  teamStartsNextWeek: PropTypes.bool,
   liveGameData: PropTypes.object,
   projections: PropTypes.object,
   onClick: PropTypes.func,

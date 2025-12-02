@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import { supabase } from '../services/supabase';
 import { useFantasy } from '../contexts/FantasyContext';
 import { useProjectedMedian, useLeagueContext } from '../hooks/fantasy';
+import { usePrevious } from '../hooks/usePrevious';
 import TeamCustomizationModal from './TeamCustomizationModal';
 import TeamScoreBanner from './TeamScoreBanner';
 
@@ -65,10 +66,22 @@ export default function TeamMatchupBanner({
     leagueLives,
     leagueContext,
     calculateLeagueMedian,
-    calculateProjectedLeagueMedian
+    calculateProjectedLeagueMedian,
+    refetch: refetchLeagueContext
   } = useLeagueContext(teamId);
   
   console.log('🎯 [TeamMatchupBanner] League context:', { isInLeague, leagueName, leagueWins, leagueLosses, leagueLives });
+  
+  // Track previous week status to detect finalization
+  const previousWeekStatus = usePrevious(contextWeekStatus);
+  
+  // Refresh league context when week finalizes (updates wins/losses/lives)
+  useEffect(() => {
+    if (isInLeague && previousWeekStatus && previousWeekStatus !== 'finalized' && contextWeekStatus === 'finalized') {
+      console.log('🏆 [TeamMatchupBanner] Week finalized! Refreshing league stats...');
+      refetchLeagueContext();
+    }
+  }, [contextWeekStatus, previousWeekStatus, isInLeague, refetchLeagueContext]);
   
   // League-specific median state
   const [leagueMedian, setLeagueMedian] = useState(null);
@@ -98,6 +111,7 @@ export default function TeamMatchupBanner({
   const [simulatedMedian, setSimulatedMedian] = useState(null);
   const [allTeamsProjected, setAllTeamsProjected] = useState([]);
   const [weekIsFinalized, setWeekIsFinalized] = useState(false);
+  const [teamStartsNextWeek, setTeamStartsNextWeek] = useState(null); // Week number team will start playing
 
   const projectedPoints = lineupStats?.projectedPoints || 0;
 
@@ -260,7 +274,7 @@ export default function TeamMatchupBanner({
     if (contextCurrentWeek && contextWeekStatus) {
       setCurrentWeek({ week: contextCurrentWeek.week, year: contextCurrentWeek.year });
       setIsLive(contextWeekStatus === 'live');
-      setIsFinal(contextWeekStatus === 'final');
+      setIsFinal(contextWeekStatus === 'finalized');
       return; // No polling needed - context handles realtime subscription
     }
     
@@ -277,7 +291,7 @@ export default function TeamMatchupBanner({
         if (data) {
           setCurrentWeek({ week: data.current_week, year: data.season_year });
           setIsLive(data.week_status === 'live');
-          setIsFinal(data.week_status === 'final');
+          setIsFinal(data.week_status === 'finalized');
         }
       } catch (error) {
         console.error('Error loading current week:', error);
@@ -298,9 +312,10 @@ export default function TeamMatchupBanner({
     }
 
     const checkWeekStatus = async () => {
+      // If team was created mid-season and their start week is in the future
       if (team?.current_week && team.current_week > currentWeek.week) {
-        const teamStartWeek = { week: team.current_week, year: currentWeek.year };
-        setDisplayWeek(teamStartWeek);
+        setTeamStartsNextWeek(team.current_week);
+        setDisplayWeek(currentWeek); // Still show current week
         setWeekIsFinalized(false);
         setIsLive(false);
         setIsFinal(false);
@@ -309,6 +324,10 @@ export default function TeamMatchupBanner({
         return;
       }
       
+      // Team is eligible to play this week
+      setTeamStartsNextWeek(null);
+      
+      // Check if this team has a lineup for the current week
       const { data: lineupData } = await supabase
         .from('weekly_lineups')
         .select('status')
@@ -317,19 +336,13 @@ export default function TeamMatchupBanner({
         .eq('season_year', currentWeek.year)
         .maybeSingle();
 
-      const isFinalized = lineupData?.status === 'completed';
-      setWeekIsFinalized(isFinalized);
+      const teamLineupFinalized = lineupData?.status === 'completed';
+      setWeekIsFinalized(teamLineupFinalized);
 
-      if (previewMode && isFinalized) {
-        const nextWeek = { week: currentWeek.week + 1, year: currentWeek.year };
-        setDisplayWeek(nextWeek);
-        setIsLive(false);
-        setIsFinal(false);
-        setGlobalStats(null);
-        setHasWeeklyLineup(false);
-      } else {
-        setDisplayWeek(currentWeek);
-      }
+      // Always show the current week from nfl_season_config
+      // The advance-week function is responsible for advancing current_week
+      // When finalized, show final results. When scheduled, show projections for lineup building.
+      setDisplayWeek(currentWeek);
     };
 
     checkWeekStatus();
@@ -697,6 +710,7 @@ export default function TeamMatchupBanner({
               opponentScore={h2hOpponentScore}
               isInLeague={isInLeague}
               noDataYet={noComparisonDataYet}
+              teamStartsNextWeek={teamStartsNextWeek}
             />
           </div>
 
@@ -779,6 +793,7 @@ export default function TeamMatchupBanner({
                   opponentScore={h2hOpponentScore}
                   isInLeague={isInLeague}
                   noDataYet={noComparisonDataYet}
+                  teamStartsNextWeek={teamStartsNextWeek}
                 />
               </div>
 

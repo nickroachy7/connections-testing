@@ -17,7 +17,8 @@ const BenchList = ({
   onSell = null,
   liveGameData = null,
   projections = null,
-  isMobile = false
+  isMobile = false,
+  teamStartsNextWeek = false
 }) => {
   if (benchPlayers.length === 0) {
     return (
@@ -53,6 +54,7 @@ const BenchList = ({
               showBenchBadge={true}
               showAddButton={onAddToLineup ? true : false}
               isLocked={isLocked}
+              teamStartsNextWeek={teamStartsNextWeek}
               onClick={() => {
                 if (onPlayerClick) {
                   onPlayerClick(player);
@@ -75,7 +77,8 @@ BenchList.propTypes = {
   onSell: PropTypes.func,
   liveGameData: PropTypes.object,
   projections: PropTypes.object,
-  isMobile: PropTypes.bool
+  isMobile: PropTypes.bool,
+  teamStartsNextWeek: PropTypes.bool
 };
 
 export default BenchList;

@@ -19,7 +19,8 @@ const InventoryList = ({
   liveGameData = null,
   projections = null,
   isMobile = false,
-  showBulkSelect = false
+  showBulkSelect = false,
+  teamStartsNextWeek = false
 }) => {
   const [selectedPlayers, setSelectedPlayers] = useState(new Set());
 
@@ -127,6 +128,7 @@ const InventoryList = ({
               showBulkSelect={showBulkSelect}
               isSelected={isSelected}
               isLocked={isLocked}
+              teamStartsNextWeek={teamStartsNextWeek}
               onClick={() => {
                 if (showBulkSelect) {
                   handleToggleSelect(player.id);
@@ -151,7 +153,8 @@ InventoryList.propTypes = {
   liveGameData: PropTypes.object,
   projections: PropTypes.object,
   isMobile: PropTypes.bool,
-  showBulkSelect: PropTypes.bool
+  showBulkSelect: PropTypes.bool,
+  teamStartsNextWeek: PropTypes.bool
 };
 
 export default InventoryList;

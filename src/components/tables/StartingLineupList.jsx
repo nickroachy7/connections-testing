@@ -20,7 +20,8 @@ const StartingLineupList = ({
   projections = null,
   inventory = null,
   isPreviewMode = false,
-  isMobile = false
+  isMobile = false,
+  teamStartsNextWeek = false
 }) => {
   const getPositionLabel = (slotKey) => {
     if (slotKey === 'QB') return 'QB';
@@ -62,6 +63,7 @@ const StartingLineupList = ({
                 liveGameData={liveGameData}
                 projections={projections}
                 isLocked={isLocked}
+                teamStartsNextWeek={teamStartsNextWeek}
                 onClick={() => {
                   if (!isLocked && onPlayerClick) {
                     onPlayerClick(player, slot.key);
@@ -190,7 +192,8 @@ StartingLineupList.propTypes = {
   projections: PropTypes.object,
   inventory: PropTypes.object,
   isPreviewMode: PropTypes.bool,
-  isMobile: PropTypes.bool
+  isMobile: PropTypes.bool,
+  teamStartsNextWeek: PropTypes.bool
 };
 
 export default StartingLineupList;

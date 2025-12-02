@@ -29,7 +29,8 @@ export default function InventoryPanel({
   filters,
   onFilterChange,
   inventory,
-  viewMode = 'list' // 'list' or 'grid'
+  viewMode = 'list', // 'list' or 'grid'
+  teamStartsNextWeek = false
 }) {
   const [selectedForBulkAction, setSelectedForBulkAction] = useState([]);
   
@@ -189,6 +190,7 @@ export default function InventoryPanel({
               liveGameData={liveGameData}
               projections={projections}
               isMobile={false}
+              teamStartsNextWeek={teamStartsNextWeek}
             />
           ) : (
             <div className="grid grid-cols-3 gap-1 md:gap-4 mb-3 sm:mb-4">
@@ -216,6 +218,7 @@ export default function InventoryPanel({
                       showStats={true}
                       showNameOutside={false}
                       className="w-full h-full rounded-xl"
+                      teamStartsNextWeek={teamStartsNextWeek}
                     />
                   </div>
                 </div>
@@ -273,5 +276,6 @@ InventoryPanel.propTypes = {
   filters: PropTypes.object.isRequired,
   onFilterChange: PropTypes.func,
   inventory: PropTypes.object,
-  viewMode: PropTypes.string
+  viewMode: PropTypes.string,
+  teamStartsNextWeek: PropTypes.bool
 };

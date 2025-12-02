@@ -29,7 +29,7 @@ function getBaselineProjection(position) {
 }
 
 export default function TeamManager() {
-  const { user, profile, teams, activeTeam: initialActiveTeam, inventory: contextInventory, updateInventory, loadInventory: reloadInventoryFromContext, projections: contextProjections, liveGameData: contextLiveGameData, currentWeek: contextCurrentWeek, lineup: contextLineup, setLineup: setContextLineup } = useOutletContext();
+  const { user, profile, teams, activeTeam: initialActiveTeam, inventory: contextInventory, updateInventory, loadInventory: reloadInventoryFromContext, projections: contextProjections, liveGameData: contextLiveGameData, currentWeek: contextCurrentWeek, lineup: contextLineup, setLineup: setContextLineup, teamStartsNextWeek } = useOutletContext();
   const navigate = useNavigate();
   const revalidator = useRevalidator();
   const location = useLocation();
@@ -1637,6 +1637,7 @@ export default function TeamManager() {
             onAddToken={handleClickToAddToken}
             onSell={handleSwipeToSell}
             isMobile={isMobile}
+            teamStartsNextWeek={teamStartsNextWeek}
           />
           </div>
         </section>
@@ -1674,6 +1675,7 @@ export default function TeamManager() {
             selectedTokenForPlayer={selectedTokenForPlayer}
             onBenchPlayerClick={handleBenchPlayerClick}
             onTokenClick={handleTokenClick}
+            teamStartsNextWeek={teamStartsNextWeek}
           />
         </div>
       </section>

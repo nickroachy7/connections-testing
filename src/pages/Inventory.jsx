@@ -11,7 +11,7 @@ import PageHeader from '../components/PageHeader';
 
 export default function Inventory() {
   // Use shared data from FantasyContext via outlet
-  const { user, profile, activeTeam, inventory: contextInventory, refreshProfile, updateCoins, projections, liveGameData, currentWeek, loadInventory: reloadInventory } = useOutletContext();
+  const { user, profile, activeTeam, inventory: contextInventory, refreshProfile, updateCoins, projections, liveGameData, currentWeek, loadInventory: reloadInventory, teamStartsNextWeek } = useOutletContext();
   const [inventory, setInventory] = useState(contextInventory || { players: [], tokens: [] });
   const [filters, setFilters] = useState({
     position: 'all',
@@ -318,6 +318,7 @@ export default function Inventory() {
               onFilterChange={setFilters}
               inventory={inventory}
               viewMode={viewMode}
+              teamStartsNextWeek={teamStartsNextWeek}
             />
             </div>
           </div>

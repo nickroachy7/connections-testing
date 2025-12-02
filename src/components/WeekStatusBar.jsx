@@ -118,7 +118,7 @@ export default function WeekStatusBar({ teamId, team, previewMode = false }) {
           setCurrentWeek({ week: data.current_week, year: data.season_year });
           // Set live/final status based on global week status
           setIsLive(data.week_status === 'live');
-          setIsFinal(data.week_status === 'final');
+          setIsFinal(data.week_status === 'finalized');
         }
       } catch (error) {
         console.error('Error loading current week:', error);
@@ -158,19 +158,13 @@ export default function WeekStatusBar({ teamId, team, previewMode = false }) {
         .eq('season_year', currentWeek.year)
         .maybeSingle();
 
-      const isFinalized = lineupData?.status === 'completed';
-      setWeekIsFinalized(isFinalized);
+      const teamLineupFinalized = lineupData?.status === 'completed';
+      setWeekIsFinalized(teamLineupFinalized);
 
-      if (previewMode && isFinalized) {
-        const nextWeek = { week: currentWeek.week + 1, year: currentWeek.year };
-        setDisplayWeek(nextWeek);
-        setIsLive(false);
-        setIsFinal(false);
-        setGlobalStats(null);
-        setHasWeeklyLineup(false);
-      } else {
-        setDisplayWeek(currentWeek);
-      }
+      // Always show the current week from nfl_season_config
+      // The advance-week function is responsible for advancing current_week
+      // When finalized, show final results. When scheduled, show projections for lineup building.
+      setDisplayWeek(currentWeek);
     };
 
     checkWeekStatus();

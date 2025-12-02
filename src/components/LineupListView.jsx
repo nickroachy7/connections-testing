@@ -16,7 +16,8 @@ export default function LineupListView({
   isPreviewMode = false,
   onAddToken,
   onSell,
-  isMobile = false
+  isMobile = false,
+  teamStartsNextWeek = false
 }) {
   const positionSlots = [
     { key: 'QB', label: 'Quarterback' },
@@ -42,6 +43,7 @@ export default function LineupListView({
       onAddToken={onAddToken}
       onSell={onSell}
       isMobile={isMobile}
+      teamStartsNextWeek={teamStartsNextWeek}
     />
   );
 }
@@ -55,5 +57,6 @@ LineupListView.propTypes = {
   isPreviewMode: PropTypes.bool,
   onAddToken: PropTypes.func,
   onSell: PropTypes.func,
-  isMobile: PropTypes.bool
+  isMobile: PropTypes.bool,
+  teamStartsNextWeek: PropTypes.bool
 };

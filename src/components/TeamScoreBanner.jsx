@@ -30,9 +30,40 @@ export default function TeamScoreBanner({
   opponentName = null,
   opponentScore = null,
   isInLeague = false,
-  noDataYet = false // True when no scores/projections available yet
+  noDataYet = false, // True when no scores/projections available yet
+  teamStartsNextWeek = null // Week number when team will start playing (for mid-week joins)
 }) {
   const isMobile = size === 'mobile';
+  
+  // If team was created mid-week, show a special "Season starts" message
+  if (teamStartsNextWeek) {
+    return (
+      <div className={`bg-black/20 backdrop-blur-sm rounded-lg border border-white/10 ${
+        isMobile ? 'px-2.5 py-2' : 'px-4 py-3'
+      }`}>
+        <div className="flex flex-col items-center justify-center text-center">
+          <div className={`flex items-center gap-2 ${isMobile ? 'mb-1' : 'mb-2'}`}>
+            <span className={`font-dk-display font-black text-white ${
+              isMobile ? 'text-xs' : 'text-base'
+            }`}>
+              Week {week || '—'}
+            </span>
+            <span className={`font-bold uppercase rounded bg-amber-500/20 text-amber-300 ${
+              isMobile ? 'text-[8px] px-1.5 py-0.5' : 'text-[10px] px-2 py-1'
+            }`}>
+              Waiting
+            </span>
+          </div>
+          <div className={`text-white/70 font-medium ${isMobile ? 'text-[10px]' : 'text-sm'}`}>
+            🏈 Your season starts <span className="text-amber-400 font-bold">Week {teamStartsNextWeek}</span>
+          </div>
+          <div className={`text-white/40 ${isMobile ? 'text-[9px] mt-0.5' : 'text-xs mt-1'}`}>
+            Build your lineup now to be ready!
+          </div>
+        </div>
+      </div>
+    );
+  }
   
   // Determine what to show as the comparison
   const showMedian = winCondition === 'median' || winCondition === 'both';
@@ -155,5 +186,6 @@ TeamScoreBanner.propTypes = {
   opponentName: PropTypes.string,
   opponentScore: PropTypes.number,
   isInLeague: PropTypes.bool,
-  noDataYet: PropTypes.bool
+  noDataYet: PropTypes.bool,
+  teamStartsNextWeek: PropTypes.number
 };

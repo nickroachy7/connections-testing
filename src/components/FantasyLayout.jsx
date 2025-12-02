@@ -1,18 +1,29 @@
 import { useState, useEffect } from 'react';
 import { Outlet, useLoaderData, useLocation, useRevalidator } from 'react-router-dom';
 import { FantasyProvider, useFantasy } from '../contexts/FantasyContext';
+import { usePrevious } from '../hooks/usePrevious';
 import FantasyNavBanner from './FantasyNavBanner';
 
 // Inner component that uses the fantasy context
 function FantasyLayoutInner() {
   const loaderData = useLoaderData();
   const { user, profile, activeTeam } = loaderData;
-  const { lineup, setLineup, projections, liveGameData, currentWeek, inventory, loadInventory, updateInventory } = useFantasy();
+  const { lineup, setLineup, projections, liveGameData, currentWeek, weekStatus, inventory, loadInventory, updateInventory, teamStartsNextWeek } = useFantasy();
   const location = useLocation();
   const revalidator = useRevalidator();
+  const previousWeekStatus = usePrevious(weekStatus);
   
   // Local state for optimistic coin updates
   const [displayCoins, setDisplayCoins] = useState(activeTeam?.coins || 0);
+  
+  // Refresh team data when week status changes to 'finalized'
+  // This updates wins/losses/lives in the banner immediately
+  useEffect(() => {
+    if (previousWeekStatus && previousWeekStatus !== 'finalized' && weekStatus === 'finalized') {
+      console.log('🏆 [FantasyLayout] Week finalized! Refreshing team data...');
+      revalidator.revalidate();
+    }
+  }, [weekStatus, previousWeekStatus, revalidator]);
 
   // Sync displayCoins when activeTeam.coins changes from server
   useEffect(() => {
@@ -66,7 +77,8 @@ function FantasyLayoutInner() {
           loadInventory,
           updateInventory,
           refreshProfile,
-          updateCoins
+          updateCoins,
+          teamStartsNextWeek
         }} />
       </main>
     </div>

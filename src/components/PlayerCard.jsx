@@ -39,7 +39,8 @@ export default function PlayerCard({
   onClick,
   className = '',
   onAddToken,
-  showNameOutside = false // For mobile: render name/matchup outside card
+  showNameOutside = false, // For mobile: render name/matchup outside card
+  teamStartsNextWeek = false // When true, don't show BYE for missing game data
 }) {
   const [isHovered, setIsHovered] = useState(false);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
@@ -148,8 +149,8 @@ export default function PlayerCard({
   // Get game status badge
   const getGameStatusBadge = () => {
     // Only show BYE if liveGameData exists but this player isn't in it
-    // Don't show BYE if liveGameData hasn't loaded yet
-    if (liveGameData && liveGameData.size > 0 && !gameData) {
+    // Don't show BYE if team hasn't started yet (teamStartsNextWeek)
+    if (!teamStartsNextWeek && liveGameData && liveGameData.size > 0 && !gameData) {
       return (
         <div className="absolute top-2 right-2 bg-primary-black-700 text-primary-black-300 px-2 py-1 rounded text-xs font-bold">
           BYE
@@ -615,7 +616,7 @@ export default function PlayerCard({
                   }).replace(' ', '')}
                 </div>
               )
-            ) : !gameData ? (
+            ) : !gameData && !teamStartsNextWeek ? (
               <div className={`${sizeClasses.stats} text-primary-black-500 font-medium leading-tight text-left`}>
                 On Bye Week
               </div>
@@ -653,7 +654,7 @@ export default function PlayerCard({
                 </div>
               )}
             </div>
-          ) : !gameData ? (
+          ) : !gameData && !teamStartsNextWeek ? (
             <div className="mb-2 text-center flex-shrink-0">
               <div className={`${sizeClasses.stats} text-primary-black-500 font-semibold`}>
                 On Bye Week
@@ -697,7 +698,7 @@ export default function PlayerCard({
                 }).replace(' ', '')}
               </div>
             )
-          ) : !gameData ? (
+          ) : !gameData && !teamStartsNextWeek ? (
             <div className="text-[10px] text-primary-black-500 font-medium leading-tight mt-0.5">
               On Bye Week
             </div>
@@ -753,5 +754,6 @@ PlayerCard.propTypes = {
   onClick: PropTypes.func,
   className: PropTypes.string,
   onAddToken: PropTypes.func,
-  showNameOutside: PropTypes.bool
+  showNameOutside: PropTypes.bool,
+  teamStartsNextWeek: PropTypes.bool
 };
