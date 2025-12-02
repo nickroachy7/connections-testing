@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import PropTypes from 'prop-types';
 import Header from './Header';
@@ -7,133 +7,96 @@ function CardReveal({ items, onRevealComplete, isStarterPack = false, tierConfig
   const navigate = useNavigate();
   const { teamId } = useParams();
   const [revealedIndices, setRevealedIndices] = useState(new Set());
-  const [hoveredIndex, setHoveredIndex] = useState(null);
-  const [isShuffling, setIsShuffling] = useState(true);
   const [allRevealed, setAllRevealed] = useState(false);
   const [tierAssignments, setTierAssignments] = useState({});
   const [showTierUI, setShowTierUI] = useState(false);
   const [selectedTier, setSelectedTier] = useState(null);
-  const [centerCardIndex, setCenterCardIndex] = useState(0);
-  const scrollContainerRef = useRef(null);
+  const [shimmerIndex, setShimmerIndex] = useState(-1);
+  const [cardsVisible, setCardsVisible] = useState(false);
 
+  // Show cards (face-down) after a brief delay
   useEffect(() => {
-    // Trigger shuffle animation on mount
     const timer = setTimeout(() => {
-      setIsShuffling(false);
-    }, 100);
+      setCardsVisible(true);
+    }, 300);
     return () => clearTimeout(timer);
   }, []);
 
-  useEffect(() => {
-    // Detect which card is in the center
-    const container = scrollContainerRef.current;
-    if (!container) return;
-
-    const handleScroll = () => {
-      const containerRect = container.getBoundingClientRect();
-      const containerCenter = containerRect.left + containerRect.width / 2;
-      
-      const cards = container.querySelectorAll('[data-card-index]');
-      let closestIndex = 0;
-      let closestDistance = Infinity;
-      
-      cards.forEach((card, idx) => {
-        const cardRect = card.getBoundingClientRect();
-        const cardCenter = cardRect.left + cardRect.width / 2;
-        const distance = Math.abs(containerCenter - cardCenter);
-        
-        if (distance < closestDistance) {
-          closestDistance = distance;
-          closestIndex = idx;
-        }
-      });
-      
-      setCenterCardIndex(closestIndex);
-    };
-
-    container.addEventListener('scroll', handleScroll, { passive: true });
-    
-    // Center first card after animation completes
-    const scrollTimer = setTimeout(() => {
-      const firstCard = container.querySelector('[data-card-index="0"]');
-      if (firstCard) {
-        firstCard.scrollIntoView({ 
-          behavior: 'smooth', 
-          block: 'nearest', 
-          inline: 'center' 
-        });
-        // Trigger initial center detection
-        setTimeout(handleScroll, 100);
+  // Handle clicking a card to reveal it
+  const handleCardReveal = (index) => {
+    if (revealedIndices.has(index)) return; // Already revealed
+    setRevealedIndices(prev => {
+      const newSet = new Set([...prev, index]);
+      // Check if all cards are now revealed
+      if (newSet.size === items.length) {
+        setTimeout(() => {
+          setAllRevealed(true);
+          if (isStarterPack && tierConfig) {
+            setShowTierUI(true);
+          }
+        }, 500); // Brief delay after last card flip
       }
-    }, 200);
-    
-    return () => {
-      container.removeEventListener('scroll', handleScroll);
-      clearTimeout(scrollTimer);
-    };
-  }, [items.length]);
-
-  useEffect(() => {
-    // Check if all cards are revealed
-    if (revealedIndices.size === items.length && items.length > 0) {
-      setAllRevealed(true);
-      // For starter packs, show tier assignment UI after all cards revealed
-      if (isStarterPack && tierConfig) {
-        setShowTierUI(true);
-      }
-    }
-  }, [revealedIndices, items.length, isStarterPack, tierConfig]);
-
-  const handleCardClick = (index) => {
-    if (!revealedIndices.has(index)) {
-      setRevealedIndices(prev => new Set([...prev, index]));
-    }
-  };
-
-  const handleRevealAll = () => {
-    // Reveal all cards with a slight delay between each
-    items.forEach((_, index) => {
-      setTimeout(() => {
-        setRevealedIndices(prev => new Set([...prev, index]));
-      }, index * 100);
+      return newSet;
     });
   };
 
+  // Reveal all remaining cards
+  const handleRevealAll = async () => {
+    const unrevealed = items.map((_, i) => i).filter(i => !revealedIndices.has(i));
+    for (let i = 0; i < unrevealed.length; i++) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+      setRevealedIndices(prev => new Set([...prev, unrevealed[i]]));
+    }
+    setTimeout(() => {
+      setAllRevealed(true);
+      if (isStarterPack && tierConfig) {
+        setShowTierUI(true);
+      }
+    }, 500);
+  };
+
+  useEffect(() => {
+    if (!allRevealed) return;
+    const rareCardIndices = items
+      .map((item, idx) => ({ item, idx }))
+      .filter(({ item }) => {
+        if (item.type !== 'player') return false;
+        const tier = item.data.rarity_tier || getTierFromPercentage(item.data.pull_percentage);
+        return ['legendary', 'epic', 'rare'].includes(tier);
+      })
+      .map(({ idx }) => idx);
+    if (rareCardIndices.length === 0) return;
+    let currentIdx = 0;
+    const shimmerInterval = setInterval(() => {
+      setShimmerIndex(rareCardIndices[currentIdx]);
+      currentIdx = (currentIdx + 1) % rareCardIndices.length;
+      setTimeout(() => setShimmerIndex(-1), 1500);
+    }, 3000);
+    return () => clearInterval(shimmerInterval);
+  }, [allRevealed, items]);
+
   const handleCardClickForTier = (cardIndex) => {
     if (!selectedTier) return;
-    
     const config = tierConfig[selectedTier];
     const currentAssignments = tierAssignments[selectedTier] || [];
-    
-    // Check if this card is already assigned to this tier
     if (currentAssignments.includes(cardIndex)) {
-      // Unassign
       setTierAssignments(prev => ({
         ...prev,
         [selectedTier]: currentAssignments.filter(idx => idx !== cardIndex)
       }));
       return;
     }
-    
-    // Check if tier is full
-    if (currentAssignments.length >= config.slots) {
-      return;
-    }
-    
-    // Check if card is assigned to another tier
+    if (currentAssignments.length >= config.slots) return;
     const existingTier = Object.keys(tierAssignments).find(tier => 
       tierAssignments[tier]?.includes(cardIndex)
     );
-    
     if (existingTier) {
-      // Remove from old tier
       setTierAssignments(prev => ({
         ...prev,
         [existingTier]: prev[existingTier].filter(idx => idx !== cardIndex),
         [selectedTier]: [...currentAssignments, cardIndex]
       }));
     } else {
-      // Add to new tier
       setTierAssignments(prev => ({
         ...prev,
         [selectedTier]: [...currentAssignments, cardIndex]
@@ -143,18 +106,14 @@ function CardReveal({ items, onRevealComplete, isStarterPack = false, tierConfig
 
   const canConfirmTiers = () => {
     if (!tierConfig) return false;
-    
     const totalSlots = Object.values(tierConfig).reduce((sum, config) => sum + config.slots, 0);
     const totalAssigned = Object.values(tierAssignments).flat().length;
-    
     return totalAssigned === totalSlots;
   };
 
   const handleContinue = () => {
     if (showTierUI && tierConfig) {
-      // Convert tier assignments from card indices to player IDs
       const tierAssignmentsByPlayerId = {};
-      
       Object.keys(tierAssignments).forEach(tier => {
         tierAssignments[tier].forEach(cardIndex => {
           const playerItem = items[cardIndex];
@@ -163,75 +122,12 @@ function CardReveal({ items, onRevealComplete, isStarterPack = false, tierConfig
           }
         });
       });
-      
       onRevealComplete?.(tierAssignmentsByPlayerId);
     } else {
       onRevealComplete?.();
     }
   };
 
-  /**
-   * Get glow/border styling based on rarity tier or fallback to pull percentage
-   * Rarity tiers: legendary, epic, rare, common, trash
-   */
-  const getGlowColor = (rarityTier, pullPercentage) => {
-    // Use rarity_tier if available (new system), else fall back to pull_percentage interpretation
-    const tier = rarityTier || (pullPercentage ? getTierFromPercentage(pullPercentage) : null);
-    
-    switch (tier) {
-      case 'legendary':
-        return {
-          border: 'border-yellow-500',
-          shadow: 'hover:shadow-[0_0_15px_rgba(234,179,8,0.5)]',
-          glow: 'rgba(234, 179, 8, 0.2)',
-          textColor: 'text-yellow-400',
-          tierLabel: '✨ LEGENDARY'
-        };
-      case 'epic':
-        return {
-          border: 'border-purple-500',
-          shadow: 'hover:shadow-[0_0_12px_rgba(168,85,247,0.4)]',
-          glow: 'rgba(168, 85, 247, 0.15)',
-          textColor: 'text-purple-400',
-          tierLabel: '💎 EPIC'
-        };
-      case 'rare':
-        return {
-          border: 'border-blue-500',
-          shadow: 'hover:shadow-[0_0_10px_rgba(59,130,246,0.3)]',
-          glow: 'rgba(59, 130, 246, 0.12)',
-          textColor: 'text-blue-400',
-          tierLabel: '🔷 RARE'
-        };
-      case 'common':
-        return {
-          border: 'border-gray-500',
-          shadow: 'hover:shadow-[0_0_8px_rgba(107,114,128,0.3)]',
-          glow: 'rgba(107, 114, 128, 0.15)',
-          textColor: 'text-gray-300',
-          tierLabel: 'COMMON'
-        };
-      case 'trash':
-        return {
-          border: 'border-gray-700',
-          shadow: 'hover:shadow-[0_0_5px_rgba(75,85,99,0.2)]',
-          glow: 'rgba(75, 85, 99, 0.1)',
-          textColor: 'text-gray-500',
-          tierLabel: ''
-        };
-      default:
-        // Token or unknown
-        return {
-          border: 'border-gray-600',
-          shadow: 'hover:shadow-[0_0_8px_rgba(107,114,128,0.3)]',
-          glow: 'rgba(107, 114, 128, 0.15)',
-          textColor: 'text-gray-400',
-          tierLabel: ''
-        };
-    }
-  };
-  
-  // Fallback function for legacy pull_percentage-based tier detection
   const getTierFromPercentage = (pullPercentage) => {
     if (pullPercentage <= 5) return 'legendary';
     if (pullPercentage <= 15) return 'epic';
@@ -240,450 +136,218 @@ function CardReveal({ items, onRevealComplete, isStarterPack = false, tierConfig
     return 'trash';
   };
 
+  const getRarityStyles = (rarityTier, pullPercentage) => {
+    const tier = rarityTier || (pullPercentage ? getTierFromPercentage(pullPercentage) : 'common');
+    switch (tier) {
+      case 'legendary':
+        return {
+          border: 'border-yellow-500',
+          shimmerColor: 'from-yellow-500/0 via-yellow-400/40 to-yellow-500/0',
+          glowColor: 'shadow-yellow-500/30',
+          textColor: 'text-yellow-400',
+          label: 'LEGENDARY',
+          bgGlow: 'bg-gradient-to-br from-yellow-500/10 to-transparent'
+        };
+      case 'epic':
+        return {
+          border: 'border-purple-500',
+          shimmerColor: 'from-purple-500/0 via-purple-400/35 to-purple-500/0',
+          glowColor: 'shadow-purple-500/25',
+          textColor: 'text-purple-400',
+          label: 'EPIC',
+          bgGlow: 'bg-gradient-to-br from-purple-500/10 to-transparent'
+        };
+      case 'rare':
+        return {
+          border: 'border-blue-500',
+          shimmerColor: 'from-blue-500/0 via-blue-400/30 to-blue-500/0',
+          glowColor: 'shadow-blue-500/20',
+          textColor: 'text-blue-400',
+          label: 'RARE',
+          bgGlow: 'bg-gradient-to-br from-blue-500/5 to-transparent'
+        };
+      case 'common':
+        return {
+          border: 'border-gray-600',
+          shimmerColor: 'from-gray-500/0 via-gray-400/15 to-gray-500/0',
+          glowColor: 'shadow-gray-500/10',
+          textColor: 'text-gray-400',
+          label: '',
+          bgGlow: ''
+        };
+      default:
+        return {
+          border: 'border-gray-700',
+          shimmerColor: 'from-gray-600/0 via-gray-500/10 to-gray-600/0',
+          glowColor: '',
+          textColor: 'text-gray-500',
+          label: '',
+          bgGlow: ''
+        };
+    }
+  };
+
+  const getPositionAbbr = (position) => {
+    const map = { 'Quarterback': 'QB', 'Running Back': 'RB', 'Wide Receiver': 'WR', 'Tight End': 'TE', 'Kicker': 'K', 'Defense': 'DEF' };
+    return map[position] || position;
+  };
+
   return (
     <div className="fixed inset-0 bg-primary-black-950 flex flex-col">
-      {/* Header */}
       <Header />
-      
-      {/* Title Section - Minimal padding */}
-      <div className="flex-shrink-0 text-center pt-2 pb-1 px-4">
+      <div className="flex-shrink-0 text-center pt-3 pb-2 px-4">
         <h2 className="text-xl font-bold text-white">
-          {showTierUI ? 'Assign Your Tier Boosts!' : 'Your Pull!'}
+          {showTierUI ? 'Assign Your Tier Boosts!' : 'Pack Opened!'}
         </h2>
-        <p className="text-xs text-primary-black-300 mt-0.5">
-          {showTierUI 
-            ? selectedTier 
-              ? `Click a player for ${selectedTier}`
-              : 'Select tier, then click players'
-            : 'Click cards to reveal'
-          }
+        <p className="text-xs text-primary-black-400 mt-1">
+          {showTierUI ? (selectedTier ? `Tap a player for ${selectedTier.replace('_', ' ')}` : 'Select a tier, then tap players') : (allRevealed ? `You received ${items.length} cards` : 'Tap cards to reveal them')}
         </p>
       </div>
-
-      {/* Cards Container - Horizontal scroll carousel - Fixed position */}
-      <div className="flex-shrink-0 flex items-center overflow-hidden" style={{ height: '60vh', maxHeight: '550px', marginTop: '5vh' }}>
-        <div 
-          ref={scrollContainerRef}
-          className="w-full h-full overflow-x-auto overflow-y-hidden scrollbar-hide snap-x snap-mandatory scroll-smooth"
-          style={{
-            scrollPaddingLeft: 'calc(50% - 110px)',
-            scrollPaddingRight: 'calc(50% - 110px)'
-          }}
-        >
-          <div className="inline-flex items-center gap-8 h-full px-[calc(50vw-110px)]">
+      <div className="flex-1 overflow-y-auto px-2 pb-24">
+        <div className="grid grid-cols-3 gap-2 max-w-lg mx-auto">
           {items.map((item, index) => {
             const isRevealed = revealedIndices.has(index);
-            const isHovered = hoveredIndex === index;
-            // Use rarity_tier if available, fall back to pull_percentage
-            const glowStyle = getGlowColor(item.data.rarity_tier, item.data.pull_percentage);
-            const assignedTier = Object.keys(tierAssignments).find(tier => 
-              tierAssignments[tier]?.includes(index)
-            );
-            const isCenterCard = index === centerCardIndex;
-              
+            const isShimmering = shimmerIndex === index;
+            const rarityStyle = getRarityStyles(item.data.rarity_tier, item.data.pull_percentage);
+            const assignedTier = Object.keys(tierAssignments).find(tier => tierAssignments[tier]?.includes(index));
             return (
               <div
                 key={index}
-                data-card-index={index}
-                className={`
-                  flex-shrink-0 snap-center transition-all duration-500 ease-out flex flex-col items-center gap-2
-                  ${isShuffling ? 'opacity-0 translate-y-[-50px]' : 'opacity-100 translate-y-0'}
-                  ${showTierUI && selectedTier && item.type === 'player' && isRevealed ? 'cursor-pointer' : ''}
-                `}
-                style={{
-                  transitionDelay: isShuffling ? `${index * 80}ms` : '0ms',
-                  transform: isCenterCard ? 'scale(1.2)' : 'scale(1)',
-                  transition: 'transform 0.3s ease-out'
+                className={`relative aspect-[3/4] transition-all duration-500 ease-out ${cardsVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-75 translate-y-4'}`}
+                style={{ 
+                  transitionDelay: cardsVisible ? `${index * 80}ms` : '0ms',
+                  perspective: '1000px'
                 }}
-                onMouseEnter={() => setHoveredIndex(index)}
-                onMouseLeave={() => setHoveredIndex(null)}
+                onClick={() => {
+                  if (!isRevealed && !showTierUI) {
+                    handleCardReveal(index);
+                  } else if (showTierUI && item.type === 'player') {
+                    handleCardClickForTier(index);
+                  }
+                }}
               >
-                {/* Card Flip Container */}
-                <div
-                  className={`
-                    relative transition-transform duration-700 cursor-pointer
-                    ${isRevealed ? '[transform:rotateY(180deg)]' : ''}
-                  `}
+                {/* Card flip container */}
+                <div 
+                  className={`relative w-full h-full transition-transform duration-500 ease-out`}
                   style={{ 
-                    width: '220px',
-                    perspective: '1000px',
                     transformStyle: 'preserve-3d',
-                    aspectRatio: '0.64'
-                  }}
-                  onClick={() => {
-                    if (!isRevealed) {
-                      handleCardClick(index);
-                    } else if (showTierUI && item.type === 'player') {
-                      handleCardClickForTier(index);
-                    }
+                    transform: isRevealed ? 'rotateY(180deg)' : 'rotateY(0deg)'
                   }}
                 >
-                  {/* Card Back */}
-                  <div
-                    className={`
-                      absolute inset-0 rounded-xl border-2 bg-gradient-to-br from-primary-black-800 via-primary-black-750 to-primary-black-800 
-                      flex items-center justify-center overflow-hidden
-                      ${!isRevealed && isHovered ? `scale-105 ${glowStyle.border} ${glowStyle.shadow}` : 'border-primary-black-600'}
-                      transition-all duration-300
-                    `}
+                  {/* Card Back (face-down) */}
+                  <div 
+                    className="absolute inset-0 w-full h-full rounded-xl border-2 border-primary-black-600 bg-gradient-to-br from-primary-black-700 via-primary-black-800 to-primary-black-900 overflow-hidden shadow-md shadow-black/30 cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-transform"
                     style={{ backfaceVisibility: 'hidden' }}
                   >
                     {/* Card back design */}
-                    <div className="text-center p-4">
-                      <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-primary-black-700 border-2 border-primary-black-600 flex items-center justify-center">
-                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary-green-500/20 to-primary-green-700/20"></div>
-                      </div>
-                      <div className="text-primary-black-500 font-bold text-xs uppercase tracking-widest">
-                        YAP Sports
-                      </div>
-                      <div className="text-primary-black-600 text-[10px] mt-1">
-                        Click to reveal
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="w-16 h-16 rounded-full bg-primary-black-600/50 border-2 border-primary-black-500/50 flex items-center justify-center">
+                        <span className="text-2xl">🏈</span>
                       </div>
                     </div>
-
-                    {/* Shimmer effect */}
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-shimmer" 
-                      style={{
-                        backgroundSize: '200% 100%',
-                        animation: 'shimmer 2s infinite'
-                      }}
-                    />
+                    {/* Decorative pattern */}
+                    <div className="absolute inset-2 border border-primary-black-600/30 rounded-lg pointer-events-none" />
+                    <div className="absolute inset-4 border border-primary-black-600/20 rounded-lg pointer-events-none" />
+                    {/* Tap to reveal hint */}
+                    <div className="absolute bottom-2 left-0 right-0 text-center">
+                      <span className="text-[10px] text-primary-black-400 font-medium">Tap to reveal</span>
+                    </div>
                   </div>
 
-                  {/* Card Front */}
-                  <div
-                    className={`
-                      absolute inset-0 rounded-xl transition-all duration-300
-                      ${isRevealed && isHovered ? `scale-105 ${glowStyle.shadow}` : ''}
-                    `}
+                  {/* Card Front (face-up) */}
+                  <div 
+                    className="absolute inset-0 w-full h-full"
                     style={{ 
                       backfaceVisibility: 'hidden',
                       transform: 'rotateY(180deg)'
                     }}
                   >
                     {item.type === 'player' ? (
-                      // Player Card
-                      <div className={`
-                        relative rounded-xl border-2 ${isHovered && isRevealed ? glowStyle.border : 'border-primary-black-600'} 
-                        bg-primary-black-800/90 w-full h-full overflow-hidden
-                        transition-all duration-300
-                        ${isHovered && isRevealed ? glowStyle.shadow : ''}
-                      `}>
-                        {/* Subtle Glow Effect on Hover */}
-                        {isHovered && isRevealed && (
-                          <div 
-                            className="absolute inset-0 opacity-10 pointer-events-none"
-                            style={{ 
-                              background: `radial-gradient(circle at center, ${glowStyle.glow} 0%, transparent 70%)`
-                            }}
-                          />
-                        )}
-
-                        {/* Tier Badge (shows during tier assignment) */}
-                        {showTierUI && assignedTier && (
-                          <div className="absolute top-2 right-2 z-10">
-                            <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-primary-green-500 text-white border border-primary-green-400">
-                              {assignedTier}
-                            </span>
-                          </div>
-                        )}
-
-                        {/* Position Badge */}
+                      <div className={`relative w-full h-full rounded-xl border-2 ${rarityStyle.border} bg-primary-black-800/95 overflow-hidden shadow-md shadow-black/30 transition-all duration-300 ${isShimmering ? `shadow-lg ${rarityStyle.glowColor}` : ''} ${showTierUI && !assignedTier ? 'cursor-pointer hover:scale-[1.02] active:scale-[0.98]' : ''} ${assignedTier ? 'ring-2 ring-primary-green-500 ring-offset-2 ring-offset-primary-black-950' : ''}`}>
+                        {rarityStyle.bgGlow && <div className={`absolute inset-0 ${rarityStyle.bgGlow} pointer-events-none`} />}
+                        {isShimmering && <div className={`absolute inset-0 bg-gradient-to-r ${rarityStyle.shimmerColor} pointer-events-none z-20`} style={{ animation: 'shimmerSlide 1.5s ease-in-out' }} />}
                         <div className="absolute top-2 left-2 z-10">
-                          <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-black/60 backdrop-blur-sm text-primary-black-300 border border-primary-black-600">
-                            {item.data.position === 'Quarterback' ? 'QB' :
-                             item.data.position === 'Running Back' ? 'RB' :
-                             item.data.position === 'Wide Receiver' ? 'WR' :
-                             item.data.position === 'Tight End' ? 'TE' :
-                             item.data.position === 'Kicker' ? 'K' :
-                             item.data.position === 'Defense' ? 'DEF' : item.data.position}
-                          </span>
+                          <span className="px-1.5 py-0.5 bg-primary-black-700/90 text-primary-black-200 rounded text-[10px] font-semibold backdrop-blur-sm">{getPositionAbbr(item.data.position)}</span>
                         </div>
-
-                        {/* Card Content */}
-                        <div className="relative h-full flex flex-col p-3 pt-8">
+                        {assignedTier && <div className="absolute top-2 right-2 z-10"><span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-primary-green-500 text-white">{assignedTier.replace('_', ' ')}</span></div>}
+                        {!showTierUI && rarityStyle.label && <div className="absolute top-2 right-2 z-10"><span className={`text-sm ${rarityStyle.textColor}`}>{item.data.rarity_tier === 'legendary' ? '✨' : item.data.rarity_tier === 'epic' ? '💎' : item.data.rarity_tier === 'rare' ? '🔷' : ''}</span></div>}
+                        <div className="relative h-full flex flex-col p-2 pt-8">
                           <div className="flex-grow"></div>
-                          
-                          {/* Player Info */}
                           <div className="mt-auto">
-                            <div className="text-center mb-2">
-                              <div className="text-sm font-bold text-white leading-tight mb-1">
-                                {item.data.player_name}
-                              </div>
-                              <div className="text-xs text-primary-black-400 font-semibold">
-                                {item.data.team || 'NFL'}
-                              </div>
-                            </div>
-
-                            {/* Tier Badge */}
-                            <div className="flex items-center justify-center gap-1.5">
-                              <span className="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase bg-gray-700 text-white">
-                                {item.data.tier || 'B'}
-                              </span>
-                              <span className="text-[10px] text-primary-black-400 font-medium">
-                                Level 1
-                              </span>
-                            </div>
+                            <div className="text-xs font-bold text-primary-black-50 leading-tight">{(() => { const name = item.data.player_name; const parts = name.split(' '); if (parts.length >= 2) { return `${parts[0][0]}. ${parts.slice(1).join(' ')}`; } return name; })()}</div>
+                            <div className="text-[10px] text-primary-black-400 font-medium leading-tight mt-0.5">{item.data.team || 'NFL'}</div>
                           </div>
                         </div>
                       </div>
                     ) : (
-                      // Token Card
-                      <div className={`
-                        relative rounded-xl border-2 ${isHovered && isRevealed ? glowStyle.border : 'border-primary-black-600'} 
-                        bg-primary-black-800/90 w-full h-full overflow-hidden
-                        transition-all duration-300
-                        ${isHovered && isRevealed ? glowStyle.shadow : ''}
-                      `}>
-                        {/* Token Badge */}
-                        <div className="absolute top-2 left-2 z-10">
-                          <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-primary-green-500/20 backdrop-blur-sm text-primary-green-400 border border-primary-green-500">
-                            TOKEN
-                          </span>
-                        </div>
-
-                        {/* Card Content */}
-                        <div className="relative h-full flex flex-col p-3 pt-8">
-                          {/* Token Icon */}
+                      <div className="relative w-full h-full rounded-xl border-2 border-primary-green-500/50 bg-primary-black-800/95 overflow-hidden shadow-md shadow-black/30">
+                        <div className="absolute top-2 left-2 z-10"><span className="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase bg-primary-green-500/20 text-primary-green-400">TOKEN</span></div>
+                        <div className="relative h-full flex flex-col p-2 pt-8">
                           <div className="flex-grow flex items-center justify-center">
-                            <div className="w-14 h-14 flex items-center justify-center bg-primary-green-500/20 border-2 border-primary-green-500/50 rounded-full shadow-lg">
-                              <span className="text-2xl">🎯</span>
-                            </div>
+                            <div className="w-10 h-10 flex items-center justify-center bg-primary-green-500/20 border-2 border-primary-green-500/50 rounded-full"><span className="text-xl">{item.data.emoji || '🎯'}</span></div>
                           </div>
-                          
-                          {/* Token Info */}
                           <div className="mt-auto">
-                            <div className="text-center mb-2">
-                              <div className="text-sm font-bold text-white leading-tight mb-1">
-                                {item.data.token_name}
-                              </div>
-                            </div>
-
-                            {/* Multiplier */}
-                            <div className="flex items-center justify-center gap-1.5 mb-1">
-                              <span className="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase bg-primary-green-700 text-white">
-                                {item.data.multiplier}x
-                              </span>
-                              <span className="text-[10px] text-primary-black-400 font-medium">
-                                Multiplier
-                              </span>
-                            </div>
-
-                            {/* Condition */}
-                            {item.data.condition?.stat && (
-                              <div className="text-center text-[9px] text-primary-black-400 font-medium">
-                                {item.data.condition.stat.replace(/_/g, ' ').toUpperCase()} {item.data.condition.operator} {item.data.condition.value}
-                              </div>
-                            )}
+                            <div className="text-xs font-bold text-primary-black-50 leading-tight">{item.data.token_name}</div>
+                            <div className="text-[10px] text-primary-green-400 font-medium leading-tight mt-0.5">+{item.data.bonus_points || item.data.multiplier || '?'} pts</div>
                           </div>
                         </div>
                       </div>
                     )}
                   </div>
                 </div>
-
-                {/* Rarity Info (appears after reveal) - Shows tier label and pull percentage */}
-                {isRevealed && item.type === 'player' ? (
-                  <div className="text-center animate-fade-in">
-                    {glowStyle.tierLabel && (
-                      <div className={`text-xs font-bold ${glowStyle.textColor} mb-0.5`}>
-                        {glowStyle.tierLabel}
-                      </div>
-                    )}
-                    {item.data.pull_percentage && (
-                      <div className={`text-[10px] ${glowStyle.textColor} opacity-75`}>
-                        {item.data.pull_percentage.toFixed(1)}%
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="h-5" /> 
-                )}
+                {item.type === 'player' && rarityStyle.label && !showTierUI && isRevealed && <div className={`absolute -bottom-4 left-0 right-0 text-center text-[9px] font-bold ${rarityStyle.textColor}`}>{rarityStyle.label}</div>}
               </div>
             );
           })}
-          </div>
         </div>
       </div>
-
-      {/* Pack Stats Section */}
-      {!showTierUI && (
-        <div className="flex-shrink-0 py-4 px-4">
-          <div className="max-w-md mx-auto">
-            {/* Progress Bar */}
-            <div className="mb-3">
-              <div className="flex justify-between items-center mb-1.5">
-                <span className="text-sm font-medium text-primary-black-300">Cards Revealed</span>
-                <span className="text-sm font-bold text-primary-green-400">{revealedIndices.size} / {items.length}</span>
-              </div>
-              <div className="h-2 bg-primary-black-800 rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-gradient-to-r from-primary-green-500 to-primary-green-400 rounded-full transition-all duration-500 ease-out"
-                  style={{ width: `${(revealedIndices.size / items.length) * 100}%` }}
-                />
-              </div>
-            </div>
-            
-            {/* Rarity Distribution - Uses rarity_tier if available, falls back to pull_percentage */}
-            {revealedIndices.size > 0 && (
-              <div className="flex gap-3 justify-center text-xs">
-                {(() => {
-                  const rarities = { legendary: 0, epic: 0, rare: 0, common: 0 };
-                  Array.from(revealedIndices).forEach(index => {
-                    const item = items[index];
-                    if (item?.type === 'player') {
-                      // Use rarity_tier if available (new system), else fallback to percentage-based detection
-                      let tier = item.data?.rarity_tier;
-                      if (!tier && item.data?.pull_percentage) {
-                        const pct = item.data.pull_percentage;
-                        if (pct <= 5) tier = 'legendary';
-                        else if (pct <= 15) tier = 'epic';
-                        else if (pct <= 35) tier = 'rare';
-                        else tier = 'common';
-                      }
-                      if (tier && tier !== 'trash' && rarities[tier] !== undefined) {
-                        rarities[tier]++;
-                      }
-                    }
-                  });
-                  return (
-                    <>
-                      {rarities.legendary > 0 && (
-                        <div className="flex items-center gap-1">
-                          <div className="w-2.5 h-2.5 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500"/>
-                          <span className="text-primary-black-300">Legendary: {rarities.legendary}</span>
-                        </div>
-                      )}
-                      {rarities.epic > 0 && (
-                        <div className="flex items-center gap-1">
-                          <div className="w-2.5 h-2.5 rounded-full bg-gradient-to-br from-purple-400 to-purple-600"/>
-                          <span className="text-primary-black-300">Epic: {rarities.epic}</span>
-                        </div>
-                      )}
-                      {rarities.rare > 0 && (
-                        <div className="flex items-center gap-1">
-                          <div className="w-2.5 h-2.5 rounded-full bg-gradient-to-br from-blue-400 to-blue-600"/>
-                          <span className="text-primary-black-300">Rare: {rarities.rare}</span>
-                        </div>
-                      )}
-                    </>
-                  );
-                })()}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Bottom Buttons - Fixed position with safe area support for mobile */}
-      <div className="fixed bottom-0 left-0 right-0 text-center py-3 pb-safe bg-primary-black-950 border-t border-primary-black-800 z-10">
-        <div className="pb-safe-offset-3">
-          {!allRevealed && (
-            <button
-              onClick={handleRevealAll}
-              className="px-6 py-2.5 bg-primary-green-500 hover:bg-primary-green-400 text-primary-black-950 font-bold rounded-lg transition-all hover:scale-105 text-sm shadow-lg"
-            >
-              Reveal All
-            </button>
-          )}
-          {allRevealed && !showTierUI && (
-            <button
-              onClick={handleContinue}
-              className="px-6 py-2.5 bg-primary-green-500 hover:bg-primary-green-400 text-primary-black-950 font-bold rounded-lg transition-all hover:scale-105 text-sm shadow-lg"
-            >
-              Continue
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Tier Assignment UI - Fixed position with safe area support */}
-      {showTierUI && tierConfig && (
-        <div className="fixed bottom-0 left-0 right-0 mt-1 space-y-1.5 flex-shrink-0 bg-primary-black-950 border-t border-primary-black-800 py-3 pb-safe z-10">
-          {/* Tier Selection Buttons */}
-          <div className="flex gap-1.5 justify-center flex-wrap">
-            {Object.keys(tierConfig).map(tier => {
-              const config = tierConfig[tier];
-              const assigned = tierAssignments[tier] || [];
-              const isFull = assigned.length >= config.slots;
-              
-              return (
-                <button
-                  key={tier}
-                  onClick={() => setSelectedTier(selectedTier === tier ? null : tier)}
-                  disabled={isFull}
-                  className={`
-                    px-3 py-2 rounded-lg font-bold text-xs transition-all
-                    ${selectedTier === tier
-                      ? 'bg-primary-green-500 text-white scale-105 shadow-glow-green'
-                      : isFull
-                      ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
-                      : 'bg-primary-black-700 hover:bg-primary-black-600 text-white hover:scale-105'
-                    }
-                  `}
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="text-xl">{config.icon}</span>
-                    <div className="text-left">
-                      <div>{tier} Tier</div>
-                      <div className="text-[10px] text-primary-black-400">
-                        {assigned.length}/{config.slots} assigned
+      <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-t from-primary-black-950 via-primary-black-950 to-transparent pt-8 pb-6 px-4">
+        {showTierUI && tierConfig && (
+          <div className="mb-4 space-y-3">
+            <div className="flex gap-2 justify-center flex-wrap">
+              {Object.keys(tierConfig).map(tier => {
+                const config = tierConfig[tier];
+                const assigned = tierAssignments[tier] || [];
+                const isFull = assigned.length >= config.slots;
+                return (
+                  <button key={tier} onClick={() => setSelectedTier(selectedTier === tier ? null : tier)} disabled={isFull} className={`px-3 py-2 rounded-lg font-bold text-xs transition-all ${selectedTier === tier ? 'bg-primary-green-500 text-white scale-105' : isFull ? 'bg-gray-700 text-gray-500 cursor-not-allowed' : 'bg-primary-black-700 hover:bg-primary-black-600 text-white'}`}>
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg">{config.icon}</span>
+                      <div className="text-left">
+                        <div className="capitalize">{tier.replace('_', ' ')}</div>
+                        <div className="text-[10px] opacity-70">{assigned.length}/{config.slots}</div>
                       </div>
                     </div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Progress Bar */}
-          <div className="max-w-md mx-auto">
-            <div className="h-1.5 bg-primary-black-700 rounded-full overflow-hidden">
-              <div 
-                className="h-full bg-primary-green-500 transition-all duration-300"
-                style={{
-                  width: `${(Object.values(tierAssignments).flat().length / 
-                           Object.values(tierConfig).reduce((sum, t) => sum + t.slots, 0)) * 100}%`
-                }}
-              />
+                  </button>
+                );
+              })}
             </div>
           </div>
-
-          {/* Confirm Button */}
-          <div className="text-center">
-            <button
-              onClick={handleContinue}
-              disabled={!canConfirmTiers()}
-              className={`
-                px-6 py-2.5 rounded-lg font-bold text-base transition-all
-                ${canConfirmTiers()
-                  ? 'bg-primary-green-500 hover:bg-primary-green-400 text-primary-black-950 hover:scale-105 shadow-glow-green'
-                  : 'bg-gray-700 text-gray-500 cursor-not-allowed'
-                }
-              `}
+        )}
+        <div className="text-center space-y-3">
+          {/* Reveal All button - shown when cards are visible but not all revealed */}
+          {cardsVisible && !allRevealed && revealedIndices.size < items.length && (
+            <button 
+              onClick={handleRevealAll}
+              className="px-6 py-2 rounded-lg font-semibold text-sm bg-primary-black-700 hover:bg-primary-black-600 text-primary-black-200 transition-all"
             >
-              {canConfirmTiers() ? 'Confirm Tiers' : 'Assign All Players'}
+              Reveal All ({items.length - revealedIndices.size} remaining)
             </button>
-          </div>
+          )}
+          {allRevealed && (
+            <button onClick={handleContinue} disabled={showTierUI && !canConfirmTiers()} className={`px-8 py-3 rounded-xl font-bold text-base transition-all ${(!showTierUI || canConfirmTiers()) ? 'bg-primary-green-500 hover:bg-primary-green-400 text-primary-black-950 hover:scale-105 shadow-lg' : 'bg-gray-700 text-gray-500 cursor-not-allowed'}`}>
+              {showTierUI ? (canConfirmTiers() ? 'Confirm & Continue' : 'Assign All Players') : 'Continue'}
+            </button>
+          )}
         </div>
-      )}
-
-      {/* Add shimmer animation styles */}
-      <style jsx>{`
-        @keyframes shimmer {
-          0% { background-position: -200% 0; }
-          100% { background-position: 200% 0; }
-        }
-      `}</style>
+      </div>
+      <style jsx>{`@keyframes shimmerSlide { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }`}</style>
     </div>
   );
 }
 
 CardReveal.propTypes = {
-  items: PropTypes.arrayOf(PropTypes.shape({
-    type: PropTypes.string.isRequired,
-    data: PropTypes.object.isRequired,
-  })).isRequired,
+  items: PropTypes.arrayOf(PropTypes.shape({ type: PropTypes.string.isRequired, data: PropTypes.object.isRequired })).isRequired,
   onRevealComplete: PropTypes.func,
   isStarterPack: PropTypes.bool,
   tierConfig: PropTypes.object,
