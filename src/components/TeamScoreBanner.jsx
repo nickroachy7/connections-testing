@@ -4,7 +4,12 @@ import PropTypes from 'prop-types';
  * TeamScoreBanner - Compact week status and score display
  * 
  * Shows current week, status badge, user score, win percentage,
- * progress bar, and median comparison in a compact 2-row layout.
+ * progress bar, and comparison target (median or opponent).
+ * 
+ * Adapts to contest type:
+ * - median: Shows "vs {median_score}"
+ * - h2h: Shows "vs {opponent_name}" (future)
+ * - both: Shows both
  * 
  * Used by:
  * - TeamMatchupBanner (main page banner)
@@ -20,9 +25,37 @@ export default function TeamScoreBanner({
   userPercentage,
   medianPercentage,
   isAboveMedian,
-  size = 'mobile' // 'mobile' | 'desktop'
+  size = 'mobile', // 'mobile' | 'desktop'
+  winCondition = 'median', // 'median' | 'h2h' | 'both'
+  opponentName = null,
+  opponentScore = null,
+  isInLeague = false,
+  noDataYet = false // True when no scores/projections available yet
 }) {
   const isMobile = size === 'mobile';
+  
+  // Determine what to show as the comparison
+  const showMedian = winCondition === 'median' || winCondition === 'both';
+  const showOpponent = (winCondition === 'h2h' || winCondition === 'both') && opponentName;
+  
+  // Format the comparison text
+  const getComparisonText = () => {
+    if (noDataYet) {
+      return 'vs --';
+    }
+    if (showOpponent) {
+      return `vs ${opponentScore?.toFixed(1) || '--'}`;
+    }
+    return `vs ${medianScore.toFixed(1)}`;
+  };
+  
+  // Label for the comparison (shown on desktop)
+  const getComparisonLabel = () => {
+    if (noDataYet) return 'No data yet';
+    if (showOpponent) return opponentName;
+    if (isInLeague) return 'League Median';
+    return 'Median';
+  };
   
   return (
     <div className={`bg-black/20 backdrop-blur-sm rounded-lg border border-white/10 ${
@@ -59,7 +92,7 @@ export default function TeamScoreBanner({
         </div>
       </div>
 
-      {/* Row 2: Win % | Progress Bar | vs Median */}
+      {/* Row 2: Win % | Progress Bar | vs Target */}
       <div className="flex items-center gap-2">
         {/* Win Percentage */}
         <span className={`text-white/60 font-medium whitespace-nowrap ${
@@ -72,14 +105,19 @@ export default function TeamScoreBanner({
         <div className={`relative bg-white/10 rounded-full overflow-hidden flex-1 ${
           isMobile ? 'h-1' : 'h-2.5'
         }`}>
-          {/* Median marker */}
-          <div 
-            className="absolute top-0 bottom-0 w-0.5 bg-yellow-400 z-10" 
-            style={{ left: `${medianPercentage}%` }}
-          />
+          {/* Target marker (median or opponent score) */}
+          {!noDataYet && (
+            <div 
+              className={`absolute top-0 bottom-0 w-0.5 z-10 ${
+                showOpponent ? 'bg-purple-400' : 'bg-yellow-400'
+              }`}
+              style={{ left: `${medianPercentage}%` }}
+            />
+          )}
           {/* Score bar */}
           <div
             className={`absolute top-0 bottom-0 left-0 transition-all duration-500 rounded-full ${
+              noDataYet ? 'bg-gradient-to-r from-gray-500 to-gray-400' :
               isAboveMedian 
                 ? 'bg-gradient-to-r from-green-500 to-green-400'
                 : 'bg-gradient-to-r from-red-500 to-red-400'
@@ -88,11 +126,14 @@ export default function TeamScoreBanner({
           />
         </div>
         
-        {/* Median Score */}
-        <span className={`text-yellow-400/90 font-medium whitespace-nowrap ${
+        {/* Comparison Score */}
+        <span className={`font-medium whitespace-nowrap ${
           isMobile ? 'text-[9px]' : 'text-xs'
+        } ${
+          noDataYet ? 'text-white/40' :
+          showOpponent ? 'text-purple-400/90' : 'text-yellow-400/90'
         }`}>
-          vs {medianScore.toFixed(1)}
+          {getComparisonText()}
         </span>
       </div>
     </div>
@@ -109,5 +150,10 @@ TeamScoreBanner.propTypes = {
   userPercentage: PropTypes.number.isRequired,
   medianPercentage: PropTypes.number.isRequired,
   isAboveMedian: PropTypes.bool.isRequired,
-  size: PropTypes.oneOf(['mobile', 'desktop'])
+  size: PropTypes.oneOf(['mobile', 'desktop']),
+  winCondition: PropTypes.oneOf(['median', 'h2h', 'both']),
+  opponentName: PropTypes.string,
+  opponentScore: PropTypes.number,
+  isInLeague: PropTypes.bool,
+  noDataYet: PropTypes.bool
 };

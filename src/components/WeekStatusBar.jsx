@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { supabase } from '../services/supabase';
 import { useFantasy } from '../contexts/FantasyContext';
-import { useProjectedMedian } from '../hooks/fantasy';
+import { useProjectedMedian, useLeagueContext } from '../hooks/fantasy';
 
 /**
  * WeekStatusBar Component
@@ -15,6 +15,18 @@ import { useProjectedMedian } from '../hooks/fantasy';
  */
 export default function WeekStatusBar({ teamId, team, previewMode = false }) {
   const { lineupStats, lineup } = useFantasy();
+  
+  // League context - determines if we show league-specific stats
+  const { 
+    isInLeague, 
+    leagueName,
+    leagueContext,
+    calculateLeagueMedian,
+    calculateProjectedLeagueMedian
+  } = useLeagueContext(teamId);
+  
+  // League-specific median state
+  const [leagueMedian, setLeagueMedian] = useState(null);
   
   const [currentWeek, setCurrentWeek] = useState(null);
   const [displayWeek, setDisplayWeek] = useState(null);
@@ -45,6 +57,28 @@ export default function WeekStatusBar({ teamId, team, previewMode = false }) {
   const getCurrentTheme = () => themeOptions.find(t => t.id === bannerTheme) || themeOptions[0];
   
   const projectedPoints = lineupStats?.projectedPoints || 0;
+  
+  // Calculate league median when in a league
+  useEffect(() => {
+    if (!isInLeague || !displayWeek) {
+      setLeagueMedian(null);
+      return;
+    }
+    
+    const fetchLeagueMedian = async () => {
+      if (isLive || isFinal) {
+        const result = await calculateLeagueMedian(displayWeek.week, displayWeek.year);
+        if (result) setLeagueMedian(result.median);
+      } else {
+        const result = await calculateProjectedLeagueMedian();
+        if (result) setLeagueMedian(result.median);
+      }
+    };
+    
+    fetchLeagueMedian();
+    const interval = isLive ? setInterval(fetchLeagueMedian, 30000) : null;
+    return () => interval && clearInterval(interval);
+  }, [isInLeague, displayWeek, isLive, isFinal, calculateLeagueMedian, calculateProjectedLeagueMedian]);
 
   // Load banner theme from localStorage
   useEffect(() => {
@@ -253,7 +287,12 @@ export default function WeekStatusBar({ teamId, team, previewMode = false }) {
   // Otherwise use live/final points from database when available
   const userScore = (isLive || isFinal) && hasWeeklyLineup ? livePoints : projectedPoints;
   const hasGlobalStats = globalStats && globalStats.total_active_teams > 0;
-  const medianScore = simulatedSeasonId && simulatedMedian
+  
+  // LEAGUE-AWARE MEDIAN:
+  // If team is in a private league, use league-specific median
+  const medianScore = isInLeague && leagueMedian != null
+    ? leagueMedian
+    : simulatedSeasonId && simulatedMedian
     ? parseFloat(simulatedMedian)
     : (hasGlobalStats ? globalStats.median_score || 0 : (totalTeams > 0 ? projectedMedian : userScore));
   

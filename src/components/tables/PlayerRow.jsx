@@ -206,7 +206,7 @@ const PlayerRow = ({
               </span>
             )}
             
-            {!isBye && gameStatus === 'final' && gameData && (
+            {!isBye && gameStatus === 'final' && gameData && gameData.homeScore !== undefined && gameData.awayScore !== undefined && (
               <span className="text-primary-black-400">
                 {(() => {
                   const playerScore = gameData.isHome ? gameData.homeScore : gameData.awayScore;
@@ -413,7 +413,7 @@ const MobileRowContent = ({
               return opponent ? `${gameData.isHome ? 'vs' : '@'} ${opponent}` : '';
             })()}
           </span>
-        ) : gameStatus === 'final' && gameData ? (
+        ) : gameStatus === 'final' && gameData && gameData.homeScore !== undefined && gameData.awayScore !== undefined ? (
           <span className="text-primary-black-400">
             {(() => {
               const playerScore = gameData.isHome ? gameData.homeScore : gameData.awayScore;
