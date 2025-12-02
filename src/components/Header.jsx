@@ -71,8 +71,8 @@ const Header = () => {
     return null
   }
 
-  // Check if on a team page
-  const isOnTeamPage = location.pathname.includes('/teams/');
+  // Check if NOT on fantasy home page (show back button on all other pages)
+  const showBackButton = location.pathname !== '/fantasy';
 
   return (
     <>
@@ -80,11 +80,11 @@ const Header = () => {
       <aside className="hidden md:flex fixed left-0 top-0 h-screen w-64 bg-primary-black-900/95 backdrop-blur-md border-r-2 border-primary-black-700 flex-col z-50 shadow-[4px_0_24px_rgba(0,0,0,0.5)]">
         {/* Logo Section */}
         <div className="p-6 border-b border-primary-black-700">
-          <div className="flex items-center justify-center gap-2">
-            {isOnTeamPage && (
+          <div className="flex items-center justify-center gap-2 relative">
+            {showBackButton && (
               <button
                 onClick={() => navigate('/fantasy')}
-                className="p-1.5 rounded-md bg-primary-black-800/50 hover:bg-primary-black-700 transition-all group"
+                className="absolute left-0 p-1.5 rounded-md bg-primary-black-800/50 hover:bg-primary-black-700 transition-all group"
                 title="Back to Fantasy Home"
               >
                 <svg className="w-4 h-4 text-primary-black-400 group-hover:text-primary-black-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -93,7 +93,7 @@ const Header = () => {
               </button>
             )}
             <Link 
-              to="/" 
+              to="/fantasy" 
               className="flex items-center justify-center group transition-all duration-200 hover:scale-105"
             >
               <img 
@@ -201,33 +201,35 @@ const Header = () => {
       </aside>
 
       {/* Mobile Header */}
-      <header className="md:hidden bg-primary-black-900/95 backdrop-blur-md border-b border-primary-black-700 sticky top-0 z-[110]">
+      <header className="md:hidden bg-primary-black-900/95 backdrop-blur-md sticky top-0 z-[110]">
         <div className="px-4 py-3">
-          <div className="flex items-center justify-between">
-            {/* Logo - Left */}
-            <div className="flex items-center gap-2 z-[111]">
-              {isOnTeamPage && (
+          <div className="flex items-center justify-between relative">
+            {/* Back Button - Left */}
+            <div className="w-10 z-[111]">
+              {showBackButton && (
                 <button
                   onClick={() => navigate('/fantasy')}
                   className="p-1.5 rounded-md bg-primary-black-800/50 hover:bg-primary-black-700 transition-all active:scale-95"
                   title="Back to Fantasy Home"
                 >
-                  <svg className="w-4 h-4 text-primary-black-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 text-primary-black-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                   </svg>
                 </button>
               )}
-              <Link 
-                to="/" 
-                className="flex items-center"
-              >
-                <img 
-                  src="/yapsports-logo.webp" 
-                  alt="YapSports" 
-                  className="h-8 w-auto"
-                />
-              </Link>
             </div>
+
+            {/* Logo - Center */}
+            <Link 
+              to="/fantasy" 
+              className="flex items-center absolute left-1/2 transform -translate-x-1/2"
+            >
+              <img 
+                src="/yapsports-logo.webp" 
+                alt="YapSports" 
+                className="h-8 w-auto"
+              />
+            </Link>
 
             {/* User Menu - Right */}
             <button

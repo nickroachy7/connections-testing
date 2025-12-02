@@ -5,7 +5,6 @@ import { supabase } from '../services/supabase';
 import { useFantasy } from '../contexts/FantasyContext';
 import { useProjectedMedian, useLeagueContext, usePublicContestContext } from '../hooks/fantasy';
 import { usePrevious } from '../hooks/usePrevious';
-import TeamCustomizationModal from './TeamCustomizationModal';
 import TeamScoreBanner from './TeamScoreBanner';
 
 const BANNER_THEMES = [
@@ -128,7 +127,6 @@ export default function TeamMatchupBanner({
   const [h2hOpponentScore, setH2hOpponentScore] = useState(null);
   
   // Team customization state
-  const [showCustomization, setShowCustomization] = useState(false);
   const [teamImage, setTeamImage] = useState(null);
   const [bannerTheme, setBannerTheme] = useState('forest');
   const [localTeamName, setLocalTeamName] = useState(teamName);
@@ -754,8 +752,9 @@ export default function TeamMatchupBanner({
 
   return (
     <>
-      <div className={`${getCurrentTheme().bg} transition-all duration-300 border-b-2 border-primary-black-700/50 shadow-lg shadow-black/40`}>
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-3 md:py-4">
+      <div className="px-3 sm:px-4 pt-3 pb-2">
+        <div className={`${getCurrentTheme().bg} transition-all duration-300 rounded-2xl shadow-lg shadow-black/40 overflow-hidden`}>
+          <div className="px-4 sm:px-5 py-4">
           
           {/* League Badge - Show if in a private league */}
           {isInLeague && leagueName && (
@@ -775,11 +774,11 @@ export default function TeamMatchupBanner({
           <div className="md:hidden space-y-2">
             {/* Team Identity Row */}
             <div className="flex items-center gap-3 relative">
-              {/* Customize Button - Top Right */}
+              {/* Team Info Button - Top Right */}
               <button
-                onClick={() => setShowCustomization(true)}
+                onClick={() => navigate(`/teams/${teamId}/info`)}
                 className="absolute top-0 right-0 p-2 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 transition-all z-10"
-                title="Customize team"
+                title="Team Info & Settings"
               >
                 <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
@@ -967,17 +966,17 @@ export default function TeamMatchupBanner({
                 />
               </div>
 
-              {/* Right: Week Info + Customize */}
+              {/* Right: Week Info + Team Settings */}
               <div className="flex flex-col items-end gap-2">
                 <button
-                  onClick={() => setShowCustomization(true)}
+                  onClick={() => navigate(`/teams/${teamId}/info`)}
                   className="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 transition-all flex items-center gap-2 group"
                 >
                   <svg className="w-4 h-4 text-white group-hover:rotate-45 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
-                  <span className="text-sm font-medium text-white">Customize</span>
+                  <span className="text-sm font-medium text-white">Settings</span>
                 </button>
 
                 <div className="text-right">
@@ -993,21 +992,9 @@ export default function TeamMatchupBanner({
               </div>
             </div>
           </div>
+          </div>
         </div>
       </div>
-
-      {/* Customization Modal */}
-      <TeamCustomizationModal
-        isOpen={showCustomization}
-        onClose={() => setShowCustomization(false)}
-        teamId={teamId}
-        teamName={localTeamName}
-        teamImage={teamImage}
-        bannerTheme={bannerTheme}
-        onTeamNameUpdate={setLocalTeamName}
-        onTeamImageUpdate={setTeamImage}
-        onBannerThemeUpdate={setBannerTheme}
-      />
     </>
   );
 }

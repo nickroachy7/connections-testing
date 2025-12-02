@@ -15,13 +15,9 @@ import {
 } from './utils/loaders'
 
 // Lazy load pages for better performance
-const Home = lazy(() => import('./pages/Home'))
-const Dashboard = lazy(() => import('./pages/Dashboard'))
 const Players = lazy(() => import('./pages/Players'))
 const PlayerProfile = lazy(() => import('./pages/PlayerProfile'))
 const Games = lazy(() => import('./pages/Games'))
-const Teams = lazy(() => import('./pages/Teams'))
-const TeamProfile = lazy(() => import('./pages/TeamProfile'))
 const Standings = lazy(() => import('./pages/Standings'))
 const Login = lazy(() => import('./pages/Login'))
 const Signup = lazy(() => import('./pages/Signup'))
@@ -86,7 +82,9 @@ const router = createBrowserRouter([
     children: [
       {
         path: '/',
-        element: <Home />
+        loader: async () => {
+          return redirect('/fantasy');
+        }
       },
       {
         path: '/login',
@@ -233,14 +231,6 @@ const router = createBrowserRouter([
       {
         path: '/games',
         element: <Games />
-      },
-      {
-        path: '/teams',
-        element: <Teams />
-      },
-      {
-        path: '/teams/:id',
-        element: <TeamProfile />
       },
       {
         path: '/standings',
