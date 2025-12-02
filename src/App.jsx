@@ -11,8 +11,7 @@ import {
   playersLoader,
   leaderboardLoader,
   inventoryLoader,
-  viewTeamLoader,
-  leagueLoader
+  viewTeamLoader
 } from './utils/loaders'
 
 // Lazy load pages for better performance
@@ -39,11 +38,6 @@ const SimulatedSeason = lazy(() => import('./pages/SimulatedSeason'))
 const Activity = lazy(() => import('./pages/Activity'))
 const ViewTeam = lazy(() => import('./pages/ViewTeam'))
 const Leagues = lazy(() => import('./pages/Leagues'))
-const LeagueLayout = lazy(() => import('./components/LeagueLayout'))
-const LeagueStandings = lazy(() => import('./pages/LeagueStandings'))
-const LeagueMembers = lazy(() => import('./pages/LeagueMembers'))
-const LeagueSettings = lazy(() => import('./pages/LeagueSettings'))
-const AddTeamToLeague = lazy(() => import('./pages/AddTeamToLeague'))
 const TeamInfo = lazy(() => import('./pages/TeamInfo'))
 const Contests = lazy(() => import('./pages/Contests'))
 const TeamLeague = lazy(() => import('./pages/TeamLeague'))
@@ -115,30 +109,6 @@ const router = createBrowserRouter([
           {
             path: 'leagues',
             element: <Leagues />
-          }
-        ]
-      },
-      // League routes - standalone with LeagueLayout
-      {
-        path: '/leagues/:leagueId',
-        element: <LeagueLayout />,
-        loader: leagueLoader,
-        children: [
-          {
-            index: true,
-            element: <LeagueStandings />
-          },
-          {
-            path: 'members',
-            element: <LeagueMembers />
-          },
-          {
-            path: 'settings',
-            element: <LeagueSettings />
-          },
-          {
-            path: 'add-team',
-            element: <AddTeamToLeague />
           }
         ]
       },

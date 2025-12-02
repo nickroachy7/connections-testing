@@ -896,8 +896,8 @@ export default function Dashboard() {
             console.log('✅ Team automatically added to league');
             // Clean up session storage
             sessionStorage.removeItem('pendingLeagueId');
-            // Navigate back to league standings
-            navigate(`/leagues/${pendingLeagueId}`);
+            // Navigate to team's league tab
+            navigate(`/teams/${result.team.id}/league`);
             return; // Exit early - don't do normal team creation flow
           }
         } catch (leagueErr) {

@@ -1,17 +1,18 @@
 import { useState, useEffect } from 'react';
-import { useOutletContext, useNavigate } from 'react-router-dom';
+import { useOutletContext } from 'react-router-dom';
 import { supabase } from '../services/supabase';
 import LoadingSpinner from '../components/LoadingSpinner';
-import { Calendar, TrendingUp, Award, Users } from 'lucide-react';
+import { 
+  Calendar, TrendingUp, Award, Package, Coins, Heart, 
+  CheckCircle, XCircle, ChevronDown, ChevronUp 
+} from 'lucide-react';
 
 export default function TeamInfo() {
-  const { activeTeam, user } = useOutletContext();
-  const navigate = useNavigate();
+  const { activeTeam, inventory } = useOutletContext();
   const [loading, setLoading] = useState(true);
+  const [weeklyHistory, setWeeklyHistory] = useState([]);
   const [recentActivity, setRecentActivity] = useState([]);
-  const [leagueInfo, setLeagueInfo] = useState(null);
-
-  const isPrivateTeam = activeTeam?.team_type === 'private';
+  const [showAllWeeks, setShowAllWeeks] = useState(false);
 
   useEffect(() => {
     if (activeTeam) {
@@ -23,6 +24,17 @@ export default function TeamInfo() {
     try {
       setLoading(true);
 
+      // Load weekly performance history
+      const { data: weeklyData, error: weeklyError } = await supabase
+        .from('weekly_lineups')
+        .select('week, total_points, beat_median, created_at')
+        .eq('team_id', activeTeam.id)
+        .order('week', { ascending: false });
+
+      if (!weeklyError && weeklyData) {
+        setWeeklyHistory(weeklyData);
+      }
+
       // Load recent transactions for activity
       const { data: transactions, error: txError } = await supabase
         .from('transactions')
@@ -31,31 +43,8 @@ export default function TeamInfo() {
         .order('created_at', { ascending: false })
         .limit(10);
 
-      if (txError) throw txError;
-      setRecentActivity(transactions || []);
-
-      // If private team, load league info
-      if (isPrivateTeam) {
-        const { data: leagueTeam, error: leagueError } = await supabase
-          .from('league_teams')
-          .select(`
-            *,
-            league:leagues(
-              id,
-              name,
-              commissioner_id,
-              max_users,
-              elimination_enabled,
-              restart_allowed
-            )
-          `)
-          .eq('team_id', activeTeam.id)
-          .eq('is_active', true)
-          .single();
-
-        if (!leagueError && leagueTeam) {
-          setLeagueInfo(leagueTeam);
-        }
+      if (!txError) {
+        setRecentActivity(transactions || []);
       }
     } catch (error) {
       console.error('Error loading team info:', error);
@@ -64,13 +53,27 @@ export default function TeamInfo() {
     }
   };
 
+  // Calculate roster stats from inventory
+  const rosterStats = {
+    totalPlayers: inventory?.players?.length || 0,
+    totalValue: inventory?.players?.reduce((sum, p) => sum + (p.player_card?.quick_sell_value || 0), 0) || 0,
+    byTier: {
+      role_player: inventory?.players?.filter(p => p.player_card?.tier === 'role_player').length || 0,
+      starter: inventory?.players?.filter(p => p.player_card?.tier === 'starter').length || 0,
+      all_star: inventory?.players?.filter(p => p.player_card?.tier === 'all_star').length || 0,
+      superstar: inventory?.players?.filter(p => p.player_card?.tier === 'superstar').length || 0,
+      mvp: inventory?.players?.filter(p => p.player_card?.tier === 'mvp').length || 0,
+    },
+    tokens: inventory?.tokens?.length || 0,
+  };
+
   const formatTransactionType = (type) => {
     const typeMap = {
       pack_purchase: 'Pack Purchase',
       quick_sell: 'Quick Sell',
       starter_pack: 'Starter Pack',
       reward: 'Reward',
-      week_win: 'Week Win',
+      week_win: 'Week Win Bonus',
       week_loss: 'Week Loss'
     };
     return typeMap[type] || type;
@@ -91,6 +94,28 @@ export default function TeamInfo() {
     return date.toLocaleDateString();
   };
 
+  const getTierColor = (tier) => {
+    const colors = {
+      role_player: 'text-gray-400',
+      starter: 'text-green-400',
+      all_star: 'text-blue-400',
+      superstar: 'text-purple-400',
+      mvp: 'text-yellow-400',
+    };
+    return colors[tier] || 'text-gray-400';
+  };
+
+  const getTierLabel = (tier) => {
+    const labels = {
+      role_player: 'Role Player',
+      starter: 'Starter',
+      all_star: 'All-Star',
+      superstar: 'Superstar',
+      mvp: 'MVP',
+    };
+    return labels[tier] || tier;
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -99,126 +124,227 @@ export default function TeamInfo() {
     );
   }
 
+  const displayedWeeks = showAllWeeks ? weeklyHistory : weeklyHistory.slice(0, 5);
+  const winRate = activeTeam.wins + activeTeam.losses > 0 
+    ? ((activeTeam.wins / (activeTeam.wins + activeTeam.losses)) * 100).toFixed(0)
+    : 0;
+
   return (
-    <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
-      {/* Team Stats Overview */}
-      <div className="bg-primary-black-800/60 backdrop-blur-sm rounded-xl p-6 border border-primary-black-700">
-        <h2 className="text-2xl font-bold text-primary-green-500 mb-6 flex items-center gap-2">
-          <Award className="w-6 h-6" />
-          Team Statistics
+    <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6">
+      
+      {/* Performance Summary - Mobile Optimized 2x2 Grid */}
+      <div className="bg-primary-black-800/60 backdrop-blur-sm rounded-xl p-4 sm:p-6 border border-primary-black-700">
+        <h2 className="text-lg sm:text-xl font-bold text-white mb-4 flex items-center gap-2">
+          <Award className="w-5 h-5 text-primary-green-500" />
+          Team Performance
         </h2>
         
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-primary-black-900/50 rounded-lg p-4">
-            <div className="text-primary-black-400 text-sm mb-1">Wins</div>
-            <div className="text-3xl font-bold text-primary-green-500">{activeTeam.wins}</div>
+        <div className="grid grid-cols-2 gap-3 sm:gap-4">
+          {/* Wins */}
+          <div className="bg-primary-black-900/50 rounded-xl p-3 sm:p-4">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-primary-black-400 text-xs sm:text-sm">Wins</span>
+              <CheckCircle className="w-4 h-4 text-primary-green-500" />
+            </div>
+            <div className="text-2xl sm:text-3xl font-bold text-primary-green-500">{activeTeam.wins}</div>
           </div>
           
-          <div className="bg-primary-black-900/50 rounded-lg p-4">
-            <div className="text-primary-black-400 text-sm mb-1">Losses</div>
-            <div className="text-3xl font-bold text-red-500">{activeTeam.losses}</div>
+          {/* Losses */}
+          <div className="bg-primary-black-900/50 rounded-xl p-3 sm:p-4">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-primary-black-400 text-xs sm:text-sm">Losses</span>
+              <XCircle className="w-4 h-4 text-red-500" />
+            </div>
+            <div className="text-2xl sm:text-3xl font-bold text-red-500">{activeTeam.losses}</div>
           </div>
           
-          <div className="bg-primary-black-900/50 rounded-lg p-4">
-            <div className="text-primary-black-400 text-sm mb-1">Total Points</div>
-            <div className="text-3xl font-bold text-white">{activeTeam.total_points?.toFixed(1) || '0.0'}</div>
+          {/* Total Points */}
+          <div className="bg-primary-black-900/50 rounded-xl p-3 sm:p-4">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-primary-black-400 text-xs sm:text-sm">Total Points</span>
+              <TrendingUp className="w-4 h-4 text-blue-400" />
+            </div>
+            <div className="text-2xl sm:text-3xl font-bold text-white">
+              {activeTeam.total_points?.toFixed(1) || '0.0'}
+            </div>
           </div>
           
-          <div className="bg-primary-black-900/50 rounded-lg p-4">
-            <div className="text-primary-black-400 text-sm mb-1">Current Week</div>
-            <div className="text-3xl font-bold text-white">{activeTeam.current_week || 1}</div>
+          {/* Win Rate */}
+          <div className="bg-primary-black-900/50 rounded-xl p-3 sm:p-4">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-primary-black-400 text-xs sm:text-sm">Win Rate</span>
+              <span className="text-xs text-primary-black-500">%</span>
+            </div>
+            <div className={`text-2xl sm:text-3xl font-bold ${
+              winRate >= 50 ? 'text-primary-green-500' : 'text-yellow-500'
+            }`}>
+              {winRate}%
+            </div>
           </div>
         </div>
+
+        {/* Lives indicator for elimination modes */}
+        {activeTeam.lives !== undefined && activeTeam.lives !== null && (
+          <div className="mt-4 pt-4 border-t border-primary-black-700">
+            <div className="flex items-center justify-between">
+              <span className="text-primary-black-300 text-sm">Lives Remaining</span>
+              <div className="flex items-center gap-1">
+                {[...Array(activeTeam.contest_type?.max_losses || 3)].map((_, i) => (
+                  <Heart 
+                    key={i} 
+                    className={`w-5 h-5 ${i < activeTeam.lives ? 'text-red-500 fill-red-500' : 'text-gray-600'}`} 
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* League Info (Private Teams Only) */}
-      {isPrivateTeam && leagueInfo && (
-        <div className="bg-primary-black-800/60 backdrop-blur-sm rounded-xl p-6 border border-primary-black-700">
-          <h2 className="text-2xl font-bold text-primary-green-500 mb-6 flex items-center gap-2">
-            <Users className="w-6 h-6" />
-            League Settings
+      {/* Weekly Performance History */}
+      {weeklyHistory.length > 0 && (
+        <div className="bg-primary-black-800/60 backdrop-blur-sm rounded-xl p-4 sm:p-6 border border-primary-black-700">
+          <h2 className="text-lg sm:text-xl font-bold text-white mb-4 flex items-center gap-2">
+            <Calendar className="w-5 h-5 text-primary-green-500" />
+            Weekly Results
           </h2>
           
-          <div className="space-y-4">
-            <div className="flex items-center justify-between py-3 border-b border-primary-black-700">
-              <span className="text-primary-black-300">League Name</span>
-              <span className="text-white font-semibold">{leagueInfo.league.name}</span>
-            </div>
-            
-            <div className="flex items-center justify-between py-3 border-b border-primary-black-700">
-              <span className="text-primary-black-300">League Lives</span>
-              <span className="text-white font-semibold">{leagueInfo.league_lives}</span>
-            </div>
-            
-            <div className="flex items-center justify-between py-3 border-b border-primary-black-700">
-              <span className="text-primary-black-300">League W/L</span>
-              <span className="text-white font-semibold">
-                {leagueInfo.league_wins}W - {leagueInfo.league_losses}L
-              </span>
-            </div>
-            
-            <div className="flex items-center justify-between py-3 border-b border-primary-black-700">
-              <span className="text-primary-black-300">Max Teams</span>
-              <span className="text-white font-semibold">{leagueInfo.league.max_users}</span>
-            </div>
-            
-            <div className="flex items-center justify-between py-3 border-b border-primary-black-700">
-              <span className="text-primary-black-300">Elimination</span>
-              <span className={`font-semibold ${leagueInfo.league.elimination_enabled ? 'text-red-500' : 'text-primary-green-500'}`}>
-                {leagueInfo.league.elimination_enabled ? 'Enabled' : 'Disabled'}
-              </span>
-            </div>
-            
-            <div className="flex items-center justify-between py-3">
-              <span className="text-primary-black-300">Restart Allowed</span>
-              <span className={`font-semibold ${leagueInfo.league.restart_allowed ? 'text-primary-green-500' : 'text-red-500'}`}>
-                {leagueInfo.league.restart_allowed ? 'Yes' : 'No'}
-              </span>
-            </div>
-
-            <button
-              onClick={() => navigate(`/leagues/${leagueInfo.league.id}`)}
-              className="w-full mt-4 px-4 py-3 bg-primary-green-500 hover:bg-primary-green-600 text-primary-black-950 font-bold rounded-lg transition-colors"
-            >
-              View Full League
-            </button>
+          <div className="space-y-2">
+            {displayedWeeks.map((week) => (
+              <div
+                key={week.week}
+                className={`flex items-center justify-between p-3 rounded-lg ${
+                  week.beat_median 
+                    ? 'bg-primary-green-500/10 border border-primary-green-500/20' 
+                    : 'bg-red-500/10 border border-red-500/20'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                    week.beat_median ? 'bg-primary-green-500/20' : 'bg-red-500/20'
+                  }`}>
+                    {week.beat_median 
+                      ? <CheckCircle className="w-4 h-4 text-primary-green-500" />
+                      : <XCircle className="w-4 h-4 text-red-500" />
+                    }
+                  </div>
+                  <div>
+                    <div className="font-semibold text-white text-sm">Week {week.week}</div>
+                    <div className="text-xs text-primary-black-400">
+                      {week.beat_median ? 'Beat Median' : 'Below Median'}
+                    </div>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className={`text-lg font-bold ${
+                    week.beat_median ? 'text-primary-green-500' : 'text-red-500'
+                  }`}>
+                    {week.total_points?.toFixed(1)}
+                  </div>
+                  <div className="text-xs text-primary-black-400">points</div>
+                </div>
+              </div>
+            ))}
           </div>
+          
+          {weeklyHistory.length > 5 && (
+            <button
+              onClick={() => setShowAllWeeks(!showAllWeeks)}
+              className="w-full mt-3 py-2 text-sm text-primary-black-400 hover:text-white flex items-center justify-center gap-1 transition-colors"
+            >
+              {showAllWeeks ? (
+                <>Show Less <ChevronUp className="w-4 h-4" /></>
+              ) : (
+                <>Show All {weeklyHistory.length} Weeks <ChevronDown className="w-4 h-4" /></>
+              )}
+            </button>
+          )}
         </div>
       )}
 
-      {/* Recent Activity */}
-      <div className="bg-primary-black-800/60 backdrop-blur-sm rounded-xl p-6 border border-primary-black-700">
-        <h2 className="text-2xl font-bold text-primary-green-500 mb-6 flex items-center gap-2">
-          <TrendingUp className="w-6 h-6" />
+      {/* Roster Breakdown */}
+      <div className="bg-primary-black-800/60 backdrop-blur-sm rounded-xl p-4 sm:p-6 border border-primary-black-700">
+        <h2 className="text-lg sm:text-xl font-bold text-white mb-4 flex items-center gap-2">
+          <Package className="w-5 h-5 text-primary-green-500" />
+          Roster Breakdown
+        </h2>
+        
+        {/* Summary Stats */}
+        <div className="grid grid-cols-3 gap-3 mb-4">
+          <div className="bg-primary-black-900/50 rounded-lg p-3 text-center">
+            <div className="text-2xl font-bold text-white">{rosterStats.totalPlayers}</div>
+            <div className="text-xs text-primary-black-400">Players</div>
+          </div>
+          <div className="bg-primary-black-900/50 rounded-lg p-3 text-center">
+            <div className="text-2xl font-bold text-purple-400">{rosterStats.tokens}</div>
+            <div className="text-xs text-primary-black-400">Tokens</div>
+          </div>
+          <div className="bg-primary-black-900/50 rounded-lg p-3 text-center">
+            <div className="flex items-center justify-center gap-1">
+              <Coins className="w-4 h-4 text-yellow-400" />
+              <span className="text-xl font-bold text-yellow-400">
+                {rosterStats.totalValue >= 1000 
+                  ? `${(rosterStats.totalValue / 1000).toFixed(1)}k` 
+                  : rosterStats.totalValue}
+              </span>
+            </div>
+            <div className="text-xs text-primary-black-400">Value</div>
+          </div>
+        </div>
+
+        {/* Tier Breakdown */}
+        <div className="space-y-2">
+          {Object.entries(rosterStats.byTier).map(([tier, count]) => (
+            count > 0 && (
+              <div key={tier} className="flex items-center justify-between py-2 px-3 bg-primary-black-900/30 rounded-lg">
+                <span className={`text-sm font-medium ${getTierColor(tier)}`}>
+                  {getTierLabel(tier)}
+                </span>
+                <span className="text-white font-bold">{count}</span>
+              </div>
+            )
+          ))}
+          {rosterStats.totalPlayers === 0 && (
+            <div className="text-center py-4 text-primary-black-400 text-sm">
+              No players in inventory
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Team Activity */}
+      <div className="bg-primary-black-800/60 backdrop-blur-sm rounded-xl p-4 sm:p-6 border border-primary-black-700">
+        <h2 className="text-lg sm:text-xl font-bold text-white mb-4 flex items-center gap-2">
+          <TrendingUp className="w-5 h-5 text-primary-green-500" />
           Recent Activity
         </h2>
         
         {recentActivity.length === 0 ? (
           <div className="text-center py-8 text-primary-black-400">
-            <Calendar className="w-12 h-12 mx-auto mb-3 opacity-50" />
-            <p>No recent activity</p>
+            <Calendar className="w-10 h-10 mx-auto mb-2 opacity-50" />
+            <p className="text-sm">No recent activity</p>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-2">
             {recentActivity.map((transaction) => (
               <div
                 key={transaction.id}
-                className="bg-primary-black-900/50 rounded-lg p-4 flex items-center justify-between hover:bg-primary-black-900/70 transition-colors"
+                className="flex items-center justify-between p-3 bg-primary-black-900/30 rounded-lg"
               >
-                <div className="flex-1">
-                  <div className="font-semibold text-white mb-1">
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-white text-sm truncate">
                     {formatTransactionType(transaction.transaction_type)}
                   </div>
-                  <div className="text-sm text-primary-black-400">
+                  <div className="text-xs text-primary-black-400">
                     {formatDate(transaction.created_at)}
                   </div>
                 </div>
                 
-                <div className={`text-xl font-bold ${
+                <div className={`text-sm font-bold whitespace-nowrap ml-3 ${
                   transaction.coins_change > 0 ? 'text-primary-green-500' : 'text-red-500'
                 }`}>
                   {transaction.coins_change > 0 ? '+' : ''}{transaction.coins_change}
-                  <span className="text-sm ml-1">coins</span>
+                  <span className="text-xs ml-0.5">coins</span>
                 </div>
               </div>
             ))}
