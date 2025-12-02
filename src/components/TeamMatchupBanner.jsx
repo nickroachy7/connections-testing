@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import PropTypes from 'prop-types';
 import { supabase } from '../services/supabase';
 import { useFantasy } from '../contexts/FantasyContext';
-import { useProjectedMedian, useLeagueContext } from '../hooks/fantasy';
+import { useProjectedMedian, useLeagueContext, usePublicContestContext } from '../hooks/fantasy';
 import { usePrevious } from '../hooks/usePrevious';
 import TeamCustomizationModal from './TeamCustomizationModal';
 import TeamScoreBanner from './TeamScoreBanner';
@@ -36,6 +37,8 @@ export default function TeamMatchupBanner({
   team,
   previewMode = false
 }) {
+  const navigate = useNavigate();
+  
   // Safely get fantasy context - may not be available during SSR or outside provider
   let lineupStats = null;
   let lineup = null;
@@ -57,7 +60,7 @@ export default function TeamMatchupBanner({
     console.warn('TeamMatchupBanner: Fantasy context not available');
   }
   
-  // League context - determines if we show league-specific stats
+  // League context - determines if we show league-specific stats (private teams)
   const { 
     isInLeague, 
     leagueName,
@@ -70,7 +73,27 @@ export default function TeamMatchupBanner({
     refetch: refetchLeagueContext
   } = useLeagueContext(teamId);
   
+  // Public contest context - for public teams entered in weekly contests
+  const {
+    isInContest,
+    contestName,
+    contestContext,
+    winCondition: contestWinCondition,
+    opponent: contestOpponent,
+    entrantCount,
+    maxEntries: contestMaxEntries,
+    contestWeek,
+    isUpcoming: contestIsUpcoming,
+    calculateContestMedian,
+    calculateProjectedContestMedian,
+    getOpponentScore,
+    getCurrentRank,
+    refetch: refetchContestContext,
+    loading: contestLoading
+  } = usePublicContestContext(teamId);
+  
   console.log('🎯 [TeamMatchupBanner] League context:', { isInLeague, leagueName, leagueWins, leagueLosses, leagueLives });
+  console.log('🎮 [TeamMatchupBanner] Contest context:', { isInContest, contestName, contestWinCondition, entrantCount, contestLoading });
   
   // Track previous week status to detect finalization
   const previousWeekStatus = usePrevious(contextWeekStatus);
@@ -83,11 +106,24 @@ export default function TeamMatchupBanner({
     }
   }, [contextWeekStatus, previousWeekStatus, isInLeague, refetchLeagueContext]);
   
+  // Refresh public contest context when week finalizes
+  useEffect(() => {
+    if (isInContest && previousWeekStatus && previousWeekStatus !== 'finalized' && contextWeekStatus === 'finalized') {
+      console.log('🎮 [TeamMatchupBanner] Week finalized! Refreshing contest stats...');
+      refetchContestContext();
+    }
+  }, [contextWeekStatus, previousWeekStatus, isInContest, refetchContestContext]);
+  
   // League-specific median state
   const [leagueMedian, setLeagueMedian] = useState(null);
   const [leagueTeamCount, setLeagueTeamCount] = useState(0);
   
-  // H2H matchup state
+  // Public contest-specific state
+  const [contestMedian, setContestMedian] = useState(null);
+  const [contestOpponentScore, setContestOpponentScore] = useState(null);
+  const [contestRank, setContestRank] = useState(null);
+  
+  // H2H matchup state (for private leagues)
   const [h2hOpponent, setH2hOpponent] = useState(null);
   const [h2hOpponentScore, setH2hOpponentScore] = useState(null);
   
@@ -208,6 +244,70 @@ export default function TeamMatchupBanner({
     }
   }, [isInLeague, displayWeek, isLive, isFinal, calculateLeagueMedian, calculateProjectedLeagueMedian, leagueContext, teamId]);
 
+  // Calculate public contest median OR load H2H opponent based on win_condition
+  useEffect(() => {
+    if (!isInContest || !displayWeek || !contestContext) {
+      setContestMedian(null);
+      setContestOpponentScore(null);
+      setContestRank(null);
+      return;
+    }
+    
+    const winCondition = contestWinCondition;
+    
+    // Load H2H opponent score if needed
+    if (winCondition === 'h2h' && contestOpponent) {
+      const fetchOpponentScore = async () => {
+        const result = await getOpponentScore();
+        if (result) {
+          setContestOpponentScore(result.score);
+        }
+      };
+      
+      fetchOpponentScore();
+      const interval = isLive ? setInterval(fetchOpponentScore, 30000) : null;
+      return () => interval && clearInterval(interval);
+    }
+    
+    // Load contest median if needed (for median contests)
+    if (winCondition === 'median') {
+      const fetchContestMedian = async () => {
+        // For live/final weeks, get actual scores
+        if (isLive || isFinal) {
+          const result = await calculateContestMedian();
+          if (result) {
+            setContestMedian(result.median);
+          }
+        } else {
+          // For projected weeks, use projected scores
+          const result = await calculateProjectedContestMedian();
+          if (result) {
+            setContestMedian(result.median);
+          }
+        }
+      };
+      
+      fetchContestMedian();
+      const interval = isLive ? setInterval(fetchContestMedian, 30000) : null;
+      return () => interval && clearInterval(interval);
+    }
+    
+    // Load current rank for top_points contests
+    if (winCondition === 'top_points') {
+      const fetchRank = async () => {
+        const userScore = isLive || isFinal ? livePoints : projectedPoints;
+        const result = await getCurrentRank(userScore);
+        if (result) {
+          setContestRank(result.rank);
+        }
+      };
+      
+      fetchRank();
+      const interval = isLive ? setInterval(fetchRank, 30000) : null;
+      return () => interval && clearInterval(interval);
+    }
+  }, [isInContest, displayWeek, isLive, isFinal, contestContext, contestWinCondition, contestOpponent, calculateContestMedian, calculateProjectedContestMedian, getOpponentScore, getCurrentRank, livePoints, projectedPoints]);
+
   // Load banner theme from localStorage
   useEffect(() => {
     if (teamId) {
@@ -310,10 +410,16 @@ export default function TeamMatchupBanner({
       setDisplayWeek(null);
       return;
     }
+    
+    // Wait for contest loading to complete before deciding
+    if (contestLoading) {
+      return;
+    }
 
     const checkWeekStatus = async () => {
       // If team was created mid-season and their start week is in the future
-      if (team?.current_week && team.current_week > currentWeek.week) {
+      // BUT: If they've entered a public contest for THIS week, they can play NOW
+      if (team?.current_week && team.current_week > currentWeek.week && !isInContest) {
         setTeamStartsNextWeek(team.current_week);
         setDisplayWeek(currentWeek); // Still show current week
         setWeekIsFinalized(false);
@@ -346,7 +452,7 @@ export default function TeamMatchupBanner({
     };
 
     checkWeekStatus();
-  }, [currentWeek, teamId, team, previewMode]);
+  }, [currentWeek, teamId, team, previewMode, isInContest, contestLoading]);
 
   // Fetch stats for the display week - use context for global median when available
   useEffect(() => {
@@ -507,19 +613,31 @@ export default function TeamMatchupBanner({
   
   // LEAGUE-ONLY MEDIAN:
   // If team is in a private league, ONLY use league-specific median
-  // No fallback to global - the league IS the contest
+  // If team is in a public contest, use contest-specific median
+  // No fallback to global - the contest IS the competition
   const medianScore = (() => {
-    // In a league? Use league median exclusively
+    // In a private league? Use league median exclusively
     if (isInLeague) {
-      // If we have a calculated league median, use it
       if (leagueMedian != null && leagueMedian > 0) {
         return leagueMedian;
       }
-      // No league data yet? Show user's own score as placeholder
       return userScore;
     }
     
-    // Not in a league - this is global/open contest
+    // In a public contest? Use contest median
+    if (isInContest) {
+      // For H2H, we don't really need a median (opponent score is comparison)
+      if (contestWinCondition === 'h2h' && contestOpponentScore != null) {
+        return contestOpponentScore;
+      }
+      // For median and top_points contests, use contest median
+      if (contestMedian != null && contestMedian > 0) {
+        return contestMedian;
+      }
+      return userScore;
+    }
+    
+    // Not in a league or contest - this is global/open play
     if (simulatedSeasonId && simulatedMedian) {
       return parseFloat(simulatedMedian);
     }
@@ -538,12 +656,17 @@ export default function TeamMatchupBanner({
   // Debug logging for median source
   console.log('🎯 [TeamMatchupBanner] Median calculation:', {
     isInLeague,
+    isInContest,
     leagueMedian,
+    contestMedian,
     medianScore,
     leagueTeamCount,
+    entrantCount,
     source: isInLeague 
       ? (leagueMedian != null ? 'LEAGUE_MEDIAN' : 'LEAGUE_NO_DATA') 
-      : 'GLOBAL'
+      : isInContest
+        ? (contestMedian != null ? 'CONTEST_MEDIAN' : 'CONTEST_NO_DATA')
+        : 'GLOBAL'
   });
   
   // Calculate max score: include user's score and filter outliers
@@ -599,10 +722,35 @@ export default function TeamMatchupBanner({
 
   // Determine if we have no comparison data yet
   // For leagues: no league median calculated yet
+  // For public contests: no contest median calculated yet
   // For global: no lineup or median data
   const noComparisonDataYet = isInLeague 
     ? (leagueMedian == null || leagueMedian === 0)
-    : (!hasWeeklyLineup && medianScore === userScore);
+    : isInContest
+      ? (contestWinCondition === 'h2h' ? contestOpponentScore == null : (contestMedian == null || contestMedian === 0))
+      : (!hasWeeklyLineup && medianScore === userScore);
+  
+  // Determine the win condition to pass to TeamScoreBanner
+  // Priority: League > Public Contest > Global (median)
+  const displayWinCondition = isInLeague 
+    ? (leagueContext?.contestConfig?.win_condition || 'median')
+    : isInContest 
+      ? (contestWinCondition || 'median')
+      : 'median';
+  
+  // Determine opponent name for H2H displays
+  const displayOpponentName = isInLeague 
+    ? h2hOpponent
+    : isInContest && contestWinCondition === 'h2h'
+      ? contestOpponent?.teamName
+      : null;
+  
+  // Determine opponent score for H2H displays  
+  const displayOpponentScore = isInLeague 
+    ? h2hOpponentScore
+    : isInContest && contestWinCondition === 'h2h'
+      ? contestOpponentScore
+      : null;
 
   return (
     <>
@@ -620,6 +768,8 @@ export default function TeamMatchupBanner({
               </span>
             </div>
           )}
+          
+          {/* Contest details now shown inside TeamScoreBanner instead of here */}
           
           {/* Mobile Layout */}
           <div className="md:hidden space-y-2">
@@ -698,6 +848,7 @@ export default function TeamMatchupBanner({
               week={displayWeek?.week}
               isLive={isLive}
               isFinal={isFinal}
+              isUpcoming={contestIsUpcoming}
               userScore={userScore}
               medianScore={medianScore}
               winPercentage={winPercentage}
@@ -705,12 +856,21 @@ export default function TeamMatchupBanner({
               medianPercentage={medianPercentage}
               isAboveMedian={isAboveMedian}
               size="mobile"
-              winCondition={leagueContext?.contestConfig?.win_condition || 'median'}
-              opponentName={h2hOpponent}
-              opponentScore={h2hOpponentScore}
+              winCondition={displayWinCondition}
+              opponentName={displayOpponentName}
+              opponentScore={displayOpponentScore}
               isInLeague={isInLeague}
+              isInContest={isInContest}
               noDataYet={noComparisonDataYet}
-              teamStartsNextWeek={teamStartsNextWeek}
+              teamStartsNextWeek={!isInContest ? teamStartsNextWeek : null}
+              contestName={contestName}
+              contestEntrantCount={entrantCount}
+              contestMaxEntries={contestMaxEntries}
+              contestMedianScore={contestMedian}
+              contestRank={contestRank}
+              contestWeek={contestWeek}
+              onContestClick={isInContest && !isInLeague ? () => navigate('/contests') : undefined}
+              lineupReady={hasWeeklyLineup || (lineup && lineup.length > 0)}
             />
           </div>
 
@@ -781,6 +941,7 @@ export default function TeamMatchupBanner({
                   week={displayWeek?.week}
                   isLive={isLive}
                   isFinal={isFinal}
+                  isUpcoming={contestIsUpcoming}
                   userScore={userScore}
                   medianScore={medianScore}
                   winPercentage={winPercentage}
@@ -788,12 +949,21 @@ export default function TeamMatchupBanner({
                   medianPercentage={medianPercentage}
                   isAboveMedian={isAboveMedian}
                   size="desktop"
-                  winCondition={leagueContext?.contestConfig?.win_condition || 'median'}
-                  opponentName={h2hOpponent}
-                  opponentScore={h2hOpponentScore}
+                  winCondition={displayWinCondition}
+                  opponentName={displayOpponentName}
+                  opponentScore={displayOpponentScore}
                   isInLeague={isInLeague}
+                  isInContest={isInContest}
                   noDataYet={noComparisonDataYet}
-                  teamStartsNextWeek={teamStartsNextWeek}
+                  teamStartsNextWeek={!isInContest ? teamStartsNextWeek : null}
+                  contestName={contestName}
+                  contestEntrantCount={entrantCount}
+                  contestMaxEntries={contestMaxEntries}
+                  contestMedianScore={contestMedian}
+                  contestRank={contestRank}
+                  contestWeek={contestWeek}
+                  onContestClick={isInContest && !isInLeague ? () => navigate('/contests') : undefined}
+                  lineupReady={hasWeeklyLineup || (lineup && lineup.length > 0)}
                 />
               </div>
 
