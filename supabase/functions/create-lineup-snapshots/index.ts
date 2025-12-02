@@ -147,7 +147,12 @@ Deno.serve(async (req) => {
         }
       })
 
-      // Create snapshot
+      // Calculate total projected points from lineup snapshot
+      const totalProjectedPoints = Object.values(lineupSnapshot).reduce((sum: number, player: any) => {
+        return sum + (parseFloat(player.projected_points) || 0);
+      }, 0);
+
+      // Create snapshot with projected_points for historical tracking
       const { error: insertError } = await supabase
         .from('weekly_lineups')
         .insert({
@@ -156,6 +161,7 @@ Deno.serve(async (req) => {
           season_year: seasonYear,
           lineup_snapshot: lineupSnapshot,
           total_points: 0,
+          projected_points: Math.round(totalProjectedPoints * 10) / 10, // Round to 1 decimal
           status: 'pending'
         })
 
