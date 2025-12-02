@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../hooks/useAuth';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useOutletContext } from 'react-router-dom';
 import { getUserTeams, getAvailablePacks, openPack, getUserInventory, supabase } from '../services/supabase';
 import { getRosterStatus } from '../utils/rosterLimits';
 import RosterLimitBanner from '../components/RosterLimitBanner';
@@ -22,16 +22,30 @@ function getBaselineProjection(position) {
 export default function PackShop() {
   const { user, profile, loading, refreshProfile } = useAuth();
   const navigate = useNavigate();
+  
+  // Try to get context from FantasyLayout (when rendered inside /teams/:teamId/pack-shop)
+  const outletContext = useOutletContext() || {};
+  const contextTeam = outletContext.activeTeam;
+  const contextRefresh = outletContext.refreshProfile;
+  
   const [packs, setPacks] = useState([]);
   const [teams, setTeams] = useState([]);
-  const [selectedTeam, setSelectedTeam] = useState(null);
-  const [selectedTeamData, setSelectedTeamData] = useState(null); // Store full team object
+  const [selectedTeam, setSelectedTeam] = useState(contextTeam?.id || null);
+  const [selectedTeamData, setSelectedTeamData] = useState(contextTeam || null); // Use context team if available
   const [opening, setOpening] = useState({});
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [inventory, setInventory] = useState({ players: [], tokens: [] });
 
+  // Only load teams if not provided by context (standalone page mode)
   const loadTeams = useCallback(async () => {
+    // If we have context team, use that instead
+    if (contextTeam) {
+      setSelectedTeam(contextTeam.id);
+      setSelectedTeamData(contextTeam);
+      return;
+    }
+    
     try {
       const userTeams = await getUserTeams(user?.id);
       setTeams(userTeams);
@@ -44,7 +58,7 @@ export default function PackShop() {
       console.error('Error loading teams:', err);
       setError('Failed to load teams');
     }
-  }, [user?.id]);
+  }, [user?.id, contextTeam]);
 
   const loadPacks = useCallback(async () => {
     try {
@@ -66,6 +80,14 @@ export default function PackShop() {
       console.error('Error loading inventory:', err);
     }
   }, [user?.id, selectedTeam]);
+
+  // Sync with context team when it changes (e.g., after revalidation)
+  useEffect(() => {
+    if (contextTeam) {
+      setSelectedTeam(contextTeam.id);
+      setSelectedTeamData(contextTeam);
+    }
+  }, [contextTeam]);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -117,7 +139,12 @@ export default function PackShop() {
       if (purchaseError) throw purchaseError;
 
       // Refresh team data to update coins display
-      await loadTeams();
+      // Use context refresh if available (when inside FantasyLayout), otherwise reload teams
+      if (contextRefresh) {
+        contextRefresh();
+      } else {
+        await loadTeams();
+      }
       
       // Redirect to pack opening page
       navigate(`/teams/${selectedTeam}/open-pack/${purchasedPack}`);
