@@ -251,11 +251,12 @@ serve(async (req) => {
 })
 
 async function generatePlayerCard(supabaseClient: any) {
-  // Get player cards with pull percentages for weighted random selection
-  // Bell curve distribution: solid starters (55%) most common, elite (2%) and trash/injured (2-5%) rare
+  // Get player cards with pack_weight for weighted random selection
+  // Uses the production-grade rarity system where pack_weight directly determines pull probability
+  // Higher pack_weight = more likely to pull (no confusing inversion)
   const { data: playerCards, error } = await supabaseClient
     .from('player_cards')
-    .select('id, player_name, position, team_abbreviation, image_url, projected_points, pull_percentage, season_ppg')
+    .select('id, player_name, position, team_abbreviation, image_url, projected_points, pull_percentage, pack_weight, rarity_tier, season_ppg')
     .in('position', ['Quarterback', 'Running Back', 'Wide Receiver', 'Tight End'])
     .eq('is_active', true)
 
@@ -264,20 +265,19 @@ async function generatePlayerCard(supabaseClient: any) {
     return null
   }
 
-  // Weighted random selection based on INVERTED pull_percentage
-  // Lower percentage = better quality AND more likely to pull from packs
-  // Elite (2%) gets inverted to 98 weight, trash (95%) gets inverted to 5 weight
-  const totalWeight = playerCards.reduce((sum, p) => {
-    const invertedWeight = 100 - (p.pull_percentage || 50);
-    return sum + invertedWeight;
+  // Direct weighted random selection using pack_weight
+  // No inversion needed - higher pack_weight = more likely to pull
+  // Default weight of 25 if pack_weight not set (will be set by calculate-pull-rates)
+  const totalWeight = playerCards.reduce((sum: number, p: any) => {
+    return sum + (p.pack_weight || 25);
   }, 0)
   let randomValue = Math.random() * totalWeight
   
   for (const player of playerCards) {
-    const invertedWeight = 100 - (player.pull_percentage || 50)
-    randomValue -= invertedWeight
+    const weight = player.pack_weight || 25
+    randomValue -= weight
     if (randomValue <= 0) {
-      console.log(`✨ Pulled ${player.player_name} (${player.position}) - ${player.pull_percentage}% display (${invertedWeight} pack weight), ${player.season_ppg} PPG`)
+      console.log(`✨ Pulled ${player.player_name} (${player.position}) - ${player.rarity_tier} tier, weight: ${weight}, display: ${player.pull_percentage}%, ${player.season_ppg} PPG`)
       return player
     }
   }

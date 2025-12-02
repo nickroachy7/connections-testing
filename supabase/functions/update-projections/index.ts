@@ -162,11 +162,89 @@ function generateProjectionNotes(
 }
 
 /**
- * Calculate pull percentage for pack openings
- * INVERTED SYSTEM: Lower % = better quality AND more common in packs
- * Elite players show 2% (rare number) but are common in packs
- * Trash players show 95% (common number) but are rare in packs
+ * PRODUCTION-GRADE RARITY SYSTEM
+ * Calculates rarity tier, pack weight, and display percentage
+ * This is a replica of the logic in calculate-pull-rates to keep updates in sync
  */
+interface RarityResult {
+  rarity_tier: 'legendary' | 'epic' | 'rare' | 'common' | 'trash';
+  pack_weight: number;
+  display_percentage: number;
+}
+
+const POSITION_THRESHOLDS: Record<string, { legendary: number; epic: number; rare: number; common: number }> = {
+  'Quarterback': { legendary: 24, epic: 20, rare: 16, common: 10 },
+  'Running Back': { legendary: 18, epic: 14, rare: 10, common: 6 },
+  'Wide Receiver': { legendary: 16, epic: 12, rare: 8, common: 4 },
+  'Tight End': { legendary: 14, epic: 10, rare: 6, common: 3 },
+};
+
+const TIER_WEIGHTS: Record<string, { weight: number; displayPct: number }> = {
+  legendary: { weight: 25, displayPct: 2 },
+  epic: { weight: 35, displayPct: 8 },
+  rare: { weight: 40, displayPct: 22 },
+  common: { weight: 50, displayPct: 55 },
+  trash: { weight: 5, displayPct: 85 },
+};
+
+function calculatePlayerRarity(
+  position: string,
+  seasonPPG: number,
+  gamesPlayed: number,
+  injuryStatus: string
+): RarityResult {
+  const statusLower = (injuryStatus || '').toLowerCase();
+  
+  if (['out', 'ir', 'suspended', 'pup'].some(s => statusLower.includes(s))) {
+    return { rarity_tier: 'trash', pack_weight: TIER_WEIGHTS.trash.weight, display_percentage: 95 };
+  }
+  
+  if (gamesPlayed === 0) {
+    return { rarity_tier: 'trash', pack_weight: TIER_WEIGHTS.trash.weight, display_percentage: 90 };
+  }
+  
+  const thresholds = POSITION_THRESHOLDS[position] || POSITION_THRESHOLDS['Wide Receiver'];
+  
+  let tier: 'legendary' | 'epic' | 'rare' | 'common' | 'trash';
+  let displayPct: number;
+  
+  if (seasonPPG >= thresholds.legendary) {
+    tier = 'legendary';
+    displayPct = Math.max(1, 5 - ((seasonPPG - thresholds.legendary) / 5));
+  } else if (seasonPPG >= thresholds.epic) {
+    tier = 'epic';
+    displayPct = 5 + ((thresholds.legendary - seasonPPG) / (thresholds.legendary - thresholds.epic)) * 10;
+  } else if (seasonPPG >= thresholds.rare) {
+    tier = 'rare';
+    displayPct = 15 + ((thresholds.epic - seasonPPG) / (thresholds.epic - thresholds.rare)) * 20;
+  } else if (seasonPPG >= thresholds.common) {
+    tier = 'common';
+    displayPct = 35 + ((thresholds.rare - seasonPPG) / (thresholds.rare - thresholds.common)) * 30;
+  } else {
+    tier = 'trash';
+    displayPct = 70 + Math.min(25, (thresholds.common - seasonPPG) * 5);
+  }
+  
+  let weight = TIER_WEIGHTS[tier].weight;
+  
+  if (gamesPlayed < 4 && gamesPlayed > 0) {
+    weight = weight * 0.7;
+    displayPct = Math.min(95, displayPct * 1.2);
+  }
+  
+  if (['questionable', 'doubtful'].some(s => statusLower.includes(s))) {
+    weight = weight * 0.8;
+    displayPct = Math.min(95, displayPct * 1.15);
+  }
+  
+  return {
+    rarity_tier: tier,
+    pack_weight: Math.round(weight * 100) / 100,
+    display_percentage: Math.round(Math.min(99, Math.max(1, displayPct)) * 10) / 10,
+  };
+}
+
+// Keep legacy function for backward compatibility during transition
 function calculatePullPercentage(
   position: string,
   seasonPPG: number,
@@ -452,8 +530,8 @@ Deno.serve(async (req) => {
           defaultScoringType
         );
 
-        // Calculate pull percentage for pack openings (bell curve distribution)
-        const pullPercentage = calculatePullPercentage(
+        // Calculate rarity using new production-grade system
+        const rarity = calculatePlayerRarity(
           player.position,
           seasonAvg,
           gamesPlayed,
@@ -468,7 +546,7 @@ Deno.serve(async (req) => {
           console.log(`🚫 ${player.team_abbreviation} on BYE - setting projection to 0`);
         }
 
-        // Individual UPDATE query for each player
+        // Individual UPDATE query for each player - includes new rarity fields
         const { error } = await supabase
           .from('player_cards')
           .update({
@@ -481,7 +559,9 @@ Deno.serve(async (req) => {
             injury_status: injuryStatus,
             injury_designation: injuryStatus,
             projection_notes: projectionNotes,
-            pull_percentage: Math.round(pullPercentage * 100) / 100,
+            pull_percentage: rarity.display_percentage,
+            rarity_tier: rarity.rarity_tier,
+            pack_weight: rarity.pack_weight,
             last_projection_update: new Date().toISOString(),
             last_updated: new Date().toISOString(),
           })

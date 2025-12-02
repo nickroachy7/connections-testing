@@ -170,53 +170,74 @@ function CardReveal({ items, onRevealComplete, isStarterPack = false, tierConfig
     }
   };
 
-  const getGlowColor = (pullPercentage) => {
-    if (!pullPercentage) {
-      // Token or no pull percentage
-      return {
-        border: 'border-gray-600',
-        shadow: 'hover:shadow-[0_0_8px_rgba(107,114,128,0.3)]',
-        glow: 'rgba(107, 114, 128, 0.15)',
-        textColor: 'text-gray-400'
-      };
-    }
+  /**
+   * Get glow/border styling based on rarity tier or fallback to pull percentage
+   * Rarity tiers: legendary, epic, rare, common, trash
+   */
+  const getGlowColor = (rarityTier, pullPercentage) => {
+    // Use rarity_tier if available (new system), else fall back to pull_percentage interpretation
+    const tier = rarityTier || (pullPercentage ? getTierFromPercentage(pullPercentage) : null);
     
-    // Legendary: 0-5%
-    if (pullPercentage <= 5) {
-      return {
-        border: 'border-yellow-500',
-        shadow: 'hover:shadow-[0_0_15px_rgba(234,179,8,0.5)]',
-        glow: 'rgba(234, 179, 8, 0.2)',
-        textColor: 'text-yellow-400'
-      };
+    switch (tier) {
+      case 'legendary':
+        return {
+          border: 'border-yellow-500',
+          shadow: 'hover:shadow-[0_0_15px_rgba(234,179,8,0.5)]',
+          glow: 'rgba(234, 179, 8, 0.2)',
+          textColor: 'text-yellow-400',
+          tierLabel: '✨ LEGENDARY'
+        };
+      case 'epic':
+        return {
+          border: 'border-purple-500',
+          shadow: 'hover:shadow-[0_0_12px_rgba(168,85,247,0.4)]',
+          glow: 'rgba(168, 85, 247, 0.15)',
+          textColor: 'text-purple-400',
+          tierLabel: '💎 EPIC'
+        };
+      case 'rare':
+        return {
+          border: 'border-blue-500',
+          shadow: 'hover:shadow-[0_0_10px_rgba(59,130,246,0.3)]',
+          glow: 'rgba(59, 130, 246, 0.12)',
+          textColor: 'text-blue-400',
+          tierLabel: '🔷 RARE'
+        };
+      case 'common':
+        return {
+          border: 'border-gray-500',
+          shadow: 'hover:shadow-[0_0_8px_rgba(107,114,128,0.3)]',
+          glow: 'rgba(107, 114, 128, 0.15)',
+          textColor: 'text-gray-300',
+          tierLabel: 'COMMON'
+        };
+      case 'trash':
+        return {
+          border: 'border-gray-700',
+          shadow: 'hover:shadow-[0_0_5px_rgba(75,85,99,0.2)]',
+          glow: 'rgba(75, 85, 99, 0.1)',
+          textColor: 'text-gray-500',
+          tierLabel: ''
+        };
+      default:
+        // Token or unknown
+        return {
+          border: 'border-gray-600',
+          shadow: 'hover:shadow-[0_0_8px_rgba(107,114,128,0.3)]',
+          glow: 'rgba(107, 114, 128, 0.15)',
+          textColor: 'text-gray-400',
+          tierLabel: ''
+        };
     }
-    
-    // Epic: 5-15%
-    if (pullPercentage <= 15) {
-      return {
-        border: 'border-purple-500',
-        shadow: 'hover:shadow-[0_0_12px_rgba(168,85,247,0.4)]',
-        glow: 'rgba(168, 85, 247, 0.15)',
-        textColor: 'text-purple-400'
-      };
-    }
-    
-    // Rare: 15-40%
-    if (pullPercentage <= 40) {
-      return {
-        border: 'border-blue-500',
-        shadow: 'hover:shadow-[0_0_10px_rgba(59,130,246,0.3)]',
-        glow: 'rgba(59, 130, 246, 0.12)',
-        textColor: 'text-blue-400'
-      };
-    }
-    
-    return {
-      border: 'border-gray-600',
-      shadow: 'hover:shadow-[0_0_8px_rgba(107,114,128,0.3)]',
-      glow: 'rgba(107, 114, 128, 0.15)',
-      textColor: 'text-gray-400'
-    };
+  };
+  
+  // Fallback function for legacy pull_percentage-based tier detection
+  const getTierFromPercentage = (pullPercentage) => {
+    if (pullPercentage <= 5) return 'legendary';
+    if (pullPercentage <= 15) return 'epic';
+    if (pullPercentage <= 35) return 'rare';
+    if (pullPercentage <= 65) return 'common';
+    return 'trash';
   };
 
   return (
@@ -253,7 +274,8 @@ function CardReveal({ items, onRevealComplete, isStarterPack = false, tierConfig
           {items.map((item, index) => {
             const isRevealed = revealedIndices.has(index);
             const isHovered = hoveredIndex === index;
-            const glowStyle = getGlowColor(item.data.pull_percentage);
+            // Use rarity_tier if available, fall back to pull_percentage
+            const glowStyle = getGlowColor(item.data.rarity_tier, item.data.pull_percentage);
             const assignedTier = Object.keys(tierAssignments).find(tier => 
               tierAssignments[tier]?.includes(index)
             );
@@ -460,12 +482,19 @@ function CardReveal({ items, onRevealComplete, isStarterPack = false, tierConfig
                   </div>
                 </div>
 
-                {/* Pull Percentage Info (appears after reveal) - Now outside card, scales with parent */}
-                {isRevealed && item.data.pull_percentage ? (
+                {/* Rarity Info (appears after reveal) - Shows tier label and pull percentage */}
+                {isRevealed && item.type === 'player' ? (
                   <div className="text-center animate-fade-in">
-                    <div className={`text-xs font-bold ${glowStyle.textColor}`}>
-                      {item.data.pull_percentage.toFixed(1)}%
-                    </div>
+                    {glowStyle.tierLabel && (
+                      <div className={`text-xs font-bold ${glowStyle.textColor} mb-0.5`}>
+                        {glowStyle.tierLabel}
+                      </div>
+                    )}
+                    {item.data.pull_percentage && (
+                      <div className={`text-[10px] ${glowStyle.textColor} opacity-75`}>
+                        {item.data.pull_percentage.toFixed(1)}%
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="h-5" /> 
@@ -495,19 +524,26 @@ function CardReveal({ items, onRevealComplete, isStarterPack = false, tierConfig
               </div>
             </div>
             
-            {/* Rarity Distribution */}
+            {/* Rarity Distribution - Uses rarity_tier if available, falls back to pull_percentage */}
             {revealedIndices.size > 0 && (
               <div className="flex gap-3 justify-center text-xs">
                 {(() => {
                   const rarities = { legendary: 0, epic: 0, rare: 0, common: 0 };
                   Array.from(revealedIndices).forEach(index => {
                     const item = items[index];
-                    if (item?.type === 'player' && item.data?.pull_percentage) {
-                      const pct = item.data.pull_percentage;
-                      if (pct <= 5) rarities.legendary++;
-                      else if (pct <= 15) rarities.epic++;
-                      else if (pct <= 40) rarities.rare++;
-                      else rarities.common++;
+                    if (item?.type === 'player') {
+                      // Use rarity_tier if available (new system), else fallback to percentage-based detection
+                      let tier = item.data?.rarity_tier;
+                      if (!tier && item.data?.pull_percentage) {
+                        const pct = item.data.pull_percentage;
+                        if (pct <= 5) tier = 'legendary';
+                        else if (pct <= 15) tier = 'epic';
+                        else if (pct <= 35) tier = 'rare';
+                        else tier = 'common';
+                      }
+                      if (tier && tier !== 'trash' && rarities[tier] !== undefined) {
+                        rarities[tier]++;
+                      }
                     }
                   });
                   return (

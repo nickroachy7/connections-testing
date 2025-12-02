@@ -92,12 +92,23 @@ Players acquire NFL player cards through pack openings, build weekly lineups, an
 8. Players added to inventory
 9. Return to inventory or shop
 
-**Pull Rates**
-- Bell curve distribution favoring solid starters
-- Elite players: ~2-5% pull rate
-- Starters: ~55% pull rate (most common)
-- Role players: ~30% pull rate
-- Trash/injured: ~10-13% pull rate
+**Pull Rates (Production-Grade Rarity System)**
+Distribution is calibrated using position-relative PPG thresholds and weighted pack selection:
+
+| Rarity | Target Pull % | Typical PPG | Visual |
+|--------|---------------|-------------|--------|
+| ✨ Legendary | 2-3% | Elite performers | Gold glow |
+| 💎 Epic | 8-10% | Star players | Purple glow |
+| 🔷 Rare | 20-25% | Solid starters | Blue glow |
+| Common | 50-55% | Average players | Gray |
+| Trash | 10-15% | Backups/Injured | Dim |
+
+**Technical Implementation:**
+- `rarity_tier`: Categorical tier for UI display
+- `pack_weight`: Direct probability weight (higher = more likely)
+- `pull_percentage`: Display value shown to users (lower = rarer)
+- Calculated in `calculate-pull-rates` edge function
+- Uses position-specific PPG thresholds (e.g., QB legendary ≥24 PPG, RB ≥18 PPG)
 
 ---
 

@@ -7,58 +7,121 @@ const corsHeaders = {
 };
 
 /**
- * Calculate pull percentage for pack openings
- * Bell curve: solid starters (55%) most common, elite (2%) and trash/injured (2-5%) rare
+ * PRODUCTION-GRADE RARITY SYSTEM
+ * 
+ * Target Distribution (per GAMEPLAY.md):
+ * - Legendary: 2-3% of pulls (best players)
+ * - Epic: 8-10% of pulls (star players)
+ * - Rare: 20-25% of pulls (solid starters)
+ * - Common: 50-55% of pulls (average players)
+ * - Trash: 10-15% of pulls (backups/injured)
+ * 
+ * Key insight: We separate DISPLAY value from PACK WEIGHT
+ * - rarity_tier: For UI display and visual effects
+ * - pack_weight: Actual probability weight (higher = more likely)
+ * - pull_percentage: Legacy display value (kept for backward compatibility)
  */
-function calculatePullPercentage(
+
+interface RarityResult {
+  rarity_tier: 'legendary' | 'epic' | 'rare' | 'common' | 'trash';
+  pack_weight: number;
+  display_percentage: number;
+}
+
+// Position-specific PPG thresholds based on fantasy scoring patterns
+const POSITION_THRESHOLDS: Record<string, { legendary: number; epic: number; rare: number; common: number }> = {
+  'Quarterback': { legendary: 24, epic: 20, rare: 16, common: 10 },
+  'Running Back': { legendary: 18, epic: 14, rare: 10, common: 6 },
+  'Wide Receiver': { legendary: 16, epic: 12, rare: 8, common: 4 },
+  'Tight End': { legendary: 14, epic: 10, rare: 6, common: 3 },
+};
+
+// Pack weights calibrated to achieve target distribution
+// These are PER-PLAYER weights - need to account for player pool sizes
+// Pool sizes (approximate): legendary=11, epic=24, rare=58, common=85, trash=216
+// To hit targets, we need to boost rarer tiers and reduce trash weight
+const TIER_WEIGHTS: Record<string, { weight: number; displayPct: number }> = {
+  legendary: { weight: 25, displayPct: 2 },     // ~2-3% target (11 players × 25 = 275)
+  epic: { weight: 35, displayPct: 8 },          // ~8-10% target (24 players × 35 = 840)
+  rare: { weight: 40, displayPct: 22 },         // ~20-25% target (58 players × 40 = 2320)
+  common: { weight: 50, displayPct: 55 },       // ~50-55% target (85 players × 50 = 4250)
+  trash: { weight: 5, displayPct: 85 },         // ~10-15% target (216 players × 5 = 1080)
+};
+
+/**
+ * Calculate player rarity based on performance metrics
+ * Returns tier, pack weight, and display percentage
+ */
+function calculatePlayerRarity(
   position: string,
   seasonPPG: number,
   gamesPlayed: number,
   injuryStatus: string | null
-): number {
-  
-  // Injured/inactive = RARE (don't want trash in packs)
+): RarityResult {
   const statusLower = (injuryStatus || '').toLowerCase();
+  
+  // TRASH TIER: Injured/IR/Suspended players
   if (['out', 'ir', 'suspended', 'pup'].some(s => statusLower.includes(s))) {
-    return 2.0; // Very rare - injured players are trash
+    return {
+      rarity_tier: 'trash',
+      pack_weight: TIER_WEIGHTS.trash.weight,
+      display_percentage: 95, // High % = low quality display
+    };
   }
   
-  // No games = backup = RARE
+  // TRASH TIER: No games played = unknown quantity
   if (gamesPlayed === 0) {
-    return 5.0; // Rare - backups shouldn't dominate packs
+    return {
+      rarity_tier: 'trash',
+      pack_weight: TIER_WEIGHTS.trash.weight,
+      display_percentage: 90,
+    };
   }
   
-  // Position thresholds - REBALANCED to create better distribution
-  // Lower thresholds = more players in the "exciting" 10-30% pull rate range
-  const thresholds: Record<string, any> = {
-    'Quarterback': { elite: 22, top: 18, solid: 14, rotational: 10, deep: 6 },
-    'Running Back': { elite: 18, top: 14, solid: 10, rotational: 6, deep: 3 },
-    'Wide Receiver': { elite: 16, top: 12, solid: 8, rotational: 5, deep: 2 },
-    'Tight End': { elite: 14, top: 10, solid: 6, rotational: 4, deep: 2 },
-  };
+  const thresholds = POSITION_THRESHOLDS[position] || POSITION_THRESHOLDS['Wide Receiver'];
   
-  const threshold = thresholds[position] || thresholds['Wide Receiver'];
-  let basePercentage = 70.0; // Default for deep backups
+  // Determine base tier from PPG
+  let tier: 'legendary' | 'epic' | 'rare' | 'common' | 'trash';
+  let displayPct: number;
   
-  // Better distribution: More players in 10-30% range for excitement
-  if (seasonPPG >= threshold.elite) basePercentage = 5.0;         // Elite - truly rare
-  else if (seasonPPG >= threshold.top) basePercentage = 15.0;     // Top starters - exciting pulls
-  else if (seasonPPG >= threshold.solid) basePercentage = 25.0;   // Solid starters - good pulls
-  else if (seasonPPG >= threshold.rotational) basePercentage = 40.0; // Rotational - decent
-  else if (seasonPPG >= threshold.deep) basePercentage = 55.0;    // Deep bench - common
-  // else: 70.0% - Practice squad/inactive
-  
-  // Apply modifiers (make worse players have higher %)
-  if (gamesPlayed < 4) {
-    basePercentage = Math.min(98.0, basePercentage * 1.2); // Increase % (worse quality)
+  if (seasonPPG >= thresholds.legendary) {
+    tier = 'legendary';
+    // Scale within tier: higher PPG = lower display % (rarer looking)
+    displayPct = Math.max(1, 5 - ((seasonPPG - thresholds.legendary) / 5));
+  } else if (seasonPPG >= thresholds.epic) {
+    tier = 'epic';
+    displayPct = 5 + ((thresholds.legendary - seasonPPG) / (thresholds.legendary - thresholds.epic)) * 10;
+  } else if (seasonPPG >= thresholds.rare) {
+    tier = 'rare';
+    displayPct = 15 + ((thresholds.epic - seasonPPG) / (thresholds.epic - thresholds.rare)) * 20;
+  } else if (seasonPPG >= thresholds.common) {
+    tier = 'common';
+    displayPct = 35 + ((thresholds.rare - seasonPPG) / (thresholds.rare - thresholds.common)) * 30;
+  } else {
+    tier = 'trash';
+    displayPct = 70 + Math.min(25, (thresholds.common - seasonPPG) * 5);
   }
   
+  // Apply penalties that can DOWNGRADE a tier
+  let weight = TIER_WEIGHTS[tier].weight;
+  
+  // Low games played penalty - reduces reliability
+  if (gamesPlayed < 4 && gamesPlayed > 0) {
+    weight = weight * 0.7; // 30% weight reduction
+    displayPct = Math.min(95, displayPct * 1.2); // Display looks worse
+  }
+  
+  // Questionable/Doubtful injury penalty
   if (['questionable', 'doubtful'].some(s => statusLower.includes(s))) {
-    basePercentage = Math.min(98.0, basePercentage * 1.3); // Increase % (worse quality)
+    weight = weight * 0.8; // 20% weight reduction
+    displayPct = Math.min(95, displayPct * 1.15);
   }
   
-  // Cap at reasonable bounds (inverted: 1-99)
-  return Math.min(99.0, Math.max(1.0, basePercentage));
+  return {
+    rarity_tier: tier,
+    pack_weight: Math.round(weight * 100) / 100,
+    display_percentage: Math.round(Math.min(99, Math.max(1, displayPct)) * 10) / 10,
+  };
 }
 
 Deno.serve(async (req) => {
@@ -70,30 +133,31 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 
-    console.log('Starting pull rate calculation...');
+    console.log('🎯 Starting production-grade rarity calculation...');
 
     // Get all active players with their current stats
     const { data: players, error: playersError } = await supabase
       .from('player_cards')
-      .select('id, position, season_ppg, games_played_season, injury_status')
-      .eq('is_active', true);
+      .select('id, player_name, position, season_ppg, games_played_season, injury_status')
+      .eq('is_active', true)
+      .in('position', ['Quarterback', 'Running Back', 'Wide Receiver', 'Tight End']);
 
     if (playersError) throw playersError;
 
-    console.log(`Processing ${players.length} active players`);
+    console.log(`📊 Processing ${players.length} active skill position players`);
 
     let updated = 0;
-    const distribution = {
-      elite: 0,      // 0.5-5%
-      top: 0,        // 15-20%
-      solid: 0,      // 50-60%
-      rotational: 0, // 10-15%
-      backup: 0      // 0.5-10%
+    const distribution: Record<string, { count: number; totalWeight: number; avgPPG: number; players: string[] }> = {
+      legendary: { count: 0, totalWeight: 0, avgPPG: 0, players: [] },
+      epic: { count: 0, totalWeight: 0, avgPPG: 0, players: [] },
+      rare: { count: 0, totalWeight: 0, avgPPG: 0, players: [] },
+      common: { count: 0, totalWeight: 0, avgPPG: 0, players: [] },
+      trash: { count: 0, totalWeight: 0, avgPPG: 0, players: [] },
     };
 
-    // Calculate pull percentage for each player
+    // Calculate rarity for each player
     for (const player of players) {
-      const pullPercentage = calculatePullPercentage(
+      const rarity = calculatePlayerRarity(
         player.position,
         player.season_ppg || 0,
         player.games_played_season || 0,
@@ -101,17 +165,20 @@ Deno.serve(async (req) => {
       );
 
       // Track distribution
-      if (pullPercentage >= 50) distribution.solid++;
-      else if (pullPercentage >= 15) distribution.top++;
-      else if (pullPercentage >= 10) distribution.rotational++;
-      else if (pullPercentage >= 5) distribution.backup++;
-      else distribution.elite++;
+      distribution[rarity.rarity_tier].count++;
+      distribution[rarity.rarity_tier].totalWeight += rarity.pack_weight;
+      distribution[rarity.rarity_tier].avgPPG += player.season_ppg || 0;
+      if (rarity.rarity_tier === 'legendary') {
+        distribution[rarity.rarity_tier].players.push(player.player_name);
+      }
 
-      // Update player
+      // Update player with all rarity fields
       const { error: updateError } = await supabase
         .from('player_cards')
         .update({
-          pull_percentage: Math.round(pullPercentage * 100) / 100,
+          rarity_tier: rarity.rarity_tier,
+          pack_weight: rarity.pack_weight,
+          pull_percentage: rarity.display_percentage, // Keep for backward compatibility
           last_updated: new Date().toISOString(),
         })
         .eq('id', player.id);
@@ -123,21 +190,40 @@ Deno.serve(async (req) => {
       }
     }
 
-    console.log('✅ Pull rate calculation complete');
-    console.log('Distribution:', distribution);
+    // Calculate actual pull probabilities
+    const totalWeight = Object.values(distribution).reduce((sum, d) => sum + d.totalWeight, 0);
+    const pullProbabilities: Record<string, string> = {};
+    
+    for (const [tier, data] of Object.entries(distribution)) {
+      if (data.count > 0) {
+        data.avgPPG = Math.round((data.avgPPG / data.count) * 100) / 100;
+      }
+      pullProbabilities[tier] = `${Math.round((data.totalWeight / totalWeight) * 1000) / 10}%`;
+    }
+
+    console.log('✅ Rarity calculation complete');
+    console.log('📈 Distribution:', distribution);
+    console.log('🎲 Actual Pull Probabilities:', pullProbabilities);
+    console.log('⭐ Legendary Players:', distribution.legendary.players);
 
     return new Response(JSON.stringify({
       success: true,
-      message: `Updated pull rates for ${updated} players`,
+      message: `Updated rarity for ${updated} players`,
       total_players: players.length,
       players_updated: updated,
-      distribution: distribution,
-      percentages: {
-        solid_starters: `${Math.round((distribution.solid / players.length) * 100)}%`,
-        top_players: `${Math.round((distribution.top / players.length) * 100)}%`,
-        rotational: `${Math.round((distribution.rotational / players.length) * 100)}%`,
-        backup: `${Math.round((distribution.backup / players.length) * 100)}%`,
-        elite: `${Math.round((distribution.elite / players.length) * 100)}%`,
+      distribution: {
+        legendary: { count: distribution.legendary.count, pull_probability: pullProbabilities.legendary, avg_ppg: distribution.legendary.avgPPG, sample_players: distribution.legendary.players.slice(0, 5) },
+        epic: { count: distribution.epic.count, pull_probability: pullProbabilities.epic, avg_ppg: distribution.epic.avgPPG },
+        rare: { count: distribution.rare.count, pull_probability: pullProbabilities.rare, avg_ppg: distribution.rare.avgPPG },
+        common: { count: distribution.common.count, pull_probability: pullProbabilities.common, avg_ppg: distribution.common.avgPPG },
+        trash: { count: distribution.trash.count, pull_probability: pullProbabilities.trash, avg_ppg: distribution.trash.avgPPG },
+      },
+      target_vs_actual: {
+        legendary: { target: '2-3%', actual: pullProbabilities.legendary },
+        epic: { target: '8-10%', actual: pullProbabilities.epic },
+        rare: { target: '20-25%', actual: pullProbabilities.rare },
+        common: { target: '50-55%', actual: pullProbabilities.common },
+        trash: { target: '10-15%', actual: pullProbabilities.trash },
       }
     }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
