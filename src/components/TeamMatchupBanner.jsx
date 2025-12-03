@@ -843,8 +843,8 @@ export default function TeamMatchupBanner({
           </div>
           </div>
           
-          {/* Contest/Score Section - Full width at bottom with solid black gradient (Mobile) */}
-          <div className="md:hidden bg-gradient-to-b from-neutral-900 to-black border-t border-white/10">
+          {/* Contest/Score Section - Full width at bottom with defined edges */}
+          <div className="md:hidden bg-primary-black-900 border-t-2 border-primary-green-600/50">
             <TeamScoreBanner
               week={displayWeek?.week}
               isLive={isLive}

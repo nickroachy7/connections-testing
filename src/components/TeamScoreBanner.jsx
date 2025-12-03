@@ -151,21 +151,21 @@ export default function TeamScoreBanner({
           onClick={onContestClick}
         >
           {/* Header Bar - Contest Name + Win Type + Entrants */}
-          <div className={`${isBottomSection ? 'border-b border-white/5' : 'bg-emerald-800/25 border-b border-emerald-700/25'} ${isMobile ? 'px-3 py-1.5' : 'px-4 py-2'}`}>
+          <div className={`${isBottomSection ? 'border-b border-white/10' : 'bg-emerald-800/25 border-b border-emerald-700/25'} ${isMobile ? 'px-3 py-1.5' : 'px-4 py-2'}`}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Trophy className={`${isMobile ? 'w-3.5 h-3.5' : 'w-4 h-4'} ${isBottomSection ? 'text-primary-green-400' : 'text-emerald-400'}`} />
+                <Trophy className={`${isMobile ? 'w-3.5 h-3.5' : 'w-4 h-4'} text-primary-green-400`} />
                 <span className={`font-bold text-white ${isMobile ? 'text-xs' : 'text-sm'}`}>
                   {contestName}
                 </span>
-                <span className={`text-white/40 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>
+                <span className={`text-white/50 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>
                   — {winConfig.shortLabel} Wins
                 </span>
               </div>
               {/* Entrant Count - Right side */}
               <div className="flex items-center gap-1">
-                <Users className={`${isMobile ? 'w-3 h-3' : 'w-3.5 h-3.5'} text-white/40`} />
-                <span className={`text-white/50 font-medium ${isMobile ? 'text-[10px]' : 'text-xs'}`}>
+                <Users className={`${isMobile ? 'w-3 h-3' : 'w-3.5 h-3.5'} text-white/50`} />
+                <span className={`text-white/60 font-medium ${isMobile ? 'text-[10px]' : 'text-xs'}`}>
                   {contestEntrantCount}/{contestMaxEntries || '∞'}
                 </span>
               </div>
@@ -318,21 +318,21 @@ export default function TeamScoreBanner({
         onClick={onContestClick}
       >
         {/* Header Bar - Contest Name + Win Type + Entrants */}
-        <div className={`${isBottomSection ? 'border-b border-white/5' : `${containerConfig.headerBg} border-b ${containerConfig.headerBorder}`} ${isMobile ? 'px-3 py-1.5' : 'px-4 py-2'}`}>
+        <div className={`${isBottomSection ? 'border-b border-white/10' : `${containerConfig.headerBg} border-b ${containerConfig.headerBorder}`} ${isMobile ? 'px-3 py-1.5' : 'px-4 py-2'}`}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Trophy className={`${isMobile ? 'w-3.5 h-3.5' : 'w-4 h-4'} ${isBottomSection ? 'text-primary-green-400' : containerConfig.iconColor}`} />
               <span className={`font-bold text-white ${isMobile ? 'text-xs' : 'text-sm'}`}>
                 {contestName}
               </span>
-              <span className={`text-white/40 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>
+              <span className={`text-white/50 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>
                 — {winConfig.shortLabel} Wins
               </span>
             </div>
             {/* Entrant Count - Right side */}
             <div className="flex items-center gap-1">
-              <Users className={`${isMobile ? 'w-3 h-3' : 'w-3.5 h-3.5'} text-white/40`} />
-              <span className={`text-white/50 font-medium ${isMobile ? 'text-[10px]' : 'text-xs'}`}>
+              <Users className={`${isMobile ? 'w-3 h-3' : 'w-3.5 h-3.5'} text-white/50`} />
+              <span className={`text-white/60 font-medium ${isMobile ? 'text-[10px]' : 'text-xs'}`}>
                 {contestEntrantCount}/{contestMaxEntries || '∞'}
               </span>
             </div>
