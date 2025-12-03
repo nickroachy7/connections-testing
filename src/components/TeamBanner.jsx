@@ -22,12 +22,12 @@ const BANNER_THEMES = [
 ];
 
 /**
- * TeamMatchupBanner Component
+ * TeamBanner Component
  * 
  * Unified banner combining team identity and week status in a Sleeper-inspired layout.
  * Shows: Team info, global rank, stats, score vs median comparison, week status.
  */
-export default function TeamMatchupBanner({ 
+export default function TeamBanner({ 
   username, 
   teamName, 
   wins, 
@@ -58,7 +58,7 @@ export default function TeamMatchupBanner({
     contextCurrentWeek = fantasyContext?.currentWeek;
   } catch (error) {
     // Context not available - component used outside FantasyProvider
-    console.warn('TeamMatchupBanner: Fantasy context not available');
+    console.warn('TeamBanner: Fantasy context not available');
   }
   
   // League context - determines if we show league-specific stats (private teams)
@@ -105,9 +105,9 @@ export default function TeamMatchupBanner({
     remainingEntries: contestRemainingEntries
   } = useMultipleContests(teamId);
   
-  console.log('🎯 [TeamMatchupBanner] League context:', { isInLeague, leagueName, leagueWins, leagueLosses, leagueLives });
-  console.log('🎮 [TeamMatchupBanner] Contest context:', { isInContest, contestName, contestWinCondition, entrantCount, contestLoading });
-  console.log('📊 [TeamMatchupBanner] Multiple contests:', { count: multipleContests.length, hasMultiple: hasMultipleContests, selectedIndex: multiContestIndex, canEnterMore: canEnterMoreContests, remainingEntries: contestRemainingEntries });
+  console.log('🎯 [TeamBanner] League context:', { isInLeague, leagueName, leagueWins, leagueLosses, leagueLives });
+  console.log('🎮 [TeamBanner] Contest context:', { isInContest, contestName, contestWinCondition, entrantCount, contestLoading });
+  console.log('📊 [TeamBanner] Multiple contests:', { count: multipleContests.length, hasMultiple: hasMultipleContests, selectedIndex: multiContestIndex, canEnterMore: canEnterMoreContests, remainingEntries: contestRemainingEntries });
   
   // Track previous week status to detect finalization
   const previousWeekStatus = usePrevious(contextWeekStatus);
@@ -116,7 +116,7 @@ export default function TeamMatchupBanner({
   // This ensures newly joined contests appear immediately
   useEffect(() => {
     if (shouldRefetchContests) {
-      console.log('🔄 [TeamMatchupBanner] Navigated to starting lineup - refreshing contest data...');
+      console.log('🔄 [TeamBanner] Navigated to starting lineup - refreshing contest data...');
       refetchMultipleContests();
       refetchContestContext();
     }
@@ -125,7 +125,7 @@ export default function TeamMatchupBanner({
   // Refresh league context when week finalizes (updates wins/losses/lives)
   useEffect(() => {
     if (isInLeague && previousWeekStatus && previousWeekStatus !== 'finalized' && contextWeekStatus === 'finalized') {
-      console.log('🏆 [TeamMatchupBanner] Week finalized! Refreshing league stats...');
+      console.log('🏆 [TeamBanner] Week finalized! Refreshing league stats...');
       refetchLeagueContext();
     }
   }, [contextWeekStatus, previousWeekStatus, isInLeague, refetchLeagueContext]);
@@ -133,7 +133,7 @@ export default function TeamMatchupBanner({
   // Refresh public contest context when week finalizes
   useEffect(() => {
     if (isInContest && previousWeekStatus && previousWeekStatus !== 'finalized' && contextWeekStatus === 'finalized') {
-      console.log('🎮 [TeamMatchupBanner] Week finalized! Refreshing contest stats...');
+      console.log('🎮 [TeamBanner] Week finalized! Refreshing contest stats...');
       refetchContestContext();
     }
   }, [contextWeekStatus, previousWeekStatus, isInContest, refetchContestContext]);
@@ -677,7 +677,7 @@ export default function TeamMatchupBanner({
   })();
   
   // Debug logging for median source
-  console.log('🎯 [TeamMatchupBanner] Median calculation:', {
+  console.log('🎯 [TeamBanner] Median calculation:', {
     isInLeague,
     isInContest,
     leagueMedian,
@@ -777,7 +777,7 @@ export default function TeamMatchupBanner({
 
   return (
     <>
-      <div className="px-3 sm:px-4 pt-2 pb-1">
+      <div className="px-3 sm:px-4 pt-3 pb-1">
         <div className={`${getCurrentTheme().bg} transition-all duration-300 rounded-xl overflow-hidden`}>
           {/* Team Info Section - with padding */}
           <div className="px-4 sm:px-5 py-3">
@@ -1082,7 +1082,7 @@ export default function TeamMatchupBanner({
   );
 }
 
-TeamMatchupBanner.propTypes = {
+TeamBanner.propTypes = {
   username: PropTypes.string,
   teamName: PropTypes.string,
   wins: PropTypes.number,

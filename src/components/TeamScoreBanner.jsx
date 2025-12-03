@@ -16,7 +16,7 @@ import { Trophy, Target, Swords, TrendingUp, Users, ChevronRight, Clock, CheckCi
  * - Final: Focus on results and outcome
  * 
  * Used by:
- * - TeamMatchupBanner (main page banner)
+ * - TeamBanner (main page banner)
  * - TeamMenuCard (burger menu team list)
  */
 export default function TeamScoreBanner({

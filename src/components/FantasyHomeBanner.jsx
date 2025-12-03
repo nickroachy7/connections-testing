@@ -19,7 +19,7 @@ const BANNER_THEMES = [
 /**
  * FantasyHomeBanner - Banner component for Fantasy Home page
  * 
- * Matches the style/height of TeamMatchupBanner but shows aggregate stats across all teams.
+ * Matches the style/height of TeamBanner but shows aggregate stats across all teams.
  * Shows: User avatar, username, total teams, aggregate W-L, total coins
  */
 export default function FantasyHomeBanner({ username, totalTeams, profile, teams = [] }) {
@@ -92,7 +92,7 @@ export default function FantasyHomeBanner({ username, totalTeams, profile, teams
       {/* Navigation Tabs - First, right below header */}
       <NavigationTabs navItems={navItems} />
       
-      {/* Main Banner Section - Wrapped in rounded container like TeamMatchupBanner */}
+      {/* Main Banner Section - Wrapped in rounded container like TeamBanner */}
       <div className="px-3 sm:px-4 pt-3 pb-2">
         <div className={`${theme.bg} transition-all duration-300 rounded-2xl shadow-lg shadow-black/40 overflow-hidden`}>
           <div className="px-4 sm:px-5 py-4">

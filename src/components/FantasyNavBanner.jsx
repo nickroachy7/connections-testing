@@ -1,17 +1,17 @@
 import { useLocation } from 'react-router-dom';
 import { usePrevious } from '../hooks/usePrevious';
 import PropTypes from 'prop-types';
-import TeamMatchupBanner from './TeamMatchupBanner';
+import TeamBanner from './TeamBanner';
 import FantasyNavigation from './FantasyNavigation';
 
 /**
  * FantasyNavBanner - Wrapper Component
  * 
- * Composes FantasyNavigation (tabs) and TeamMatchupBanner into a single unit.
+ * Composes FantasyNavigation (tabs) and TeamBanner into a single unit.
  * Navigation tabs appear at the top (right below header).
  * Team banner only shows on the Starting Lineup page.
  * 
- * NOTE: TeamMatchupBanner is always mounted but visually hidden when not on
+ * NOTE: TeamBanner is always mounted but visually hidden when not on
  * Starting Lineup to prevent data refetching on navigation.
  */
 export default function FantasyNavBanner({ 
@@ -44,7 +44,7 @@ export default function FantasyNavBanner({
       
       {/* Team banner - always mounted to preserve hook state, but hidden when not on Starting Lineup */}
       <div className={isStartingLineupPage ? '' : 'hidden'}>
-        <TeamMatchupBanner
+        <TeamBanner
           username={username}
           teamName={teamName}
           wins={wins}

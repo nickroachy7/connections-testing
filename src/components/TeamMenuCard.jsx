@@ -19,7 +19,7 @@ const BANNER_THEMES = [
 /**
  * TeamMenuCard - Mini version of the team banner
  * 
- * Matches the styling of TeamMatchupBanner in a compact form.
+ * Matches the styling of TeamBanner in a compact form.
  * Displays team identity with avatar, name, username, and stats.
  */
 export default function TeamMenuCard({ 

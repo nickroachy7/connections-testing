@@ -206,7 +206,7 @@ export default function PlayerProfileModal({
         className="bg-primary-black-900 w-full h-[92vh] md:h-[85vh] md:max-w-2xl md:rounded-xl overflow-hidden flex flex-col animate-slide-up"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header Banner - Team Gradient (matches TeamMatchupBanner style) */}
+        {/* Header Banner - Team Gradient (matches TeamBanner style) */}
         <div 
           className="border-b-2 border-primary-black-700/50"
           style={{ background: teamGradient }}
