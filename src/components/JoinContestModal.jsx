@@ -73,7 +73,13 @@ export default function JoinContestModal({
       const result = await enterContest(contest.id, team.id);
       
       if (result.success) {
-        success(`Successfully entered ${name}!`);
+        // Show success message with remaining entries info
+        let message = `Successfully entered ${name}!`;
+        if (result.can_enter_more && result.lives_remaining > result.entries_this_week) {
+          const remaining = result.lives_remaining - result.entries_this_week;
+          message += ` You can enter ${remaining} more contest${remaining > 1 ? 's' : ''} this week.`;
+        }
+        success(message);
         onSuccess?.();
         onClose();
       } else {

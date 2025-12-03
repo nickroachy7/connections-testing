@@ -15,3 +15,4 @@ export { default as PlayerRowCompact } from './PlayerRowCompact';
 export { default as TokenRowCompact } from './TokenRowCompact';
 export { default as SectionHeader } from './SectionHeader';
 export { default as SwapModal } from './SwapModal';
+export { default as SwipeableCarousel } from './SwipeableCarousel';

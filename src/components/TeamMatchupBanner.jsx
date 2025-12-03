@@ -1,11 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PropTypes from 'prop-types';
 import { supabase } from '../services/supabase';
 import { useFantasy } from '../contexts/FantasyContext';
-import { useProjectedMedian, useLeagueContext, usePublicContestContext } from '../hooks/fantasy';
+import { useProjectedMedian, useLeagueContext, usePublicContestContext, useMultipleContests } from '../hooks/fantasy';
 import { usePrevious } from '../hooks/usePrevious';
 import TeamScoreBanner from './TeamScoreBanner';
+import ContestBannerCarousel from './ContestBannerCarousel';
 
 const BANNER_THEMES = [
   { id: 'default', name: 'Classic Dark', bg: 'bg-dk-black-secondary' },
@@ -91,8 +92,19 @@ export default function TeamMatchupBanner({
     loading: contestLoading
   } = usePublicContestContext(teamId);
   
+  // Multiple contests support - for swiping between entered contests
+  const {
+    contests: multipleContests,
+    selectedIndex: multiContestIndex,
+    setSelectedIndex: setMultiContestIndex,
+    hasMultiple: hasMultipleContests,
+    loading: multiContestLoading,
+    refetch: refetchMultipleContests
+  } = useMultipleContests(teamId);
+  
   console.log('🎯 [TeamMatchupBanner] League context:', { isInLeague, leagueName, leagueWins, leagueLosses, leagueLives });
   console.log('🎮 [TeamMatchupBanner] Contest context:', { isInContest, contestName, contestWinCondition, entrantCount, contestLoading });
+  console.log('📊 [TeamMatchupBanner] Multiple contests:', { count: multipleContests.length, hasMultiple: hasMultipleContests, selectedIndex: multiContestIndex });
   
   // Track previous week status to detect finalization
   const previousWeekStatus = usePrevious(contextWeekStatus);
@@ -847,7 +859,7 @@ export default function TeamMatchupBanner({
           
       {/* Contest/Score Section - Below the team banner, separate card */}
       <div className="md:hidden px-3 pt-2 pb-2">
-        {contestLoading ? (
+        {(contestLoading || multiContestLoading) ? (
               /* Loading skeleton to prevent flash */
               <div className="px-3 py-3 animate-pulse bg-primary-black-800 rounded-xl">
                 <div className="flex items-center justify-between mb-2">
@@ -863,6 +875,21 @@ export default function TeamMatchupBanner({
                   <div className="h-4 bg-primary-black-700 rounded w-20" />
                 </div>
               </div>
+            ) : hasMultipleContests && multipleContests.length > 1 ? (
+              /* Swipeable carousel for multiple contests - using pre-rendered banners */
+              <ContestBannerCarousel
+                contests={multipleContests}
+                selectedIndex={multiContestIndex}
+                onIndexChange={setMultiContestIndex}
+                userScore={isLive || isFinal ? livePoints : projectedPoints}
+                fallbackMedian={medianScore}
+                winPercentage={winPercentage}
+                displayWeek={displayWeek}
+                isLive={isLive}
+                isFinal={isFinal}
+                lineupReady={hasWeeklyLineup || (lineup && lineup.length > 0)}
+                onContestClick={() => navigate('/contests')}
+              />
             ) : (
             <TeamScoreBanner
               week={displayWeek?.week}

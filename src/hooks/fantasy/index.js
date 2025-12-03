@@ -4,3 +4,4 @@ export { useProjectedMedian } from './useProjectedMedian';
 export { usePlayerProfile } from './usePlayerProfile';
 export { useLeagueContext } from './useLeagueContext';
 export { usePublicContestContext } from './usePublicContestContext';
+export { useMultipleContests } from './useMultipleContests';

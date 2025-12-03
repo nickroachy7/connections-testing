@@ -170,10 +170,110 @@ export async function getTeamContestEntry(teamId) {
 }
 
 /**
+ * Get the team's contest entry status for a week
+ * Returns info about how many contests they can enter based on lives
+ * @param {string} teamId 
+ * @param {number|null} week - Optional week number
+ * @param {number|null} season - Optional season year
+ * @returns {Promise<{data: Object|null, error: Error|null}>}
+ */
+export async function getTeamContestEntryStatus(teamId, week = null, season = null) {
+  try {
+    const params = { p_team_id: teamId };
+    if (week !== null) params.p_week = week;
+    if (season !== null) params.p_season = season;
+    
+    const { data, error } = await supabase
+      .rpc('get_team_contest_entry_status', params);
+    
+    if (error) throw error;
+    
+    return { data, error: null };
+  } catch (error) {
+    console.error('Error fetching team contest entry status:', error);
+    return { data: null, error };
+  }
+}
+
+/**
+ * Get all contest entries for a team for a specific week
+ * @param {string} teamId 
+ * @param {number|null} week - Optional week number (defaults to current NFL week)
+ * @param {number|null} season - Optional season year
+ * @returns {Promise<{data: Array, error: Error|null}>}
+ */
+export async function getTeamContestEntries(teamId, week = null, season = null) {
+  try {
+    // Get current week/season if not provided
+    let targetWeek = week;
+    let targetSeason = season;
+    
+    if (targetWeek === null || targetSeason === null) {
+      const { data: config, error: configError } = await supabase
+        .from('nfl_season_config')
+        .select('current_week, season_year')
+        .eq('is_active', true)
+        .single();
+      
+      if (configError) throw configError;
+      targetWeek = targetWeek ?? config.current_week;
+      targetSeason = targetSeason ?? config.season_year;
+    }
+    
+    // First get all entries for this team
+    const { data: allEntries, error: entriesError } = await supabase
+      .from('public_contest_entries')
+      .select(`
+        *,
+        contest:public_contests (
+          id,
+          name,
+          description,
+          max_entries,
+          current_entries,
+          scoring_type,
+          win_condition,
+          status,
+          week,
+          season,
+          template:public_contest_templates (
+            icon,
+            difficulty
+          )
+        )
+      `)
+      .eq('team_id', teamId);
+    
+    if (entriesError) throw entriesError;
+    
+    // Filter to only target week's contests
+    const weekEntries = (allEntries || []).filter(entry => 
+      entry.contest?.week === targetWeek && 
+      entry.contest?.season === targetSeason
+    );
+    
+    console.log('📋 getTeamContestEntries:', { 
+      teamId, 
+      week: targetWeek, 
+      season: targetSeason,
+      allEntriesCount: allEntries?.length || 0,
+      weekEntriesCount: weekEntries.length,
+      entries: weekEntries
+    });
+    
+    return { data: weekEntries, error: null };
+  } catch (error) {
+    console.error('Error fetching team contest entries:', error);
+    return { data: [], error };
+  }
+}
+
+/**
  * Enter a team into a public contest
+ * Users can enter as many contests as they have lives remaining
  * @param {string} contestId 
  * @param {string} teamId 
- * @returns {Promise<{success: boolean, error: string|null, entry_id: string|null}>}
+ * @returns {Promise<{success: boolean, error: string|null, entry_id: string|null, entries_this_week: number, lives_remaining: number, can_enter_more: boolean}>}
  */
 export async function enterContest(contestId, teamId) {
   try {

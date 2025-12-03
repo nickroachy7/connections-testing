@@ -1,22 +1,19 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { Trophy, RefreshCw, Calendar, AlertCircle, Users, Target, TrendingUp, Swords } from 'lucide-react';
+import { Trophy, RefreshCw, Calendar, AlertCircle, Users, Heart } from 'lucide-react';
 import ContestCard from '../components/ContestCard';
-import ContestStandings from '../components/ContestStandings';
-import TeamScoreBanner from '../components/TeamScoreBanner';
+import ExpandableContestBanner from '../components/ExpandableContestBanner';
 import JoinContestModal from '../components/JoinContestModal';
-import { getAvailableContests, getTeamContestEntry, getContestStandings } from '../services/contestService';
+import { getAvailableContests, getTeamContestEntryStatus, getTeamContestEntries } from '../services/contestService';
 import { supabase } from '../services/supabase';
 
 export default function Contests() {
   const { activeTeam, lineup, lineupStats } = useOutletContext();
   
   const [contests, setContests] = useState([]);
-  const [currentEntry, setCurrentEntry] = useState(null);
-  const [standings, setStandings] = useState([]);
-  const [standingsMedian, setStandingsMedian] = useState(0);
+  const [currentEntries, setCurrentEntries] = useState([]); // Array of entries
+  const [entryStatus, setEntryStatus] = useState(null); // Lives/entries status
   const [loading, setLoading] = useState(true);
-  const [standingsLoading, setStandingsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [nflCurrentWeek, setNflCurrentWeek] = useState(null);
   const [weekStatus, setWeekStatus] = useState(null);
@@ -42,24 +39,7 @@ export default function Contests() {
     return nflWeek;
   }, [activeTeam]);
   
-  // Load standings for entered contest
-  const loadStandings = useCallback(async (contestId, week, season, isUpcomingContest) => {
-    console.log('📊 loadStandings called:', { contestId, week, season, isUpcomingContest });
-    setStandingsLoading(true);
-    try {
-      const { data, medianScore, error } = await getContestStandings(contestId, week, season, isUpcomingContest);
-      console.log('📊 Standings result:', { data, medianScore, error });
-      if (error) throw error;
-      setStandings(data || []);
-      setStandingsMedian(medianScore || 0);
-    } catch (err) {
-      console.error('Error loading standings:', err);
-    } finally {
-      setStandingsLoading(false);
-    }
-  }, []);
-  
-  // Fetch contests and current entry
+  // Fetch contests and current entries
   const loadData = useCallback(async () => {
     if (!activeTeam) return;
     
@@ -81,47 +61,29 @@ export default function Contests() {
       const eligibleWeek = getTeamEligibleWeek(config?.current_week);
       setDisplayWeek(eligibleWeek);
       
-      // Fetch contests for the eligible week and team entry in parallel
-      const [contestsResult, entryResult] = await Promise.all([
+      // Fetch contests, entry status, and entries in parallel
+      const [contestsResult, statusResult, entriesResult] = await Promise.all([
         getAvailableContests(eligibleWeek),
-        getTeamContestEntry(activeTeam.id)
+        getTeamContestEntryStatus(activeTeam.id, eligibleWeek, config?.season_year),
+        getTeamContestEntries(activeTeam.id, eligibleWeek, config?.season_year)
       ]);
       
       if (contestsResult.error) throw contestsResult.error;
-      if (entryResult.error) throw entryResult.error;
       
       setContests(contestsResult.data || []);
-      setCurrentEntry(entryResult.data);
-      
-      // If user has an entry, load standings
-      if (entryResult.data?.contest_id) {
-        const isUpcomingContest = eligibleWeek > config?.current_week || 
-          config?.week_status === 'building' || config?.week_status === 'locked';
-        loadStandings(entryResult.data.contest_id, eligibleWeek, config?.season_year, isUpcomingContest);
-      }
+      setEntryStatus(statusResult.data);
+      setCurrentEntries(entriesResult.data || []);
     } catch (err) {
       console.error('Error loading contests:', err);
       setError(err.message || 'Failed to load contests');
     } finally {
       setLoading(false);
     }
-  }, [activeTeam, getTeamEligibleWeek, loadStandings]);
+  }, [activeTeam, getTeamEligibleWeek]);
   
   useEffect(() => {
     loadData();
   }, [loadData]);
-  
-  // Auto-refresh standings when live
-  useEffect(() => {
-    if (!isLive || !currentEntry?.contest_id) return;
-    
-    const interval = setInterval(() => {
-      const isUpcomingContest = displayWeek > nflCurrentWeek;
-      loadStandings(currentEntry.contest_id, displayWeek, nflCurrentWeek, isUpcomingContest);
-    }, 30000); // Refresh every 30 seconds when live
-    
-    return () => clearInterval(interval);
-  }, [isLive, currentEntry?.contest_id, displayWeek, nflCurrentWeek, loadStandings]);
   
   // Handle successful entry
   const handleEntrySuccess = () => {
@@ -129,30 +91,23 @@ export default function Contests() {
     loadData(); // Refresh data
   };
   
-  // Get entered contest details
-  const getEnteredContest = () => {
-    if (!currentEntry?.contest_id) return null;
-    return contests.find(c => c.id === currentEntry.contest_id);
-  };
+  // Check if team has entered any contests
+  const hasEnteredContest = currentEntries.length > 0;
   
-  const enteredContest = getEnteredContest();
+  // Check if team can enter more contests (based on lives)
+  const canEnterMore = entryStatus?.can_enter_more ?? true;
+  const livesRemaining = entryStatus?.lives_remaining ?? 3;
+  const entriesThisWeek = entryStatus?.entries_count ?? currentEntries.length;
+  const remainingEntries = entryStatus?.remaining_entries ?? (livesRemaining - entriesThisWeek);
   
-  // Check if team is already in a contest
-  const hasEnteredContest = !!currentEntry;
-  
-  // Get the entered contest ID
-  const enteredContestId = currentEntry?.contest_id;
+  // Get IDs of contests already entered
+  const enteredContestIds = currentEntries.map(e => e.contest_id || e.contest?.id);
   
   // Check if this is a private team (can't enter public contests)
   const isPrivateTeam = activeTeam?.team_type === 'private';
   
   // Check if we're showing a future week (team starts later)
   const isShowingFutureWeek = displayWeek && nflCurrentWeek && displayWeek > nflCurrentWeek;
-  
-  // Calculate user's current score and rank from standings
-  const userStanding = standings.find(s => s.team_id === activeTeam?.id);
-  const userScore = userStanding?.score || lineupStats?.projectedPoints || 0;
-  const userRank = userStanding?.rank || null;
   
   // Lineup readiness
   const lineupReady = (lineup?.length > 0) || (lineupStats?.projectedPoints > 0);
@@ -174,9 +129,20 @@ export default function Contests() {
       <div className="bg-transparent flex items-center justify-between py-2 px-3 sm:px-4">
         <div className="flex items-center gap-2">
           <h1 className="text-sm font-semibold text-white">
-            {hasEnteredContest ? 'Your Contest' : 'Contests'}
+            {hasEnteredContest ? `Your Contest${currentEntries.length > 1 ? 's' : ''}` : 'Contests'}
           </h1>
           {statusBadge}
+          {/* Lives indicator */}
+          {!isPrivateTeam && livesRemaining > 0 && (
+            <div className="flex items-center gap-1 ml-2">
+              {[...Array(livesRemaining)].map((_, i) => (
+                <Heart 
+                  key={i} 
+                  className={`w-3 h-3 ${i < remainingEntries ? 'text-red-500 fill-red-500' : 'text-red-500/30'}`} 
+                />
+              ))}
+            </div>
+          )}
         </div>
         {loading && (
           <RefreshCw className="w-3 h-3 text-primary-black-400 animate-spin" />
@@ -197,54 +163,44 @@ export default function Contests() {
       )}
       
       {/* ========================================
-          ENTERED CONTEST SECTION
+          ENTERED CONTESTS SECTION - All banners at top
           ======================================== */}
-      {hasEnteredContest && currentEntry && (
-        <div className="mb-6">
-          {/* Contest Score Banner */}
-          <div className="mb-4">
-            <TeamScoreBanner
-              week={displayWeek}
-              isLive={isLive}
-              isFinal={isFinal}
-              isUpcoming={isUpcoming}
-              userScore={userScore}
-              medianScore={standingsMedian || enteredContest?.median_score || 0}
-              winPercentage={userScore > 0 ? Math.round((userScore / (standingsMedian || 100)) * 100) : 0}
-              userPercentage={userScore > 0 ? Math.min((userScore / (standingsMedian * 1.5 || 150)) * 100, 100) : 0}
-              medianPercentage={66.67}
-              isAboveMedian={userScore >= (standingsMedian || 0)}
-              winCondition={enteredContest?.win_condition || currentEntry?.win_condition || 'median'}
-              isInContest={true}
-              contestName={enteredContest?.name || currentEntry?.contest_name || 'Contest'}
-              contestEntrantCount={standings.length || enteredContest?.current_entries || 1}
-              contestMaxEntries={enteredContest?.max_entries}
-              contestMedianScore={standingsMedian}
-              contestRank={userRank}
-              contestWeek={displayWeek}
-              lineupReady={lineupReady}
-              size="mobile"
-            />
+      {hasEnteredContest && currentEntries.length > 0 && (
+        <div className="mb-6 space-y-3">
+          {/* Section Header */}
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-primary-black-300">
+              Your Contests ({currentEntries.length})
+            </h2>
           </div>
           
-          {/* Live Standings */}
-          <ContestStandings
-            standings={standings}
-            medianScore={standingsMedian}
-            winCondition={enteredContest?.win_condition || currentEntry?.win_condition || 'median'}
-            currentTeamId={activeTeam?.id}
-            isUpcoming={isUpcoming}
-            isLive={isLive}
-            isFinal={isFinal}
-            loading={standingsLoading}
-          />
+          {/* All Contest Banners - Expandable */}
+          {currentEntries.map((entry) => {
+            const contest = entry.contest || contests.find(c => c.id === entry.contest_id);
+            const entryScore = lineupStats?.projectedPoints || 0;
+            
+            return (
+              <ExpandableContestBanner
+                key={entry.id}
+                entry={entry}
+                contest={contest}
+                displayWeek={displayWeek}
+                isLive={isLive}
+                isFinal={isFinal}
+                isUpcoming={isUpcoming}
+                userScore={entryScore}
+                lineupReady={lineupReady}
+                teamId={activeTeam?.id}
+              />
+            );
+          })}
         </div>
       )}
       
       {/* ========================================
           AVAILABLE CONTESTS SECTION
           ======================================== */}
-      {!hasEnteredContest && !isPrivateTeam && isShowingFutureWeek && (
+      {!isPrivateTeam && isShowingFutureWeek && !hasEnteredContest && (
         <div className="mb-6 p-4 bg-primary-green-500/10 border border-primary-green-500/30 rounded-xl flex items-start gap-3">
           <Calendar className="w-5 h-5 text-primary-green-500 flex-shrink-0 mt-0.5" />
           <div>
@@ -257,11 +213,28 @@ export default function Contests() {
         </div>
       )}
       
+      {/* Can Enter More Contests Banner */}
+      {!isPrivateTeam && hasEnteredContest && canEnterMore && remainingEntries > 0 && (
+        <div className="mb-4 p-3 bg-primary-green-500/10 border border-primary-green-500/30 rounded-lg flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Heart className="w-4 h-4 text-red-500 fill-red-500" />
+            <span className="text-sm text-primary-green-300">
+              You can enter <span className="font-bold">{remainingEntries} more contest{remainingEntries > 1 ? 's' : ''}</span> this week
+            </span>
+          </div>
+          <span className="text-xs text-primary-black-400">
+            {entriesThisWeek}/{livesRemaining} used
+          </span>
+        </div>
+      )}
+      
       {/* Section Header for Available Contests */}
-      {!hasEnteredContest && contests.length > 0 && (
+      {contests.length > 0 && (canEnterMore || !hasEnteredContest) && !isPrivateTeam && (
         <div className="flex items-center gap-2 mb-4">
           <Users className="w-5 h-5 text-primary-black-400" />
-          <h2 className="text-lg font-bold text-white">Available Contests</h2>
+          <h2 className="text-lg font-bold text-white">
+            {hasEnteredContest ? 'Enter More Contests' : 'Available Contests'}
+          </h2>
         </div>
       )}
       
@@ -320,18 +293,21 @@ export default function Contests() {
         </div>
       )}
       
-      {/* Contest Grid - Only show when NOT already entered */}
-      {!loading && !error && contests.length > 0 && !hasEnteredContest && (
+      {/* Contest Grid - Show when user can enter more contests */}
+      {!loading && !error && contests.length > 0 && (canEnterMore || !hasEnteredContest) && !isPrivateTeam && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {contests.map((contest) => (
+          {contests.map((contest) => {
+            const isAlreadyEntered = enteredContestIds.includes(contest.id);
+            return (
               <ContestCard
                 key={contest.id}
                 contest={contest}
-                isEntered={false}
+                isEntered={isAlreadyEntered}
                 onJoin={setSelectedContest}
-                disabled={isPrivateTeam}
+                disabled={isPrivateTeam || isAlreadyEntered}
               />
-            ))}
+            );
+          })}
         </div>
       )}
       
