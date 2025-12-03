@@ -161,7 +161,9 @@ export default function SwipeableRow({
         style={{
           transform: `translateX(-${swipeOffset}px)`,
           transition: isDragging ? 'none' : 'transform 0.2s ease-out',
-          WebkitTransform: `translateX(-${swipeOffset}px)`, // Safari support
+          WebkitTransform: `translateX(-${swipeOffset}px)`,
+          WebkitBackfaceVisibility: 'hidden',
+          backfaceVisibility: 'hidden'
         }}
         className="w-full touch-pan-y relative z-10 bg-primary-black-900"
       >

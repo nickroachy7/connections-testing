@@ -123,6 +123,12 @@ const PlayerRow = ({
     }
   };
 
+  const handleSell = () => {
+    if (onSell) {
+      onSell(player);
+    }
+  };
+
   return (
     <>
       {/* DESKTOP ROW */}
@@ -346,15 +352,15 @@ const PlayerRow = ({
       {/* MOBILE ROW */}
       {onSell && !isLocked ? (
         <SwipeableRow
-          onSell={() => onSell(player)}
+          onSell={handleSell}
           sellValue={player.sellValue || 0}
           disabled={isLocked}
           className="md:hidden"
         >
           <div
             onClick={handleClick}
-            className={`grid ${customClassName} ${finalGameClass} py-2.5 px-3 ${onClick ? 'cursor-pointer active:bg-primary-black-700/50' : ''}`}
-            style={{ 
+            className={`grid ${customClassName} ${finalGameClass} py-2.5 px-3 ${onClick ? 'cursor-pointer' : ''}`}
+            style={{
               gridTemplateColumns: mobileGridTemplate,
               gap: '10px',
               alignItems: 'center',
@@ -389,7 +395,7 @@ const PlayerRow = ({
           onDragStart={handleDragStart}
           onDragEnd={onDragEnd}
           onClick={handleClick}
-          className={`grid md:hidden ${customClassName} ${finalGameClass} py-2.5 px-3 ${onClick ? 'cursor-pointer active:bg-primary-black-700/50' : ''}`}
+          className={`grid md:hidden ${customClassName} ${finalGameClass} py-2.5 px-3 ${onClick ? 'cursor-pointer' : ''}`}
           style={{ 
             gridTemplateColumns: mobileGridTemplate,
             gap: '10px',

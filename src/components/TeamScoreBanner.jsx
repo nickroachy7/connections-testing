@@ -126,7 +126,7 @@ export default function TeamScoreBanner({
     
     // Match the app header color (primary-black-900 = #0d0d0d)
     const containerClasses = `bg-primary-black-900 rounded-xl overflow-hidden ${
-        onContestClick ? 'cursor-pointer hover:bg-primary-black-800 active:bg-primary-black-800 transition-all' : ''
+        onContestClick ? 'cursor-pointer' : ''
       }`;
     
     // ----------------------------------------
@@ -286,7 +286,7 @@ export default function TeamScoreBanner({
     
     // Clean, minimal container - same as upcoming
     const liveContainerClasses = `bg-primary-black-900 rounded-xl overflow-hidden ${
-        onContestClick ? 'cursor-pointer hover:bg-primary-black-850 active:bg-primary-black-850 transition-all' : ''
+        onContestClick ? 'cursor-pointer' : ''
       }`;
     
     return (
