@@ -2,6 +2,7 @@ import { useState } from 'react';
 import PropTypes from 'prop-types';
 import BenchList from './tables/BenchList';
 import TokenTable from './tables/TokenTable';
+import { SectionHeader } from './ui';
 import { enrichPlayerData, enrichTokenData } from './tables/tableHelpers.jsx';
 import { useIsMobile } from '../hooks';
 
@@ -166,7 +167,7 @@ export default function BenchAndTokensPanel({
         {/* Players Section */}
         {shouldShowPlayers && enrichedPlayers.length > 0 && (
           <>
-            <h3 className="text-sm sm:text-xl font-bold text-primary-black-50 px-2">Bench</h3>
+            <SectionHeader title="Bench" count={enrichedPlayers.length} />
             <BenchList
               benchPlayers={enrichedPlayers}
               onPlayerClick={(player) => {
@@ -198,7 +199,7 @@ export default function BenchAndTokensPanel({
         {/* Tokens Section */}
         {shouldShowTokens && enrichedTokens.length > 0 && (
           <>
-            <h3 className="text-sm sm:text-xl font-bold text-primary-black-50 px-2">Tokens</h3>
+            <SectionHeader title="Tokens" count={enrichedTokens.length} />
             {tokenFilterPlayerId && (
               <div className="text-xs text-dk-white-muted mb-2 px-2">
                 Tap a token to apply it to this player

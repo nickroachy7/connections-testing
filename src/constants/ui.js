@@ -21,20 +21,21 @@ export function getRankColor(rank) {
   return RANK_COLORS[rank] || RANK_COLORS.DEFAULT;
 }
 
-// Activity type icons
+// Activity type icons - Use Lucide icon names (render with icon component)
+// NOTE: In components, import these icons from 'lucide-react' and render them
 export const ACTIVITY_ICONS = {
-  pack_purchase: '📦',
-  quick_sell: '💰',
-  starter_pack: '🎁',
-  reward: '🏆',
-  free_agent_claim: '🏃',
-  DEFAULT: '📝'
+  pack_purchase: 'Package',
+  quick_sell: 'Coins',
+  starter_pack: 'Gift',
+  reward: 'Trophy',
+  free_agent_claim: 'UserPlus',
+  DEFAULT: 'FileText'
 };
 
 /**
- * Get icon for activity type
+ * Get icon name for activity type
  * @param {string} type - Activity type
- * @returns {string} Emoji icon
+ * @returns {string} Lucide icon name
  */
 export function getActivityIcon(type) {
   return ACTIVITY_ICONS[type] || ACTIVITY_ICONS.DEFAULT;

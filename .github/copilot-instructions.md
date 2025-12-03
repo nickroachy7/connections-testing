@@ -189,6 +189,77 @@ As a senior engineer, **CONSTANTLY** scan for and flag these common issues:
 
 ### 8. Component Architecture
 
+**ALWAYS** reference `docs/COMPONENT_REGISTRY.md` before creating new components.
+
+#### Before Creating a New Component - ASK:
+
+1. **Does a similar component exist?** Check the Component Registry first.
+2. **Can I extend an existing component?** Add a prop rather than duplicating.
+3. **Is this truly reusable?** If used in only one place, consider keeping it local.
+4. **Does it follow naming conventions?** Use proper suffixes (`*Modal`, `*Row`, `*Badge`, etc.)
+
+#### When Adding UI Features - ALWAYS:
+
+1. Check `docs/COMPONENT_REGISTRY.md` for existing components
+2. Check `docs/DESIGN_SYSTEM.md` for styling patterns
+3. **Inform the user** if an existing component can be used
+4. **Justify creation** if a new component is truly needed
+
+#### Component Creation Decision Matrix:
+
+| Situation | Action |
+|-----------|--------|
+| Need player display | Use `PlayerRow` or `PlayerRowCompact` |
+| Need token display | Use `TokenRow` or `TokenRowCompact` |
+| Need modal/popup | Use `BaseModal` or `BottomSheet` |
+| **Need swap/selection modal** | **Use `SwapModal` (unified component)** |
+| Need position badge | Use `PositionBadge` |
+| Need loading state | Use `LoadingSpinner` |
+| Unique UI pattern | Create new, update registry |
+
+#### SwapModal - Unified Selection Modal (Critical)
+
+**ALL swap/selection flows MUST use `SwapModal`**. Do NOT create separate modal components.
+
+The following modals were consolidated into SwapModal:
+- ~~PlayerSwapModal~~ (deleted)
+- ~~BenchPlayerSwapModal~~ (deleted)
+- ~~TokenSelectionModal~~ (deleted)
+- ~~TokenApplicationModal~~ (deleted)
+
+**SwapModal Modes:**
+| Mode | Use Case |
+|------|----------|
+| `swap-player` | Lineup player → choose bench replacement |
+| `add-player` | Empty slot → choose player to add |
+| `place-player` | Bench player → choose lineup slot |
+| `select-token` | Player → choose token to apply |
+| `apply-token` | Token → choose player to boost |
+
+**Usage Pattern:**
+```jsx
+<SwapModal
+  mode="swap-player"
+  isOpen={modal.isOpen}
+  onClose={() => setModal({ isOpen: false })}
+  onSelect={(selected) => handleSwap(selected)}
+  currentPlayer={modal.currentPlayer}
+  currentSlot={modal.currentSlot}
+  players={eligiblePlayers}
+  liveGameData={liveGameData}
+  projections={projections}
+/>
+```
+
+#### When You Must Create New:
+
+1. Create in the correct directory (`ui/`, `shared/`, `features/`)
+2. Follow naming conventions from the registry
+3. **Update `COMPONENT_REGISTRY.md`** to include the new component
+4. Use patterns from `DESIGN_SYSTEM.md`
+
+#### Component Principles:
+
 - Keep components focused and single-responsibility
 - Extract reusable logic into custom hooks
 - Use Context API wisely (avoid prop drilling, but don't overuse)
@@ -223,7 +294,68 @@ As a senior engineer, **CONSTANTLY** scan for and flag these common issues:
 - Updates automatically as users build their lineups
 - Displayed in FantasyNavBanner for competitive context
 
-### 11. Project Completion Mindset
+### 11. Design System & Visual Standards
+
+**ALWAYS** reference `docs/DESIGN_SYSTEM.md` for styling decisions.
+
+#### Core Visual Rules:
+
+1. **NO EMOJIS** - Use solid icons only (Lucide React or Heroicons)
+2. **Dark theme** - Primary black backgrounds (#0d0d0d to #1a1a1a)
+3. **Clean & compact** - Maximize information density
+4. **Consistent spacing** - Use Tailwind's standard spacing scale
+
+#### Color Usage:
+
+| Purpose | Classes |
+|---------|---------|
+| Background | `bg-primary-black-800` (cards), `bg-primary-black-900` (page) |
+| Text Primary | `text-white` |
+| Text Secondary | `text-primary-black-300` or `text-primary-black-400` |
+| Success/Active | `text-primary-green-500`, `bg-primary-green-600` |
+| Warning | `text-accent-orange-500`, `bg-accent-orange-600` |
+| Borders | `border-primary-black-700` |
+
+#### Position Colors (Centralized):
+
+Always import position colors from `constants/colors.js`:
+```javascript
+import { POSITION_COLORS, getPositionColor } from '@/constants/colors';
+```
+
+Do NOT duplicate position color logic in components.
+
+**Position colors are context-dependent:**
+- **Starting Lineup** (with `slotKey` prop): Use **colored** position badges
+- **Bench/Inventory** (no `slotKey`): Use **grey** position badges
+- This visual distinction shows users which players are "slotted" vs "available"
+
+#### Header Components:
+
+Use the correct header component for the context:
+
+| Component | Use Case | Location |
+|-----------|----------|----------|
+| `PageHeader` | Top-level page title | "Inventory", "Starting Lineup" |
+| `SectionHeader` | Sub-sections within pages | "Bench (5)", "Tokens (6)" |
+
+**NEVER use raw `<h3>` tags for section headers** - always use `SectionHeader` from `components/ui/`.
+
+```jsx
+// Page-level header
+<PageHeader title="Inventory" subtitle="Roster: 15/20" actions={<ViewToggle />} />
+
+// Section header within a page
+<SectionHeader title="Bench" count={5} />
+```
+
+#### Avoid Legacy Classes:
+
+- ❌ `dk-green-*` → Use `primary-green-*`
+- ❌ `dk-orange-*` → Use `accent-orange-*`
+- ❌ `dk-black-*` → Use `primary-black-*`
+
+### 12. Project Completion Mindset
 
 You are driving toward **production launch**. This means:
 - Every change should move closer to launch-ready

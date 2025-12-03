@@ -2,6 +2,7 @@ import PropTypes from 'prop-types';
 import PlayerRow from './PlayerRow';
 import { getPositionAbbr } from './tableHelpers.jsx';
 import { calculatePlayerSellValue } from '../../utils/sellValueCalculator';
+import { getPositionColorClasses } from '../../constants/colors';
 
 /**
  * StartingLineupList - Position slots view for starting lineup
@@ -32,16 +33,6 @@ const StartingLineupList = ({
     if (slotKey === 'FLEX') return 'FLX';
     if (slotKey === 'SUPERFLEX') return 'SFLX';
     return slotKey;
-  };
-
-  const getPositionColor = (slotKey) => {
-    if (slotKey === 'QB') return 'bg-purple-600/80 text-white';
-    if (slotKey.startsWith('RB')) return 'bg-cyan-600/80 text-white';
-    if (slotKey.startsWith('WR')) return 'bg-blue-600/80 text-white';
-    if (slotKey === 'TE') return 'bg-yellow-600/80 text-white';
-    if (slotKey === 'FLEX') return 'bg-orange-600/80 text-white';
-    if (slotKey === 'SUPERFLEX') return 'bg-pink-600/80 text-white';
-    return 'bg-primary-black-700 text-primary-black-300';
   };
 
   return (
@@ -81,11 +72,10 @@ const StartingLineupList = ({
                 }}
                 onSell={onSell && !isLocked ? onSell : null}
                 getRowClassName={(p, idx, locked) => {
-                  // Use same styling as empty slots for consistency
-                  // Don't include 'grid' class - PlayerRow already has it
+                  // Consistent row styling across all lists
                   return `transition-all min-h-[72px] ${
                     locked ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'
-                  } ${idx % 2 === 0 ? 'bg-primary-black-800/20' : 'bg-primary-black-800/40'} hover:bg-primary-black-700/50`;
+                  } ${idx % 2 === 0 ? 'bg-primary-black-800/30' : 'bg-primary-black-800/50'} hover:bg-primary-black-700/50`;
                 }}
                 renderExtraColumns={(p, i) => (
                   <>
@@ -151,7 +141,7 @@ const StartingLineupList = ({
               }
             }}
             className={`grid transition-all min-h-[76px] cursor-pointer py-2.5 px-3 ${
-              index % 2 === 0 ? 'bg-primary-black-800/20' : 'bg-primary-black-800/40'
+              index % 2 === 0 ? 'bg-primary-black-800/30' : 'bg-primary-black-800/50'
             } hover:bg-primary-black-700/50`}
             style={{ 
               gridTemplateColumns: '32px 40px 1fr 28px 56px',
@@ -161,14 +151,14 @@ const StartingLineupList = ({
           >
             {/* Position Badge */}
             <div className="flex items-center justify-center">
-              <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold text-center min-w-[28px] ${getPositionColor(slot.key)}`}>
+              <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold text-center min-w-[28px] ${getPositionColorClasses(slot.key)}`}>
                 {getPositionLabel(slot.key)}
               </span>
             </div>
 
-            {/* Empty Icon */}
-            <div className="rounded bg-primary-black-700 flex items-center justify-center w-10 h-10 border-2 border-gray-500">
-              <div className="text-primary-black-600 text-lg font-bold">+</div>
+            {/* Empty Icon - matches filled player icon styling */}
+            <div className="rounded bg-primary-black-800/50 flex items-center justify-center w-10 h-10 border-2 border-dashed border-primary-black-600">
+              <div className="text-primary-black-500 text-lg font-bold">+</div>
             </div>
 
             {/* Empty Slot Text */}

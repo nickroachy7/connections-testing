@@ -5,3 +5,4 @@
 
 export * from './lineup';
 export * from './ui';
+export * from './colors';

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import PropTypes from 'prop-types';
 import PlayerCard from './PlayerCard';
 import PlayerCardModal from './PlayerCardModal';
-import PlayerSwapModal from './PlayerSwapModal';
+import SwapModal from './ui/SwapModal';
 import { useIsMobile } from '../hooks';
 
 /**
@@ -507,14 +507,16 @@ export default function LineupGrid({
         />
       )}
       
-      {/* Mobile: Player Swap Modal */}
+      {/* Mobile: Player Swap Modal - using unified SwapModal */}
       {mobileSwapSlot && isMobile && (
-        <PlayerSwapModal
-          currentPlayer={lineup[mobileSwapSlot]}
-          slotKey={mobileSwapSlot}
-          eligiblePlayers={getEligiblePlayersForSlot(mobileSwapSlot)}
-          onSwap={handleMobileSwap}
+        <SwapModal
+          mode={lineup[mobileSwapSlot] ? 'swap-player' : 'add-player'}
+          isOpen={true}
           onClose={() => setMobileSwapSlot(null)}
+          onSelect={handleMobileSwap}
+          currentPlayer={lineup[mobileSwapSlot]}
+          currentSlot={mobileSwapSlot}
+          players={getEligiblePlayersForSlot(mobileSwapSlot)}
           liveGameData={liveGameData}
           projections={projections}
         />

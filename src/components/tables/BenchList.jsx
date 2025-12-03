@@ -9,10 +9,15 @@ import PlayerRow from './PlayerRow';
  * Shows "Add to Lineup" button for each player
  * 
  * Used in: BenchFilterManager (Bench tab)
+ * 
+ * NOTE: Only the position badge triggers modal opening, not the whole row.
+ * This is intentional UX - players can tap the row for details without
+ * accidentally triggering the swap modal.
  */
 const BenchList = ({
   benchPlayers = [],
   onPlayerClick = null,
+  onPlayerBadgeClick = null, // NEW: Only badge triggers this
   onAddToLineup = null,
   onSell = null,
   liveGameData = null,
@@ -55,11 +60,8 @@ const BenchList = ({
               showAddButton={onAddToLineup ? true : false}
               isLocked={isLocked}
               teamStartsNextWeek={teamStartsNextWeek}
-              onClick={() => {
-                if (onPlayerClick) {
-                  onPlayerClick(player);
-                }
-              }}
+              onClick={onPlayerClick ? () => onPlayerClick(player) : undefined}
+              onPositionBadgeClick={onPlayerBadgeClick && !isLocked ? () => onPlayerBadgeClick(player) : undefined}
               onAddToLineup={onAddToLineup && !isLocked ? () => onAddToLineup(player) : null}
               onSell={onSell && !isLocked ? onSell : null}
             />
@@ -73,6 +75,7 @@ const BenchList = ({
 BenchList.propTypes = {
   benchPlayers: PropTypes.array,
   onPlayerClick: PropTypes.func,
+  onPlayerBadgeClick: PropTypes.func,
   onAddToLineup: PropTypes.func,
   onSell: PropTypes.func,
   liveGameData: PropTypes.object,

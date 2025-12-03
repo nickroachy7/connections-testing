@@ -15,7 +15,12 @@ import { getTokenRarityColor, getRarityTextColor } from './tableHelpers.jsx';
  * Customization happens through:
  * - showBulkSelect: adds checkbox column
  * - renderExtraColumns: inject custom columns
+ * - onBadgeClick: click handler for TK badge (opens swap modal)
  * - onRowClick, onRowDrag: custom interactions
+ * 
+ * CLICK BEHAVIOR:
+ * - TK badge click: Opens apply-token modal (via onBadgeClick)
+ * - Row click: For future token detail view (via onRowClick)
  */
 
 const TokenTable = ({
@@ -31,7 +36,8 @@ const TokenTable = ({
   // Interaction handlers
   onBulkSelectChange = null,
   selectedIds = [],
-  onRowClick = null,
+  onBadgeClick = null,   // NEW: Only badge triggers this (for swap modal)
+  onRowClick = null,     // For row-level interactions (future: detail view)
   onRowDragStart = null,
   onRowDragEnd = null,
   onAddButtonClick = null,
@@ -147,12 +153,8 @@ const TokenTable = ({
         const isLocked = isRowLocked ? isRowLocked(token) : false;
         const defaultClassName = `
           grid transition-all md:border-l-4 md:border-transparent min-h-[72px] md:min-h-[48px]
-          ${
-            isLocked
-              ? 'cursor-not-allowed opacity-60'
-              : 'cursor-move'
-          }
-          ${index % 2 === 0 ? 'bg-primary-black-800/20' : 'bg-primary-black-800/40'}
+          ${isLocked ? 'cursor-not-allowed opacity-60' : 'cursor-move'}
+          ${index % 2 === 0 ? 'bg-primary-black-800/30' : 'bg-primary-black-800/50'}
         `;
 
         const customClassName = getRowClassName ? getRowClassName(token, index) : defaultClassName;
@@ -233,9 +235,20 @@ const TokenTable = ({
               )}
             </div>
             
-            {/* COLUMN 2: Rarity Badge */}
+            {/* COLUMN 2: Rarity Badge - CLICKABLE for swap modal */}
             <div className="flex items-center justify-center">
-              <span className="px-2 py-1 bg-primary-black-700 text-primary-black-400 rounded text-xs font-bold">
+              <span 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (onBadgeClick && !isLocked) {
+                    onBadgeClick(token);
+                  }
+                }}
+                className={`px-2 py-1 bg-primary-black-700 text-primary-black-400 rounded text-xs font-bold ${
+                  onBadgeClick && !isLocked ? 'cursor-pointer hover:bg-primary-black-600 hover:text-primary-black-200 transition-colors' : ''
+                }`}
+                title={onBadgeClick && !isLocked ? "Click to apply token" : undefined}
+              >
                 TK
               </span>
             </div>
@@ -310,15 +323,19 @@ const TokenTable = ({
                     minHeight: '76px'
                   }}
                 >
-                  {/* COLUMN 1: TK Badge - optimized for touch */}
+                  {/* COLUMN 1: TK Badge - CLICKABLE for swap modal */}
                   <div 
-                    className="flex items-center justify-center cursor-pointer"
+                    className={`flex items-center justify-center ${onBadgeClick && !isLocked ? 'cursor-pointer' : ''}`}
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleClick();
+                      if (onBadgeClick && !isLocked) {
+                        onBadgeClick(token);
+                      }
                     }}
                   >
-                    <span className="px-1.5 py-0.5 bg-primary-black-700 text-primary-black-400 rounded text-[10px] font-bold text-center min-w-[28px]">
+                    <span className={`px-1.5 py-0.5 bg-primary-black-700 text-primary-black-400 rounded text-[10px] font-bold text-center min-w-[28px] ${
+                      onBadgeClick && !isLocked ? 'hover:bg-primary-black-600' : ''
+                    }`}>
                       TK
                     </span>
                   </div>
@@ -366,15 +383,19 @@ const TokenTable = ({
                   minHeight: '76px'
                 }}
               >
-                {/* COLUMN 1: TK Badge - optimized for touch */}
+                {/* COLUMN 1: TK Badge - CLICKABLE for swap modal */}
                 <div 
-                  className="flex items-center justify-center cursor-pointer"
+                  className={`flex items-center justify-center ${onBadgeClick && !isLocked ? 'cursor-pointer' : ''}`}
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleClick();
+                    if (onBadgeClick && !isLocked) {
+                      onBadgeClick(token);
+                    }
                   }}
                 >
-                  <span className="px-1.5 py-0.5 bg-primary-black-700 text-primary-black-400 rounded text-[10px] font-bold text-center min-w-[28px]">
+                  <span className={`px-1.5 py-0.5 bg-primary-black-700 text-primary-black-400 rounded text-[10px] font-bold text-center min-w-[28px] ${
+                    onBadgeClick && !isLocked ? 'hover:bg-primary-black-600' : ''
+                  }`}>
                     TK
                   </span>
                 </div>
@@ -424,6 +445,7 @@ TokenTable.propTypes = {
   renderExtraRowColumns: PropTypes.func,
   onBulkSelectChange: PropTypes.func,
   selectedIds: PropTypes.array,
+  onBadgeClick: PropTypes.func,
   onRowClick: PropTypes.func,
   onRowDragStart: PropTypes.func,
   onRowDragEnd: PropTypes.func,

@@ -30,6 +30,7 @@ const TokenRow = ({
   
   // Interactions
   onClick = null,
+  onBadgeClick = null, // Handler for clicking ONLY the TK badge (for swap modals)
   onDragStart = null,
   onDragEnd = null,
   onBulkSelectChange = null,
@@ -40,11 +41,11 @@ const TokenRow = ({
   getRowClassName = null,
   renderExtraColumns = null
 }) => {
-  // Default row styling
+  // Default row styling - consistent across all list contexts
   const defaultClassName = `
     grid transition-all min-h-[72px] md:min-h-[48px]
-    ${isLocked ? 'cursor-not-allowed opacity-60 bg-primary-black-900 md:border-primary-black-600' : 'cursor-move md:border-transparent'}
-    ${index % 2 === 0 && !isLocked ? 'bg-primary-black-800/20' : !isLocked ? 'bg-primary-black-800/40' : ''}
+    ${isLocked ? 'cursor-not-allowed opacity-60' : 'cursor-move'}
+    ${index % 2 === 0 ? 'bg-primary-black-800/30' : 'bg-primary-black-800/50'}
   `;
 
   const customClassName = getRowClassName ? getRowClassName(token, index, isLocked) : defaultClassName;
@@ -130,9 +131,17 @@ const TokenRow = ({
           )}
         </div>
 
-        {/* Rarity Badge */}
-        <div className="flex items-center justify-center">
-          <span className="px-2 py-1 bg-primary-black-700 text-primary-black-400 rounded text-xs font-bold">
+        {/* Rarity Badge - clickable when onBadgeClick is provided */}
+        <div 
+          className={`flex items-center justify-center ${onBadgeClick && !isLocked ? 'cursor-pointer' : ''}`}
+          onClick={(e) => {
+            if (onBadgeClick && !isLocked) {
+              e.stopPropagation();
+              onBadgeClick(token);
+            }
+          }}
+        >
+          <span className={`px-2 py-1 bg-primary-black-700 text-primary-black-400 rounded text-xs font-bold transition-all ${onBadgeClick && !isLocked ? 'hover:ring-2 hover:ring-white/30 active:scale-95' : ''}`}>
             TK
           </span>
         </div>
@@ -204,6 +213,8 @@ const TokenRow = ({
             <MobileRowContent 
               token={token}
               handleClick={handleClick}
+              onBadgeClick={onBadgeClick}
+              isLocked={isLocked}
               renderExtraColumns={renderExtraColumns}
               index={index}
             />
@@ -225,6 +236,8 @@ const TokenRow = ({
           <MobileRowContent 
             token={token}
             handleClick={handleClick}
+            onBadgeClick={onBadgeClick}
+            isLocked={isLocked}
             renderExtraColumns={renderExtraColumns}
             index={index}
           />
@@ -240,19 +253,23 @@ const TokenRow = ({
 const MobileRowContent = ({
   token,
   handleClick,
+  onBadgeClick = null,
+  isLocked = false,
   renderExtraColumns,
   index
 }) => (
   <>
-    {/* Rarity Badge */}
+    {/* Rarity Badge - clickable when onBadgeClick is provided */}
     <div 
-      className="flex items-center justify-center cursor-pointer"
+      className={`flex items-center justify-center ${onBadgeClick && !isLocked ? 'cursor-pointer' : ''}`}
       onClick={(e) => {
-        e.stopPropagation();
-        handleClick();
+        if (onBadgeClick && !isLocked) {
+          e.stopPropagation();
+          onBadgeClick(token);
+        }
       }}
     >
-      <span className="px-1.5 py-0.5 bg-primary-black-700 text-primary-black-400 rounded text-[10px] font-bold text-center min-w-[28px]">
+      <span className={`px-1.5 py-0.5 bg-primary-black-700 text-primary-black-400 rounded text-[10px] font-bold text-center min-w-[28px] transition-all ${onBadgeClick && !isLocked ? 'hover:ring-2 hover:ring-white/30 active:scale-95' : ''}`}>
         TK
       </span>
     </div>
@@ -297,6 +314,7 @@ TokenRow.propTypes = {
   isLocked: PropTypes.bool,
   isSelectedForAction: PropTypes.bool,
   onClick: PropTypes.func,
+  onBadgeClick: PropTypes.func,
   onDragStart: PropTypes.func,
   onDragEnd: PropTypes.func,
   onBulkSelectChange: PropTypes.func,
@@ -309,6 +327,8 @@ TokenRow.propTypes = {
 MobileRowContent.propTypes = {
   token: PropTypes.object.isRequired,
   handleClick: PropTypes.func.isRequired,
+  onBadgeClick: PropTypes.func,
+  isLocked: PropTypes.bool,
   renderExtraColumns: PropTypes.func,
   index: PropTypes.number
 };

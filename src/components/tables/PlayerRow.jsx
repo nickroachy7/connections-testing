@@ -5,6 +5,7 @@ import {
   getTierBadgeInfo,
   getPullPercentageColor
 } from './tableHelpers.jsx';
+import { getPositionColorClasses as getPositionColorClassesFromConstants } from '../../constants/colors';
 
 /**
  * PlayerRow - CANONICAL player row component
@@ -19,7 +20,7 @@ import {
  * - 48px touch targets
  * - 16px padding, 12px gaps
  */
-// Position color helper functions
+// Position color helper function - uses centralized colors
 const getPositionColorClasses = (slotKey, position, isLocked) => {
   // Only use colored badges when slotKey is explicitly provided (from starting lineup)
   // Inventory and bench should use default grey styling
@@ -27,31 +28,7 @@ const getPositionColorClasses = (slotKey, position, isLocked) => {
     return 'bg-primary-black-700 text-primary-black-300';
   }
   
-  // Get the base colors for each position slot
-  const colorMap = {
-    'QB': { bg: 'bg-purple-600/80', text: 'text-purple-400' },
-    'RB': { bg: 'bg-cyan-600/80', text: 'text-cyan-400' },
-    'RB1': { bg: 'bg-cyan-600/80', text: 'text-cyan-400' },
-    'RB2': { bg: 'bg-cyan-600/80', text: 'text-cyan-400' },
-    'WR': { bg: 'bg-blue-600/80', text: 'text-blue-400' },
-    'WR1': { bg: 'bg-blue-600/80', text: 'text-blue-400' },
-    'WR2': { bg: 'bg-blue-600/80', text: 'text-blue-400' },
-    'WR3': { bg: 'bg-blue-600/80', text: 'text-blue-400' },
-    'TE': { bg: 'bg-yellow-600/80', text: 'text-yellow-400' },
-    'FLEX': { bg: 'bg-orange-600/80', text: 'text-orange-400' },
-    'FLX': { bg: 'bg-orange-600/80', text: 'text-orange-400' },
-    'SUPERFLEX': { bg: 'bg-pink-600/80', text: 'text-pink-400' },
-    'SFLX': { bg: 'bg-pink-600/80', text: 'text-pink-400' },
-  };
-  
-  const colors = colorMap[slotKey] || { bg: 'bg-primary-black-700', text: 'text-primary-black-300' };
-  
-  if (isLocked) {
-    // When locked: grey background with colored text
-    return `bg-primary-black-700 ${colors.text}`;
-  }
-  // When unlocked: colored background with white text
-  return `${colors.bg} text-white`;
+  return getPositionColorClassesFromConstants(slotKey, isLocked);
 };
 
 const PlayerRow = ({
@@ -80,6 +57,7 @@ const PlayerRow = ({
   
   // Interactions
   onClick = null,
+  onPositionBadgeClick = null, // NEW: Handler for clicking ONLY the position badge (for swap modals)
   onDragStart = null,
   onDragEnd = null,
   onBulkSelectChange = null,
@@ -102,11 +80,12 @@ const PlayerRow = ({
   const isBye = hasGameDataLoaded && !gameData;
   const isGameLiveOrFinal = gameStatus === 'live' || gameStatus === 'halftime' || gameStatus === 'final';
 
-  // Default row styling
+  // Default row styling - consistent across all list contexts
+  // Uses subtle alternating backgrounds for visual separation
   const defaultClassName = `
     grid transition-all min-h-[72px] md:min-h-[48px]
-    ${isLocked ? 'cursor-not-allowed opacity-60 bg-primary-black-900 md:border-primary-black-600' : 'cursor-move md:border-transparent'}
-    ${index % 2 === 0 && !isLocked ? 'bg-primary-black-800' : !isLocked ? 'bg-primary-black-900' : ''}
+    ${isLocked ? 'cursor-not-allowed opacity-60' : 'cursor-move'}
+    ${index % 2 === 0 ? 'bg-primary-black-800/30' : 'bg-primary-black-800/50'}
   `;
 
   const customClassName = getRowClassName ? getRowClassName(player, index, isLocked) : defaultClassName;
@@ -200,13 +179,21 @@ const PlayerRow = ({
           )}
         </div>
 
-        {/* Position Badge */}
-        <div className="flex items-center justify-center">
-          <span className={`px-2 py-1 rounded text-xs font-bold ${
+        {/* Position Badge - clickable when onPositionBadgeClick is provided */}
+        <div 
+          className={`flex items-center justify-center ${onPositionBadgeClick && !isLocked ? 'cursor-pointer' : ''}`}
+          onClick={(e) => {
+            if (onPositionBadgeClick && !isLocked) {
+              e.stopPropagation();
+              onPositionBadgeClick(player);
+            }
+          }}
+        >
+          <span className={`px-2 py-1 rounded text-xs font-bold transition-all ${
             showBenchBadge 
               ? 'bg-primary-black-700 text-primary-black-300'
               : getPositionColorClasses(slotKey, player.player_card.position, isLocked)
-          }`}>
+          } ${onPositionBadgeClick && !isLocked ? 'hover:ring-2 hover:ring-white/30 active:scale-95' : ''}`}>
             {showBenchBadge ? 'BN' : getPositionAbbr(player.player_card.position)}
           </span>
         </div>
@@ -379,6 +366,7 @@ const PlayerRow = ({
               isLocked={isLocked}
               appliedToken={appliedToken}
               onAddToken={onAddToken}
+              onPositionBadgeClick={onPositionBadgeClick}
               handleClick={handleClick}
               gameData={gameData}
               projection={projection}
@@ -414,6 +402,7 @@ const PlayerRow = ({
             isLocked={isLocked}
             appliedToken={appliedToken}
             onAddToken={onAddToken}
+            onPositionBadgeClick={onPositionBadgeClick}
             handleClick={handleClick}
             gameData={gameData}
             projection={projection}
@@ -442,6 +431,7 @@ const MobileRowContent = ({
   isLocked = false,
   appliedToken = null,
   onAddToken = null,
+  onPositionBadgeClick = null,
   handleClick,
   gameData,
   projection,
@@ -464,13 +454,21 @@ const MobileRowContent = ({
 
   return (
     <>
-      {/* Position Badge - Now with slot-based coloring */}
-      <div className="flex items-center justify-center">
-        <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold text-center min-w-[28px] ${
+      {/* Position Badge - Now with slot-based coloring, clickable when onPositionBadgeClick provided */}
+      <div 
+        className={`flex items-center justify-center ${onPositionBadgeClick && !isLocked ? 'cursor-pointer' : ''}`}
+        onClick={(e) => {
+          if (onPositionBadgeClick && !isLocked) {
+            e.stopPropagation();
+            onPositionBadgeClick(player);
+          }
+        }}
+      >
+        <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold text-center min-w-[28px] transition-all ${
           showBenchBadge 
             ? 'bg-primary-black-700 text-primary-black-300'
             : getPositionColorClasses(slotKey, player.player_card.position, isLocked)
-        }`}>
+        } ${onPositionBadgeClick && !isLocked ? 'hover:ring-2 hover:ring-white/30 active:scale-95' : ''}`}>
           {showBenchBadge ? 'BN' : getPositionAbbr(player.player_card.position)}
         </span>
       </div>
@@ -639,6 +637,7 @@ PlayerRow.propTypes = {
   slotKey: PropTypes.string,
   appliedToken: PropTypes.object,
   onClick: PropTypes.func,
+  onPositionBadgeClick: PropTypes.func,
   onDragStart: PropTypes.func,
   onDragEnd: PropTypes.func,
   onBulkSelectChange: PropTypes.func,
@@ -659,6 +658,7 @@ MobileRowContent.propTypes = {
   isLocked: PropTypes.bool,
   appliedToken: PropTypes.object,
   onAddToken: PropTypes.func,
+  onPositionBadgeClick: PropTypes.func,
   handleClick: PropTypes.func.isRequired,
   gameData: PropTypes.object,
   projection: PropTypes.object,

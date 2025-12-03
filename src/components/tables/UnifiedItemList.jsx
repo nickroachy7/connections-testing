@@ -8,6 +8,7 @@ import {
   getTokenRarityColor,
   getRarityTextColor
 } from './tableHelpers.jsx';
+import { getPositionColorClasses } from '../../constants/colors';
 
 /**
  * UnifiedItemList - Single component to render both player and token lists
@@ -150,7 +151,7 @@ const LineupSlotsView = ({
   onAddToken,
   onSell
 }) => {
-  const getPositionAbbr = (position) => {
+  const getPositionAbbrLocal = (position) => {
     const map = {
       'Quarterback': 'QB',
       'Running Back': 'RB',
@@ -170,20 +171,10 @@ const LineupSlotsView = ({
     return slotKey;
   };
 
-  const getPositionColor = (slotKey) => {
-    if (slotKey === 'QB') return 'bg-purple-600/80 text-white';
-    if (slotKey.startsWith('RB')) return 'bg-cyan-600/80 text-white';
-    if (slotKey.startsWith('WR')) return 'bg-blue-600/80 text-white';
-    if (slotKey === 'TE') return 'bg-yellow-600/80 text-white';
-    if (slotKey === 'FLEX') return 'bg-orange-600/80 text-white';
-    if (slotKey === 'SUPERFLEX') return 'bg-pink-600/80 text-white';
-    return 'bg-primary-black-700 text-primary-black-300';
-  };
-
   const defaultClassName = (index, isLocked) => `
     grid transition-all min-h-[72px]
-    ${isLocked ? 'cursor-not-allowed opacity-60 bg-primary-black-900/60' : ''}
-    ${index % 2 === 0 && !isLocked ? 'bg-primary-black-800/20' : !isLocked ? 'bg-primary-black-800/40' : ''}
+    ${isLocked ? 'cursor-not-allowed opacity-60' : ''}
+    ${index % 2 === 0 ? 'bg-primary-black-800/30' : 'bg-primary-black-800/50'}
   `;
 
   return (
@@ -219,19 +210,23 @@ const LineupSlotsView = ({
                 }
               }}
             >
-              <span className={`px-2 py-1 rounded text-xs font-bold text-center min-w-[36px] ${getPositionColor(slot.key)}`}>
+              <span className={`px-2 py-1 rounded text-xs font-bold text-center min-w-[36px] ${getPositionColorClasses(slot.key, isLocked)}`}>
                 {getPositionLabel(slot.key)}
               </span>
             </div>
 
             {/* COLUMN 2: Player Icon - larger for better visibility */}
-            <div className={`rounded bg-primary-black-700 flex items-center justify-center w-11 h-11 border-2 ${player?.card_tier ? getTierBadgeInfo(player.card_tier).borderColor : 'border-gray-500'}`}>
+            <div className={`rounded flex items-center justify-center w-11 h-11 border-2 ${
+              player?.card_tier 
+                ? `bg-primary-black-700 ${getTierBadgeInfo(player.card_tier).borderColor}` 
+                : 'bg-primary-black-800/50 border-dashed border-primary-black-600'
+            }`}>
               {player ? (
                 <svg className="w-7 h-7 text-primary-black-300" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
                 </svg>
               ) : (
-                <div className="text-primary-black-600 text-xl font-bold">+</div>
+                <div className="text-primary-black-500 text-xl font-bold">+</div>
               )}
             </div>
 
@@ -619,8 +614,8 @@ const PlayerRow = ({
   
   const defaultClassName = `
     grid md:py-2 md:px-2 transition-all md:border-l-4 min-h-[64px] md:min-h-[48px]
-    ${isLocked ? 'cursor-not-allowed opacity-60 bg-primary-black-900 md:border-primary-black-600' : 'cursor-move md:border-transparent'}
-    ${index % 2 === 0 && !isLocked ? 'bg-primary-black-800' : !isLocked ? 'bg-primary-black-900' : ''}
+    ${isLocked ? 'cursor-not-allowed opacity-60' : 'cursor-move md:border-transparent'}
+    ${index % 2 === 0 ? 'bg-primary-black-800/30' : 'bg-primary-black-800/50'}
   `;
 
   const customClassName = getRowClassName ? getRowClassName(player, index, isLocked) : defaultClassName;
@@ -955,8 +950,8 @@ const TokenRow = ({
 }) => {
   const defaultClassName = `
     grid md:py-2 md:px-2 transition-all md:border-l-4 min-h-[64px] md:min-h-[48px]
-    ${isLocked ? 'cursor-not-allowed opacity-60 bg-primary-black-900 md:border-primary-black-600' : 'cursor-move md:border-transparent'}
-    ${index % 2 === 0 && !isLocked ? 'bg-primary-black-800' : !isLocked ? 'bg-primary-black-900' : ''}
+    ${isLocked ? 'cursor-not-allowed opacity-60' : 'cursor-move md:border-transparent'}
+    ${index % 2 === 0 ? 'bg-primary-black-800/30' : 'bg-primary-black-800/50'}
   `;
 
   const customClassName = getRowClassName ? getRowClassName(token, index, isLocked) : defaultClassName;

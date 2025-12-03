@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types';
 import BenchList from './tables/BenchList';
 import TokenTable from './tables/TokenTable';
+import { SectionHeader } from './ui';
 import { enrichPlayerData, enrichTokenData } from './tables/tableHelpers.jsx';
 import { calculatePlayerSellValue, calculateTokenSellValue } from '../utils/sellValueCalculator';
 
@@ -8,13 +9,19 @@ import { calculatePlayerSellValue, calculateTokenSellValue } from '../utils/sell
  * BenchFilterManager Component
  * 
  * Displays all bench players and tokens in a simple list without tabs/filters
+ * 
+ * CLICK BEHAVIOR:
+ * - Position badge click: Opens swap modal (triggers onBenchPlayerClick/onTokenClick)
+ * - Row click: For future player detail view (not currently used)
+ * 
+ * This design prevents accidental modal triggers when users just want to view details.
  */
 export default function BenchFilterManager({
   benchPlayers = [],
   tokens,
   availableTokens,
-  onBenchPlayerClick,
-  onTokenClick,
+  onBenchPlayerClick,  // Called when position badge is clicked (opens swap modal)
+  onTokenClick,        // Called when token badge is clicked (opens apply modal)
   liveGameData,
   projections,
   onSell,
@@ -47,12 +54,10 @@ export default function BenchFilterManager({
       {/* Bench Players - always shown */}
       {enrichedBench.length > 0 && (
         <div>
-          <h3 className="text-sm font-semibold text-primary-black-300 mb-2 px-2">
-            Bench ({enrichedBench.length})
-          </h3>
+          <SectionHeader title="Bench" count={enrichedBench.length} />
           <BenchList
             benchPlayers={enrichedBench}
-            onPlayerClick={onBenchPlayerClick}
+            onPlayerBadgeClick={onBenchPlayerClick}
             onSell={onSell}
             liveGameData={liveGameData}
             projections={projections}
@@ -64,12 +69,10 @@ export default function BenchFilterManager({
       {/* Tokens - always shown */}
       {enrichedTokens.length > 0 && (
         <div>
-          <h3 className="text-sm font-semibold text-primary-black-300 mb-2 px-2">
-            Tokens ({enrichedTokens.length})
-          </h3>
+          <SectionHeader title="Tokens" count={enrichedTokens.length} />
           <TokenTable
             tokens={enrichedTokens}
-            onRowClick={onTokenClick}
+            onBadgeClick={onTokenClick}
             onSell={onSellToken}
             emptyMessage="No tokens available"
           />
