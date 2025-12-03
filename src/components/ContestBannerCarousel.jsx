@@ -370,7 +370,7 @@ function ContestBannerCarousel({
 
       {/* Minimal page indicator - only show if more than one slide */}
       {totalSlides > 1 && (
-        <div className="flex justify-center items-center gap-1.5 mt-2">
+        <div className="flex justify-center items-center gap-1.5 mt-2.5 -mb-1">
           {Array.from({ length: totalSlides }).map((_, index) => (
             <button
               key={index}

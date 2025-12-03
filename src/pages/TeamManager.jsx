@@ -1598,7 +1598,8 @@ export default function TeamManager() {
         )}
 
         {/* Starting Lineup Display Section */}
-        <section className={`max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 pb-0 ${error ? 'mt-0' : 'mt-2'}`} aria-label="Starting Lineup">
+        <div className="border-t border-primary-black-700 mt-1" />
+        <section className={`max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 pb-0 ${error ? 'mt-0' : 'mt-1'}`} aria-label="Starting Lineup">
           <PageHeader
             title="Starting Lineup"
             subtitle={
@@ -1608,11 +1609,11 @@ export default function TeamManager() {
                   Saving...
                 </span>
               ) : lastSaved ? (
-                <span className="flex items-center gap-1 text-primary-green-500">
-                  <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20">
+                <span className="flex items-center gap-1">
+                  <svg className="w-2.5 h-2.5 text-primary-green-500" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                   </svg>
-                  Lineup Saved
+                  <span className="text-primary-black-400">Lineup Saved</span>
                 </span>
               ) : null
             }

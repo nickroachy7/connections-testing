@@ -777,10 +777,10 @@ export default function TeamMatchupBanner({
 
   return (
     <>
-      <div className="px-3 sm:px-4 pt-3 pb-2">
-        <div className={`${getCurrentTheme().bg} transition-all duration-300 rounded-2xl shadow-lg shadow-black/40 overflow-hidden`}>
+      <div className="px-3 sm:px-4 pt-2 pb-1">
+        <div className={`${getCurrentTheme().bg} transition-all duration-300 rounded-xl overflow-hidden`}>
           {/* Team Info Section - with padding */}
-          <div className="px-4 sm:px-5 py-4">
+          <div className="px-4 sm:px-5 py-3">
           
           {/* League Badge - Show if in a private league */}
           {isInLeague && leagueName && (
@@ -939,7 +939,7 @@ export default function TeamMatchupBanner({
 
           {/* Desktop Layout - separate container with gradient */}
           <div className="hidden md:block px-3 sm:px-4 pt-3 pb-2">
-            <div className={`${getCurrentTheme().bg} transition-all duration-300 rounded-2xl shadow-lg shadow-black/40 overflow-hidden`}>
+            <div className={`${getCurrentTheme().bg} transition-all duration-300 rounded-xl overflow-hidden`}>
               <div className="px-4 sm:px-5 py-4">
                 <div className="flex items-center gap-6">
                   {/* Left: Team Identity */}
