@@ -201,9 +201,6 @@ export default function Contests() {
           ======================================== */}
       {hasEnteredContest && currentEntry && (
         <div className="mb-6">
-            </span>
-          </div>
-          
           {/* Contest Score Banner */}
           <div className="mb-4">
             <TeamScoreBanner
