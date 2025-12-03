@@ -150,16 +150,25 @@ export default function TeamScoreBanner({
           className={containerClasses}
           onClick={onContestClick}
         >
-          {/* Header Bar - Contest Name + Win Type */}
+          {/* Header Bar - Contest Name + Win Type + Entrants */}
           <div className={`${isBottomSection ? 'border-b border-white/5' : 'bg-emerald-800/25 border-b border-emerald-700/25'} ${isMobile ? 'px-3 py-1.5' : 'px-4 py-2'}`}>
-            <div className="flex items-center gap-2">
-              <Trophy className={`${isMobile ? 'w-3.5 h-3.5' : 'w-4 h-4'} ${isBottomSection ? 'text-primary-green-400' : 'text-emerald-400'}`} />
-              <span className={`font-bold text-white ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                {contestName}
-              </span>
-              <span className={`text-white/40 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>
-                — {winConfig.shortLabel} Wins
-              </span>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Trophy className={`${isMobile ? 'w-3.5 h-3.5' : 'w-4 h-4'} ${isBottomSection ? 'text-primary-green-400' : 'text-emerald-400'}`} />
+                <span className={`font-bold text-white ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                  {contestName}
+                </span>
+                <span className={`text-white/40 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>
+                  — {winConfig.shortLabel} Wins
+                </span>
+              </div>
+              {/* Entrant Count - Right side */}
+              <div className="flex items-center gap-1">
+                <Users className={`${isMobile ? 'w-3 h-3' : 'w-3.5 h-3.5'} text-white/40`} />
+                <span className={`text-white/50 font-medium ${isMobile ? 'text-[10px]' : 'text-xs'}`}>
+                  {contestEntrantCount}/{contestMaxEntries || '∞'}
+                </span>
+              </div>
             </div>
           </div>
           
@@ -217,37 +226,6 @@ export default function TeamScoreBanner({
                   </div>
                 </div>
               </div>
-            </div>
-          </div>
-          
-          {/* Footer - Entrants + Lineup Status */}
-          <div className={`${isBottomSection ? 'bg-black/30 border-t border-white/10' : 'bg-emerald-900/30 border-t border-emerald-700/25'} ${isMobile ? 'px-3 py-1.5' : 'px-4 py-2'}`}>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                {/* Entrant Count */}
-                <div className="flex items-center gap-1">
-                  <Users className={`${isMobile ? 'w-3 h-3' : 'w-3.5 h-3.5'} text-white/40`} />
-                  <span className={`text-white/50 font-medium ${isMobile ? 'text-[10px]' : 'text-xs'}`}>
-                    {contestEntrantCount}/{contestMaxEntries || '∞'}
-                  </span>
-                </div>
-                
-                {/* Lineup Status */}
-                <div className="flex items-center gap-1">
-                  {hasLineup ? (
-                    <CheckCircle className={`${isMobile ? 'w-3 h-3' : 'w-3.5 h-3.5'} text-primary-green-400`} />
-                  ) : (
-                    <Zap className={`${isMobile ? 'w-3 h-3' : 'w-3.5 h-3.5'} text-amber-400`} />
-                  )}
-                  <span className={`font-medium ${hasLineup ? 'text-primary-green-400' : 'text-amber-400'} ${isMobile ? 'text-[10px]' : 'text-xs'}`}>
-                    {hasLineup ? `Ready for Week ${displayWeek}` : `Set Lineup for Week ${displayWeek}`}
-                  </span>
-                </div>
-              </div>
-              
-              {onContestClick && (
-                <ChevronRight className={`${isMobile ? 'w-3.5 h-3.5' : 'w-4 h-4'} text-white/30`} />
-              )}
             </div>
           </div>
         </div>
@@ -339,16 +317,25 @@ export default function TeamScoreBanner({
         className={liveContainerClasses}
         onClick={onContestClick}
       >
-        {/* Header Bar - Contest Name + Win Type */}
+        {/* Header Bar - Contest Name + Win Type + Entrants */}
         <div className={`${isBottomSection ? 'border-b border-white/5' : `${containerConfig.headerBg} border-b ${containerConfig.headerBorder}`} ${isMobile ? 'px-3 py-1.5' : 'px-4 py-2'}`}>
-          <div className="flex items-center gap-2">
-            <Trophy className={`${isMobile ? 'w-3.5 h-3.5' : 'w-4 h-4'} ${isBottomSection ? 'text-primary-green-400' : containerConfig.iconColor}`} />
-            <span className={`font-bold text-white ${isMobile ? 'text-xs' : 'text-sm'}`}>
-              {contestName}
-            </span>
-            <span className={`text-white/40 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>
-              — {winConfig.shortLabel} Wins
-            </span>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Trophy className={`${isMobile ? 'w-3.5 h-3.5' : 'w-4 h-4'} ${isBottomSection ? 'text-primary-green-400' : containerConfig.iconColor}`} />
+              <span className={`font-bold text-white ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                {contestName}
+              </span>
+              <span className={`text-white/40 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>
+                — {winConfig.shortLabel} Wins
+              </span>
+            </div>
+            {/* Entrant Count - Right side */}
+            <div className="flex items-center gap-1">
+              <Users className={`${isMobile ? 'w-3 h-3' : 'w-3.5 h-3.5'} text-white/40`} />
+              <span className={`text-white/50 font-medium ${isMobile ? 'text-[10px]' : 'text-xs'}`}>
+                {contestEntrantCount}/{contestMaxEntries || '∞'}
+              </span>
+            </div>
           </div>
         </div>
         
@@ -434,30 +421,6 @@ export default function TeamScoreBanner({
                   </div>
                 </div>
               </div>
-            )}
-          </div>
-        </div>
-        
-        {/* Footer - Entrants + Week */}
-        <div className={`${isBottomSection ? 'bg-black/30 border-t border-white/10' : `${containerConfig.footerBg} border-t ${containerConfig.footerBorder}`} ${isMobile ? 'px-3 py-1.5' : 'px-4 py-2'}`}>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              {/* Entrant Count */}
-              <div className="flex items-center gap-1">
-                <Users className={`${isMobile ? 'w-3 h-3' : 'w-3.5 h-3.5'} text-white/40`} />
-                <span className={`text-white/50 font-medium ${isMobile ? 'text-[10px]' : 'text-xs'}`}>
-                  {contestEntrantCount}/{contestMaxEntries || '∞'}
-                </span>
-              </div>
-              
-              {/* Week indicator */}
-              <span className={`text-white/40 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>
-                Week {displayWeek}
-              </span>
-            </div>
-            
-            {onContestClick && (
-              <ChevronRight className={`${isMobile ? 'w-3.5 h-3.5' : 'w-4 h-4'} text-white/30`} />
             )}
           </div>
         </div>
