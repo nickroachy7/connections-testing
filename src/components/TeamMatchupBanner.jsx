@@ -99,12 +99,14 @@ export default function TeamMatchupBanner({
     setSelectedIndex: setMultiContestIndex,
     hasMultiple: hasMultipleContests,
     loading: multiContestLoading,
-    refetch: refetchMultipleContests
+    refetch: refetchMultipleContests,
+    canEnterMore: canEnterMoreContests,
+    remainingEntries: contestRemainingEntries
   } = useMultipleContests(teamId);
   
   console.log('🎯 [TeamMatchupBanner] League context:', { isInLeague, leagueName, leagueWins, leagueLosses, leagueLives });
   console.log('🎮 [TeamMatchupBanner] Contest context:', { isInContest, contestName, contestWinCondition, entrantCount, contestLoading });
-  console.log('📊 [TeamMatchupBanner] Multiple contests:', { count: multipleContests.length, hasMultiple: hasMultipleContests, selectedIndex: multiContestIndex });
+  console.log('📊 [TeamMatchupBanner] Multiple contests:', { count: multipleContests.length, hasMultiple: hasMultipleContests, selectedIndex: multiContestIndex, canEnterMore: canEnterMoreContests, remainingEntries: contestRemainingEntries });
   
   // Track previous week status to detect finalization
   const previousWeekStatus = usePrevious(contextWeekStatus);
@@ -888,7 +890,9 @@ export default function TeamMatchupBanner({
                 isLive={isLive}
                 isFinal={isFinal}
                 lineupReady={hasWeeklyLineup || (lineup && lineup.length > 0)}
-                onContestClick={() => navigate('/contests')}
+                onContestClick={() => navigate('contests')}
+                canEnterMore={canEnterMoreContests}
+                remainingEntries={contestRemainingEntries}
               />
             ) : (
             <TeamScoreBanner
@@ -916,7 +920,7 @@ export default function TeamMatchupBanner({
               contestMedianScore={contestMedian}
               contestRank={contestRank}
               contestWeek={contestWeek}
-              onContestClick={isInContest && !isInLeague ? () => navigate('/contests') : undefined}
+              onContestClick={isInContest && !isInLeague ? () => navigate('contests') : undefined}
               lineupReady={hasWeeklyLineup || (lineup && lineup.length > 0)}
             />
             )}
@@ -1029,7 +1033,7 @@ export default function TeamMatchupBanner({
                       contestMedianScore={contestMedian}
                       contestRank={contestRank}
                       contestWeek={contestWeek}
-                      onContestClick={isInContest && !isInLeague ? () => navigate('/contests') : undefined}
+                      onContestClick={isInContest && !isInLeague ? () => navigate('contests') : undefined}
                       lineupReady={hasWeeklyLineup || (lineup && lineup.length > 0)}
                     />
                     )}

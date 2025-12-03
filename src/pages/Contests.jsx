@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { Trophy, RefreshCw, Calendar, AlertCircle, Users, Heart } from 'lucide-react';
+import { Trophy, RefreshCw, Calendar, AlertCircle, Heart } from 'lucide-react';
 import ContestCard from '../components/ContestCard';
 import ExpandableContestBanner from '../components/ExpandableContestBanner';
 import JoinContestModal from '../components/JoinContestModal';
@@ -125,29 +125,12 @@ export default function Contests() {
   
   return (
     <div className="max-w-7xl mx-auto px-3 pb-4">
-      {/* Header */}
-      <div className="bg-transparent flex items-center justify-between py-2 px-3 sm:px-4">
-        <div className="flex items-center gap-2">
-          <h1 className="text-sm font-semibold text-white">
-            {hasEnteredContest ? `Your Contest${currentEntries.length > 1 ? 's' : ''}` : 'Contests'}
-          </h1>
-          {statusBadge}
-          {/* Lives indicator */}
-          {!isPrivateTeam && livesRemaining > 0 && (
-            <div className="flex items-center gap-1 ml-2">
-              {[...Array(livesRemaining)].map((_, i) => (
-                <Heart 
-                  key={i} 
-                  className={`w-3 h-3 ${i < remainingEntries ? 'text-red-500 fill-red-500' : 'text-red-500/30'}`} 
-                />
-              ))}
-            </div>
-          )}
-        </div>
-        {loading && (
+      {/* Minimal Header - just loading indicator when needed */}
+      {loading && (
+        <div className="flex justify-end py-2 px-1">
           <RefreshCw className="w-3 h-3 text-primary-black-400 animate-spin" />
-        )}
-      </div>
+        </div>
+      )}
       
       {/* Private Team Warning */}
       {isPrivateTeam && (
@@ -163,18 +146,32 @@ export default function Contests() {
       )}
       
       {/* ========================================
-          ENTERED CONTESTS SECTION - All banners at top
+          ENTERED CONTESTS SECTION
           ======================================== */}
       {hasEnteredContest && currentEntries.length > 0 && (
-        <div className="mb-6 space-y-3">
-          {/* Section Header */}
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-primary-black-300">
-              Your Contests ({currentEntries.length})
-            </h2>
+        <div className="space-y-3">
+          {/* Section Header with lives */}
+          <div className="flex items-center justify-between px-1">
+            <div className="flex items-center gap-2">
+              <h2 className="text-xs font-semibold text-primary-black-400 uppercase tracking-wide">
+                Your Contests
+              </h2>
+              {statusBadge}
+            </div>
+            {/* Lives indicator */}
+            {!isPrivateTeam && livesRemaining > 0 && (
+              <div className="flex items-center gap-1">
+                {[...Array(livesRemaining)].map((_, i) => (
+                  <Heart 
+                    key={i} 
+                    className={`w-3 h-3 ${i < (livesRemaining - remainingEntries) ? 'text-red-500 fill-red-500' : 'text-red-500/30'}`} 
+                  />
+                ))}
+              </div>
+            )}
           </div>
           
-          {/* All Contest Banners - Expandable */}
+          {/* Contest Banners */}
           {currentEntries.map((entry) => {
             const contest = entry.contest || contests.find(c => c.id === entry.contest_id);
             const entryScore = lineupStats?.projectedPoints || 0;
@@ -200,41 +197,32 @@ export default function Contests() {
       {/* ========================================
           AVAILABLE CONTESTS SECTION
           ======================================== */}
+      
+      {/* Future week info - only show if no contests entered yet */}
       {!isPrivateTeam && isShowingFutureWeek && !hasEnteredContest && (
-        <div className="mb-6 p-4 bg-primary-green-500/10 border border-primary-green-500/30 rounded-xl flex items-start gap-3">
-          <Calendar className="w-5 h-5 text-primary-green-500 flex-shrink-0 mt-0.5" />
+        <div className="mb-4 p-3 bg-primary-green-500/10 border border-primary-green-500/30 rounded-lg flex items-start gap-2">
+          <Calendar className="w-4 h-4 text-primary-green-500 flex-shrink-0 mt-0.5" />
           <div>
-            <h3 className="font-semibold text-primary-green-400">Ready for Week {displayWeek}!</h3>
-            <p className="text-sm text-primary-green-200/80">
-              Your team will start competing in Week {displayWeek}. 
-              Enter a contest below to be ready when the games begin!
+            <p className="text-xs text-primary-green-300">
+              Your team starts Week {displayWeek}. Enter a contest to compete!
             </p>
           </div>
         </div>
       )}
       
-      {/* Can Enter More Contests Banner */}
-      {!isPrivateTeam && hasEnteredContest && canEnterMore && remainingEntries > 0 && (
-        <div className="mb-4 p-3 bg-primary-green-500/10 border border-primary-green-500/30 rounded-lg flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Heart className="w-4 h-4 text-red-500 fill-red-500" />
-            <span className="text-sm text-primary-green-300">
-              You can enter <span className="font-bold">{remainingEntries} more contest{remainingEntries > 1 ? 's' : ''}</span> this week
-            </span>
-          </div>
-          <span className="text-xs text-primary-black-400">
-            {entriesThisWeek}/{livesRemaining} used
-          </span>
-        </div>
-      )}
-      
-      {/* Section Header for Available Contests */}
+      {/* Can Enter More - subtle inline message */}
       {contests.length > 0 && (canEnterMore || !hasEnteredContest) && !isPrivateTeam && (
-        <div className="flex items-center gap-2 mb-4">
-          <Users className="w-5 h-5 text-primary-black-400" />
-          <h2 className="text-lg font-bold text-white">
-            {hasEnteredContest ? 'Enter More Contests' : 'Available Contests'}
-          </h2>
+        <div className="mt-8 mb-3">
+          <div className="flex items-center justify-between px-1">
+            <h2 className="text-xs font-semibold text-primary-black-400 uppercase tracking-wide">
+              {hasEnteredContest ? 'Enter More Contests' : 'Available Contests'}
+            </h2>
+            {hasEnteredContest && canEnterMore && remainingEntries > 0 && (
+              <span className="text-[10px] text-primary-green-400">
+                {remainingEntries} entr{remainingEntries === 1 ? 'y' : 'ies'} remaining
+              </span>
+            )}
+          </div>
         </div>
       )}
       
@@ -293,9 +281,9 @@ export default function Contests() {
         </div>
       )}
       
-      {/* Contest Grid - Show when user can enter more contests */}
+      {/* Contest Grid - Stack on mobile, grid on larger screens */}
       {!loading && !error && contests.length > 0 && (canEnterMore || !hasEnteredContest) && !isPrivateTeam && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="space-y-3 md:grid md:grid-cols-2 lg:grid-cols-3 md:gap-4 md:space-y-0">
           {contests.map((contest) => {
             const isAlreadyEntered = enteredContestIds.includes(contest.id);
             return (
@@ -308,35 +296,6 @@ export default function Contests() {
               />
             );
           })}
-        </div>
-      )}
-      
-      {/* Team Info Footer */}
-      {activeTeam && !loading && (
-        <div className="mt-8 p-4 bg-primary-black-800/60 rounded-xl border border-primary-black-700">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              {activeTeam.team_image_url ? (
-                <img 
-                  src={activeTeam.team_image_url} 
-                  alt={activeTeam.team_name}
-                  className="w-10 h-10 rounded-lg object-cover"
-                />
-              ) : (
-                <div className="w-10 h-10 bg-primary-black-700 rounded-lg flex items-center justify-center">
-                  <Trophy className="w-5 h-5 text-primary-black-500" />
-                </div>
-              )}
-              <div>
-                <div className="text-sm text-primary-black-400">Competing As</div>
-                <div className="font-semibold text-white">{activeTeam.team_name}</div>
-              </div>
-            </div>
-            <div className="text-right">
-              <div className="text-sm text-primary-black-400">Record</div>
-              <div className="font-semibold text-white">{activeTeam.wins}W - {activeTeam.losses}L</div>
-            </div>
-          </div>
         </div>
       )}
       

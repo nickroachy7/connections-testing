@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback, useMemo, memo } from 'react';
 import PropTypes from 'prop-types';
+import { Plus, ChevronRight } from 'lucide-react';
 import TeamScoreBanner from './TeamScoreBanner';
 
 /**
@@ -69,10 +70,43 @@ MemoizedContestBanner.propTypes = {
 };
 
 /**
+ * EnterMoreSlide
+ * 
+ * A clickable slide that appears at the end when user can enter more contests
+ */
+const EnterMoreSlide = memo(function EnterMoreSlide({ remainingEntries, onClick }) {
+  return (
+    <div 
+      onClick={onClick}
+      className="bg-primary-black-900 rounded-xl overflow-hidden cursor-pointer hover:bg-primary-black-800 active:bg-primary-black-800 transition-all h-full flex items-center justify-center min-h-[72px]"
+    >
+      <div className="flex items-center gap-3 px-4 py-3">
+        <div className="w-10 h-10 rounded-full bg-primary-green-500/20 flex items-center justify-center">
+          <Plus className="w-5 h-5 text-primary-green-400" />
+        </div>
+        <div>
+          <div className="text-sm font-semibold text-white">Enter More Contests</div>
+          <div className="text-xs text-primary-black-400">
+            {remainingEntries} entr{remainingEntries === 1 ? 'y' : 'ies'} remaining
+          </div>
+        </div>
+        <ChevronRight className="w-5 h-5 text-primary-black-500 ml-2" />
+      </div>
+    </div>
+  );
+});
+
+EnterMoreSlide.propTypes = {
+  remainingEntries: PropTypes.number,
+  onClick: PropTypes.func
+};
+
+/**
  * ContestBannerCarousel
  * 
  * A smooth, native-feeling swipeable carousel specifically for contest banners.
  * Uses CSS transforms with hardware acceleration and proper touch handling.
+ * Includes an "Enter More" slide when user can enter additional contests.
  */
 function ContestBannerCarousel({
   contests,
@@ -85,10 +119,24 @@ function ContestBannerCarousel({
   isLive,
   isFinal,
   lineupReady,
-  onContestClick
+  onContestClick,
+  canEnterMore = false,
+  remainingEntries = 0
 }) {
   const containerRef = useRef(null);
   const trackRef = useRef(null);
+  
+  // Calculate total slides FIRST (contests + optional "enter more" slide)
+  const showEnterMore = canEnterMore && remainingEntries > 0;
+  const totalSlides = contests.length + (showEnterMore ? 1 : 0);
+  
+  console.log('🎠 [ContestBannerCarousel] Debug:', { 
+    contestsLength: contests.length, 
+    canEnterMore, 
+    remainingEntries, 
+    showEnterMore, 
+    totalSlides 
+  });
   
   // Use a single ref object for all touch state to avoid closures issues
   const stateRef = useRef({
@@ -121,7 +169,7 @@ function ContestBannerCarousel({
   }, []);
 
   const handleTouchStart = useCallback((e) => {
-    if (contests.length <= 1) return;
+    if (totalSlides <= 1) return;
     
     const touch = e.touches[0];
     const state = stateRef.current;
@@ -139,11 +187,11 @@ function ContestBannerCarousel({
     state.currentOffset = state.startOffset;
     
     setIsDragging(true);
-  }, [contests.length, selectedIndex, getWidth]);
+  }, [totalSlides, selectedIndex, getWidth]);
 
   const handleTouchMove = useCallback((e) => {
     const state = stateRef.current;
-    if (!state.isActive || contests.length <= 1) return;
+    if (!state.isActive || totalSlides <= 1) return;
     
     const touch = e.touches[0];
     const deltaX = touch.clientX - state.startX;
@@ -179,7 +227,7 @@ function ContestBannerCarousel({
     
     // Calculate offset with edge resistance
     let newOffset = state.startOffset + deltaX;
-    const minOffset = -(contests.length - 1) * state.containerWidth;
+    const minOffset = -(totalSlides - 1) * state.containerWidth;
     const maxOffset = 0;
     
     if (newOffset > maxOffset) {
@@ -193,7 +241,7 @@ function ContestBannerCarousel({
     // Convert to percentage for transform
     const pct = (newOffset / state.containerWidth) * 100;
     setTranslateX(pct);
-  }, [contests.length]);
+  }, [totalSlides]);
 
   const handleTouchEnd = useCallback(() => {
     const state = stateRef.current;
@@ -220,7 +268,7 @@ function ContestBannerCarousel({
       targetIndex = Math.round(progress);
     }
     
-    targetIndex = Math.max(0, Math.min(targetIndex, contests.length - 1));
+    targetIndex = Math.max(0, Math.min(targetIndex, totalSlides - 1));
     
     // Animate to target
     setTranslateX(-targetIndex * 100);
@@ -228,19 +276,19 @@ function ContestBannerCarousel({
     if (targetIndex !== selectedIndex && onIndexChange) {
       onIndexChange(targetIndex);
     }
-  }, [contests.length, selectedIndex, onIndexChange]);
+  }, [totalSlides, selectedIndex, onIndexChange]);
 
   const goToIndex = useCallback((index) => {
-    const clamped = Math.max(0, Math.min(index, contests.length - 1));
+    const clamped = Math.max(0, Math.min(index, totalSlides - 1));
     setTranslateX(-clamped * 100);
     if (clamped !== selectedIndex && onIndexChange) {
       onIndexChange(clamped);
     }
-  }, [contests.length, selectedIndex, onIndexChange]);
+  }, [totalSlides, selectedIndex, onIndexChange]);
 
   // Memoize the banners array to prevent recreation
   const banners = useMemo(() => {
-    return contests.map((contestItem, index) => (
+    const slides = contests.map((contestItem, index) => (
       <div 
         key={contestItem.id || index} 
         className="w-full flex-shrink-0 px-0.5"
@@ -259,13 +307,32 @@ function ContestBannerCarousel({
         />
       </div>
     ));
-  }, [contests, userScore, fallbackMedian, winPercentage, displayWeek, isLive, isFinal, lineupReady, onContestClick]);
+    
+    // Add "Enter More" slide if applicable
+    if (showEnterMore) {
+      slides.push(
+        <div 
+          key="enter-more" 
+          className="w-full flex-shrink-0 px-0.5"
+          style={{ backfaceVisibility: 'hidden' }}
+        >
+          <EnterMoreSlide 
+            remainingEntries={remainingEntries} 
+            onClick={onContestClick}
+          />
+        </div>
+      );
+    }
+    
+    return slides;
+  }, [contests, userScore, fallbackMedian, winPercentage, displayWeek, isLive, isFinal, lineupReady, onContestClick, showEnterMore, remainingEntries]);
 
   if (!contests || contests.length === 0) {
     return null;
   }
 
-  if (contests.length === 1) {
+  // Single contest with no "enter more" option - just show the banner
+  if (contests.length === 1 && !showEnterMore) {
     return banners[0];
   }
 
@@ -294,23 +361,25 @@ function ContestBannerCarousel({
         </div>
       </div>
 
-      {/* Pagination dots */}
-      <div className="flex justify-center items-center gap-2 mt-3">
-        {contests.map((_, index) => (
-          <button
-            key={index}
-            onClick={() => goToIndex(index)}
-            aria-label={`Contest ${index + 1} of ${contests.length}`}
-            className={`
-              rounded-full transition-all duration-200
-              ${index === selectedIndex 
-                ? 'w-6 h-2 bg-primary-green-500' 
-                : 'w-2 h-2 bg-primary-black-600 active:bg-primary-black-400'
-              }
-            `}
-          />
-        ))}
-      </div>
+      {/* Minimal page indicator - only show if more than one slide */}
+      {totalSlides > 1 && (
+        <div className="flex justify-center items-center gap-1.5 mt-2">
+          {Array.from({ length: totalSlides }).map((_, index) => (
+            <button
+              key={index}
+              onClick={() => goToIndex(index)}
+              aria-label={index < contests.length ? `Contest ${index + 1}` : 'Enter more contests'}
+              className={`
+                rounded-full transition-all duration-200
+                ${index === selectedIndex 
+                  ? 'w-4 h-1 bg-primary-green-500' 
+                  : 'w-1 h-1 bg-primary-black-600'
+                }
+              `}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -326,7 +395,9 @@ ContestBannerCarousel.propTypes = {
   isLive: PropTypes.bool,
   isFinal: PropTypes.bool,
   lineupReady: PropTypes.bool,
-  onContestClick: PropTypes.func
+  onContestClick: PropTypes.func,
+  canEnterMore: PropTypes.bool,
+  remainingEntries: PropTypes.number
 };
 
 export default memo(ContestBannerCarousel);

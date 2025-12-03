@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../services/supabase';
+import { getTeamContestEntryStatus } from '../../services/contestService';
 
 /**
  * useMultipleContests Hook
@@ -14,6 +15,7 @@ export function useMultipleContests(teamId) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [weekData, setWeekData] = useState(null);
+  const [entryStatus, setEntryStatus] = useState(null);
 
   const fetchContests = useCallback(async () => {
     if (!teamId) {
@@ -57,6 +59,12 @@ export function useMultipleContests(teamId) {
       const isFinal = weekStatus === 'finalized';
 
       setWeekData({ nflCurrentWeek, currentSeason, weekStatus, eligibleWeek, isLive, isFinal });
+
+      // Fetch entry status (lives remaining)
+      const statusResult = await getTeamContestEntryStatus(teamId, eligibleWeek, currentSeason);
+      if (statusResult.data) {
+        setEntryStatus(statusResult.data);
+      }
 
       // Fetch ALL entries for this team
       const { data: allEntries, error: entriesError } = await supabase
@@ -197,31 +205,44 @@ export function useMultipleContests(teamId) {
     fetchContests();
   }, [fetchContests]);
   
+  // Entry status derived values
+  const canEnterMore = entryStatus?.can_enter_more ?? false;
+  const livesRemaining = entryStatus?.lives_remaining ?? 3;
+  const entriesThisWeek = entryStatus?.entries_count ?? contests.length;
+  const remainingEntries = entryStatus?.remaining_entries ?? (livesRemaining - entriesThisWeek);
+  
+  // Calculate max valid index (includes "Enter More" slide if applicable)
+  const hasEnterMoreSlide = canEnterMore && remainingEntries > 0;
+  const maxIndex = contests.length + (hasEnterMoreSlide ? 1 : 0) - 1;
+  
   // Reset selectedIndex if it's out of bounds after data loads
   useEffect(() => {
-    if (contests.length > 0 && selectedIndex >= contests.length) {
+    if (contests.length > 0 && selectedIndex > maxIndex) {
       setSelectedIndex(0);
     }
-  }, [contests.length, selectedIndex]);
+  }, [contests.length, selectedIndex, maxIndex]);
 
   // Navigation functions
   const nextContest = useCallback(() => {
-    if (contests.length > 1) {
-      setSelectedIndex((prev) => (prev + 1) % contests.length);
+    const totalSlides = contests.length + (hasEnterMoreSlide ? 1 : 0);
+    if (totalSlides > 1) {
+      setSelectedIndex((prev) => (prev + 1) % totalSlides);
     }
-  }, [contests.length]);
+  }, [contests.length, hasEnterMoreSlide]);
 
   const prevContest = useCallback(() => {
-    if (contests.length > 1) {
-      setSelectedIndex((prev) => (prev - 1 + contests.length) % contests.length);
+    const totalSlides = contests.length + (hasEnterMoreSlide ? 1 : 0);
+    if (totalSlides > 1) {
+      setSelectedIndex((prev) => (prev - 1 + totalSlides) % totalSlides);
     }
-  }, [contests.length]);
+  }, [contests.length, hasEnterMoreSlide]);
 
   const goToContest = useCallback((index) => {
-    if (index >= 0 && index < contests.length) {
+    const totalSlides = contests.length + (hasEnterMoreSlide ? 1 : 0);
+    if (index >= 0 && index < totalSlides) {
       setSelectedIndex(index);
     }
-  }, [contests.length]);
+  }, [contests.length, hasEnterMoreSlide]);
 
   const currentContest = contests[selectedIndex] || null;
 
@@ -239,6 +260,11 @@ export function useMultipleContests(teamId) {
     nextContest,
     prevContest,
     goToContest,
+    // Entry status
+    canEnterMore,
+    livesRemaining,
+    entriesThisWeek,
+    remainingEntries,
     // Convenience getters for current contest
     isInContest: !!currentContest,
     contestName: currentContest?.contestName || null,

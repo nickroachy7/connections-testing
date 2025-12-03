@@ -1,49 +1,40 @@
 import PropTypes from 'prop-types';
-import { Trophy, Users, Zap, Target, Activity, Crown, Shield, Swords, TrendingUp, Calendar } from 'lucide-react';
-import { formatScoringType, getDifficultyBadgeStyles } from '../services/contestService';
+import { Trophy, Users, Swords, Target, Activity, TrendingUp, Calendar } from 'lucide-react';
+import { formatScoringType } from '../services/contestService';
 
 /**
- * Get the icon component based on icon name
+ * Get win condition config (icon, label, colors)
  */
-function getIconComponent(iconName) {
-  const icons = {
-    'trophy': Trophy,
-    'zap': Zap,
-    'target': Target,
-    'shield': Shield,
-    'crown': Crown,
-    'activity': Activity,
-    'users': Users
+function getWinConditionConfig(winCondition) {
+  const configs = {
+    'median': {
+      icon: Target,
+      label: 'Median Wins',
+      shortLabel: 'Median',
+      color: 'text-blue-400',
+      bgColor: 'bg-blue-500/20'
+    },
+    'h2h': {
+      icon: Swords,
+      label: 'H2H Wins',
+      shortLabel: 'H2H',
+      color: 'text-orange-400',
+      bgColor: 'bg-orange-500/20'
+    },
+    'top_points': {
+      icon: TrendingUp,
+      label: 'Top Score',
+      shortLabel: 'Top Score',
+      color: 'text-yellow-400',
+      bgColor: 'bg-yellow-500/20'
+    }
   };
-  return icons[iconName] || Trophy;
-}
-
-/**
- * Get win condition icon
- */
-function getWinConditionIcon(winCondition) {
-  const icons = {
-    'median': Target,
-    'h2h': Swords,
-    'top_points': TrendingUp
-  };
-  return icons[winCondition] || Trophy;
-}
-
-/**
- * Get win condition color classes
- */
-function getWinConditionColor(winCondition) {
-  const colors = {
-    'median': 'text-blue-400 bg-blue-500/20',
-    'h2h': 'text-orange-400 bg-orange-500/20',
-    'top_points': 'text-yellow-400 bg-yellow-500/20'
-  };
-  return colors[winCondition] || 'text-primary-black-400 bg-primary-black-700';
+  return configs[winCondition] || configs['median'];
 }
 
 /**
  * ContestCard - Displays a public contest with its details
+ * Matches TeamScoreBanner design pattern
  */
 export default function ContestCard({ 
   contest, 
@@ -52,7 +43,6 @@ export default function ContestCard({
   disabled = false 
 }) {
   const {
-    id,
     name,
     description,
     week,
@@ -64,91 +54,82 @@ export default function ContestCard({
     template
   } = contest;
   
-  const totalEntries = max_entries > 0 ? max_entries : Math.max(current_entries + 1, 1);
   const spotsRemaining = max_entries ? max_entries - current_entries : null;
   const isFull = max_entries ? spotsRemaining <= 0 : false;
-  const IconComponent = getIconComponent(template?.icon);
-  const WinConditionIcon = getWinConditionIcon(win_condition);
   const difficulty = template?.difficulty || 'normal';
+  const winConfig = getWinConditionConfig(win_condition);
+  const WinConditionIcon = winConfig.icon;
   
   // Determine card state
   const canJoin = !isEntered && !isFull && status === 'open' && !disabled;
-  const isActionDisabled = !canJoin;
-  
   const statusLabel = status === 'open' ? 'Pre-Game' : status === 'locked' ? 'Locked' : status === 'completed' ? 'Completed' : 'Unavailable';
-  const shortWinLabel = win_condition === 'h2h' ? 'H2H' : win_condition === 'top_points' ? 'Top Score' : 'Median';
   
   return (
     <div
       className={`
-        relative bg-primary-black-900 rounded-xl border border-primary-black-700 overflow-hidden transition-all duration-200
-        ${isEntered ? 'border-primary-green-500/80 shadow-[0_15px_45px_rgba(5,142,59,0.25)]' : 'hover:border-primary-black-500'}
-        ${canJoin ? 'cursor-pointer' : 'cursor-default'}
+        bg-primary-black-900 rounded-xl overflow-hidden transition-all duration-200
+        ${isEntered ? 'ring-1 ring-primary-green-500/60' : 'hover:bg-primary-black-800'}
+        ${canJoin ? 'cursor-pointer active:bg-primary-black-800' : 'cursor-default'}
       `}
       onClick={() => canJoin && onJoin?.(contest)}
     >
-      {/* Badge indicator */}
-      {isEntered && (
-        <div className="absolute right-3 top-3 bg-primary-black-900/60 border border-primary-green-500 rounded-full px-3 py-0.5 text-[10px] font-semibold text-primary-green-400 tracking-wider">
-          ENTERED
-        </div>
-      )}
-
-      <div className="px-4 py-3 space-y-2">
-        <div className="flex items-end justify-between gap-3">
+      {/* Header Bar - Contest Name + Win Type + Entrants (matches TeamScoreBanner) */}
+      <div className="border-b border-primary-black-700/50 px-4 py-2.5">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 min-w-0">
-            <div className={`w-9 h-9 flex items-center justify-center rounded-2xl ${isEntered ? 'bg-primary-green-500/10' : 'bg-primary-black-800/70'}`}>
-              <IconComponent className={`w-4 h-4 ${isEntered ? 'text-primary-green-400' : 'text-primary-black-300'}`} />
-            </div>
-            <div className="min-w-0 space-y-0.5">
-              <p className="text-sm font-semibold text-white truncate">{name}</p>
-              {description && <p className="text-[10px] text-primary-black-400/80 line-clamp-2">{description}</p>}
-            </div>
+            <Trophy className={`w-4 h-4 flex-shrink-0 ${isEntered ? 'text-primary-green-400' : 'text-primary-green-400'}`} />
+            <span className="text-sm font-bold text-white truncate">{name}</span>
+            <span className="text-[11px] text-white/50 whitespace-nowrap">
+              — {winConfig.shortLabel} Wins
+            </span>
           </div>
-          <div className="flex items-center gap-1 text-[11px] text-white/70">
-            <Users className="w-4 h-4" />
-            <span className="font-semibold">
+          {/* Entrant Count - Right side */}
+          <div className="flex items-center gap-1 flex-shrink-0 ml-2">
+            <Users className="w-3.5 h-3.5 text-white/50" />
+            <span className="text-[11px] text-white/60 font-medium">
               {current_entries}/{max_entries || '∞'}
             </span>
           </div>
         </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="px-3 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[9px] font-semibold uppercase tracking-wide">
-            {statusLabel}
-          </div>
-          <div className={`inline-flex items-center gap-1 px-3 py-0.5 rounded-full text-[9px] font-semibold uppercase tracking-wide ${getWinConditionColor(win_condition)}`}>
-            <WinConditionIcon className="w-3 h-3" />
-            {shortWinLabel}
-          </div>
+      </div>
+      
+      {/* Description row (if present) */}
+      {description && (
+        <div className="px-4 pt-3">
+          <p className="text-[11px] text-primary-black-400 line-clamp-2">{description}</p>
         </div>
-
+      )}
+      
+      {/* Main Content Row - Status badges + metadata + action */}
+      <div className="px-4 py-3">
         <div className="flex items-center justify-between gap-3">
-          <div className="flex flex-wrap gap-2 text-[10px] items-center">
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary-black-800 text-primary-black-400">
-              <Activity className="w-3 h-3" />
-              {formatScoringType(scoring_type)}
-            </span>
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary-black-800 text-primary-black-400">
-              <Calendar className="w-3 h-3" />
-              Week {week}
-            </span>
-            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide border ${getDifficultyBadgeStyles(difficulty)}`}>
-              {difficulty}
-            </span>
+          {/* Left: Status & Win Condition badges */}
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Status Badge */}
+            <div className="bg-amber-500/20 text-amber-400 font-bold uppercase rounded text-[10px] px-2 py-0.5 whitespace-nowrap">
+              {statusLabel}
+            </div>
+            
+            {/* Win Condition Badge */}
+            <div className={`inline-flex items-center gap-1 ${winConfig.bgColor} ${winConfig.color} font-bold uppercase rounded text-[10px] px-2 py-0.5 whitespace-nowrap`}>
+              <WinConditionIcon className="w-3.5 h-3.5" />
+              {winConfig.shortLabel}
+            </div>
           </div>
+          
+          {/* Right: Action button */}
           <div className="flex-shrink-0">
             {isEntered ? (
-              <div className="px-2 py-1 rounded-full border border-primary-green-500/30 bg-primary-black-900 text-[11px] font-semibold text-primary-green-400 uppercase tracking-wide">
-                You're In
+              <div className="px-4 py-1.5 rounded-full border border-primary-green-500/30 bg-primary-black-900 text-[11px] font-semibold text-primary-green-400 uppercase tracking-wide">
+                Entered
               </div>
             ) : isFull ? (
-              <div className="px-2 py-1 rounded-full bg-primary-black-800 text-[11px] font-semibold text-primary-black-400 uppercase tracking-wide">
+              <div className="px-4 py-1.5 rounded bg-primary-black-800 text-[11px] font-semibold text-primary-black-500 uppercase">
                 Full
               </div>
             ) : status !== 'open' ? (
-              <div className="px-2 py-1 rounded-full bg-primary-black-800 text-[11px] font-semibold text-primary-black-400 uppercase tracking-wide">
-                {status === 'locked' ? 'Locked' : 'Completed'}
+              <div className="px-4 py-1.5 rounded bg-primary-black-800 text-[11px] font-semibold text-primary-black-500 uppercase">
+                {status === 'locked' ? 'Locked' : 'Done'}
               </div>
             ) : (
               <button
@@ -156,13 +137,32 @@ export default function ContestCard({
                   e.stopPropagation();
                   onJoin?.(contest);
                 }}
-                disabled={isActionDisabled}
-                className={`px-4 py-1.5 rounded-full text-[11px] font-semibold text-primary-black-950 transition-colors ${isActionDisabled ? 'bg-primary-black-700 text-primary-black-500' : 'bg-primary-green-500 hover:bg-primary-green-400'}`}
+                className="px-5 py-1.5 rounded-full bg-primary-green-500 hover:bg-primary-green-400 text-[11px] font-bold text-primary-black-950 uppercase transition-colors"
               >
                 Join
               </button>
             )}
           </div>
+        </div>
+        
+        {/* Bottom row: Metadata */}
+        <div className="flex items-center gap-3 mt-3">
+          <span className="inline-flex items-center gap-1 text-[10px] text-primary-black-400">
+            <Activity className="w-3.5 h-3.5" />
+            {formatScoringType(scoring_type)}
+          </span>
+          <span className="inline-flex items-center gap-1 text-[10px] text-primary-black-400">
+            <Calendar className="w-3.5 h-3.5" />
+            Week {week}
+          </span>
+          <span className={`text-[10px] font-semibold uppercase ${
+            difficulty === 'easy' ? 'text-green-400' : 
+            difficulty === 'normal' ? 'text-primary-green-400' :
+            difficulty === 'hard' ? 'text-orange-400' : 
+            'text-red-400'
+          }`}>
+            {difficulty}
+          </span>
         </div>
       </div>
     </div>
