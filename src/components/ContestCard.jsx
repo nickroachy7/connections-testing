@@ -54,17 +54,13 @@ export default function ContestCard({
   const winConfig = getWinConditionConfig(win_condition);
   const WinConditionIcon = winConfig.icon;
   
-  // Determine card state
+  // Determine card state - card is always visible, but join may be disabled
   const canJoin = !isFull && status === 'open' && !disabled;
   const statusLabel = status === 'locked' ? 'Locked' : 'Closed';
   
   return (
     <div
-      className={`
-        bg-primary-black-900 rounded-xl overflow-hidden transition-all duration-200
-        ${canJoin ? 'cursor-pointer hover:bg-primary-black-800 active:bg-primary-black-800' : 'cursor-default opacity-60'}
-      `}
-      onClick={() => canJoin && onJoin?.(contest)}
+      className="bg-primary-black-900 rounded-xl overflow-hidden"
     >
       {/* Header Bar - Contest Name + Win Type + Entrants (matches TeamScoreBanner exactly) */}
       <div className="border-b border-primary-black-700/50 px-3 py-2">
@@ -114,6 +110,10 @@ export default function ContestCard({
             ) : status !== 'open' ? (
               <div className="px-3 py-1 rounded bg-primary-black-800 text-[10px] font-semibold text-primary-black-500 uppercase">
                 {statusLabel}
+              </div>
+            ) : disabled ? (
+              <div className="px-3 py-1 rounded bg-primary-black-800 text-[10px] font-semibold text-primary-black-500 uppercase">
+                Join
               </div>
             ) : (
               <button

@@ -253,7 +253,7 @@ export default function Contests() {
           return !isAlreadyEntered && !isFull;
         });
         
-        if (availableContests.length === 0 || isPrivateTeam || (!canEnterMore && hasEnteredContest)) return null;
+        if (availableContests.length === 0 || isPrivateTeam) return null;
         
         return (
           <div className={`${hasEnteredContest ? 'mt-6' : 'pt-4'} mb-3`}>
@@ -261,9 +261,12 @@ export default function Contests() {
               <h2 className="text-xs font-semibold text-primary-black-400 uppercase tracking-wide">
                 Available Contests
               </h2>
-              {hasEnteredContest && canEnterMore && remainingEntries > 0 && (
-                <span className="text-[10px] text-primary-green-400">
-                  {remainingEntries} entr{remainingEntries === 1 ? 'y' : 'ies'} remaining
+              {hasEnteredContest && (
+                <span className={`text-[10px] ${canEnterMore && remainingEntries > 0 ? 'text-primary-green-400' : 'text-primary-black-500'}`}>
+                  {canEnterMore && remainingEntries > 0 
+                    ? `${remainingEntries} entr${remainingEntries === 1 ? 'y' : 'ies'} remaining`
+                    : 'No entries remaining'
+                  }
                 </span>
               )}
             </div>
@@ -304,7 +307,7 @@ export default function Contests() {
       
       {/* Contest Grid - Stack on mobile, grid on larger screens */}
       {/* Filter out already entered contests AND full contests */}
-      {!loading && !error && contests.length > 0 && (canEnterMore || !hasEnteredContest) && !isPrivateTeam && (() => {
+      {!loading && !error && contests.length > 0 && !isPrivateTeam && (() => {
         const availableContests = contests.filter(contest => {
           const isAlreadyEntered = enteredContestIds.includes(contest.id);
           const isFull = contest.max_entries && contest.current_entries >= contest.max_entries;
@@ -313,6 +316,9 @@ export default function Contests() {
         
         if (availableContests.length === 0) return null;
         
+        // Disable joining if user has no entries remaining
+        const cannotJoin = !canEnterMore || remainingEntries <= 0;
+        
         return (
           <div className="space-y-3 md:grid md:grid-cols-2 lg:grid-cols-3 md:gap-4 md:space-y-0">
             {availableContests.map((contest) => (
@@ -320,7 +326,7 @@ export default function Contests() {
                 key={contest.id}
                 contest={contest}
                 onJoin={setSelectedContest}
-                disabled={isPrivateTeam}
+                disabled={cannotJoin}
               />
             ))}
           </div>
