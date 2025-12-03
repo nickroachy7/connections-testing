@@ -298,8 +298,7 @@ function ContestBannerCarousel({
     const slides = contests.map((contestItem, index) => (
       <div 
         key={contestItem.id || index} 
-        className="w-full flex-shrink-0 px-0.5"
-        style={{ backfaceVisibility: 'hidden' }}
+        className="w-full flex-shrink-0 px-0.5 bg-primary-black-900"
       >
         <MemoizedContestBanner
           contestItem={contestItem}
@@ -320,8 +319,7 @@ function ContestBannerCarousel({
       slides.push(
         <div 
           key="enter-more" 
-          className="w-full flex-shrink-0 px-0.5"
-          style={{ backfaceVisibility: 'hidden' }}
+          className="w-full flex-shrink-0 px-0.5 bg-primary-black-900"
         >
           <EnterMoreSlide 
             remainingEntries={remainingEntries} 
@@ -344,11 +342,11 @@ function ContestBannerCarousel({
   }
 
   return (
-    <div className="relative">
+    <div className="relative bg-primary-black-900">
       {/* Carousel track */}
       <div
         ref={containerRef}
-        className="overflow-hidden"
+        className="overflow-hidden bg-primary-black-900"
         style={{ touchAction: 'pan-y' }}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
@@ -357,11 +355,13 @@ function ContestBannerCarousel({
       >
         <div
           ref={trackRef}
-          className="flex"
+          className="flex bg-primary-black-900"
           style={{
             transform: `translate3d(${translateX}%, 0, 0)`,
             transition: isDragging ? 'none' : 'transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
-            willChange: 'transform'
+            willChange: 'transform',
+            WebkitBackfaceVisibility: 'hidden',
+            backfaceVisibility: 'hidden'
           }}
         >
           {banners}
