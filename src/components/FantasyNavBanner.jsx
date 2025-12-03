@@ -1,4 +1,5 @@
 import { useLocation } from 'react-router-dom';
+import { usePrevious } from '../hooks/usePrevious';
 import PropTypes from 'prop-types';
 import TeamMatchupBanner from './TeamMatchupBanner';
 import FantasyNavigation from './FantasyNavigation';
@@ -28,6 +29,13 @@ export default function FantasyNavBanner({
   // Only show the team banner on the starting lineup page
   const isStartingLineupPage = location.pathname.includes('/starting-lineup') || 
     location.pathname.match(/\/teams\/[^/]+$/); // Also match /teams/:teamId (index route)
+  
+  // Track when user navigates TO the starting lineup page (from another page)
+  const previousPathname = usePrevious(location.pathname);
+  const navigatedToStartingLineup = isStartingLineupPage && 
+    previousPathname && 
+    !previousPathname.includes('/starting-lineup') && 
+    !previousPathname.match(/\/teams\/[^/]+$/);
 
   return (
     <>
@@ -45,6 +53,7 @@ export default function FantasyNavBanner({
           teamId={teamId}
           team={team}
           previewMode={previewMode}
+          shouldRefetchContests={navigatedToStartingLineup}
         />
       </div>
     </>

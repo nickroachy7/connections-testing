@@ -35,7 +35,8 @@ export default function TeamMatchupBanner({
   coins,
   teamId,
   team,
-  previewMode = false
+  previewMode = false,
+  shouldRefetchContests = false
 }) {
   const navigate = useNavigate();
   
@@ -110,6 +111,16 @@ export default function TeamMatchupBanner({
   
   // Track previous week status to detect finalization
   const previousWeekStatus = usePrevious(contextWeekStatus);
+  
+  // Refetch contest data when navigating TO the starting lineup page
+  // This ensures newly joined contests appear immediately
+  useEffect(() => {
+    if (shouldRefetchContests) {
+      console.log('🔄 [TeamMatchupBanner] Navigated to starting lineup - refreshing contest data...');
+      refetchMultipleContests();
+      refetchContestContext();
+    }
+  }, [shouldRefetchContests, refetchMultipleContests, refetchContestContext]);
   
   // Refresh league context when week finalizes (updates wins/losses/lives)
   useEffect(() => {
@@ -877,8 +888,8 @@ export default function TeamMatchupBanner({
                   <div className="h-4 bg-primary-black-700 rounded w-20" />
                 </div>
               </div>
-            ) : hasMultipleContests && multipleContests.length > 1 ? (
-              /* Swipeable carousel for multiple contests - using pre-rendered banners */
+            ) : (multipleContests.length > 1) || (multipleContests.length >= 1 && canEnterMoreContests && contestRemainingEntries > 0) ? (
+              /* Swipeable carousel for multiple contests OR single contest with "enter more" option */
               <ContestBannerCarousel
                 contests={multipleContests}
                 selectedIndex={multiContestIndex}
@@ -1079,5 +1090,6 @@ TeamMatchupBanner.propTypes = {
   coins: PropTypes.number,
   teamId: PropTypes.string.isRequired,
   team: PropTypes.object,
-  previewMode: PropTypes.bool
+  previewMode: PropTypes.bool,
+  shouldRefetchContests: PropTypes.bool
 };
