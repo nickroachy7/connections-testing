@@ -196,7 +196,8 @@ export default function TeamInfo() {
       starter_pack: 'Starter Pack',
       reward: 'Reward',
       week_win: 'Week Win Bonus',
-      week_loss: 'Week Loss'
+      week_loss: 'Week Loss',
+      free_agent_claim: 'Free Agent Claim'
     };
     return typeMap[type] || type;
   };

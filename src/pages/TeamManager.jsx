@@ -1705,7 +1705,7 @@ export default function TeamManager() {
           availablePlayers={getAvailablePlayersForPosition(playerSelectionModal.position)}
           onSwap={(player) => handleSelectPlayer(player)}
           onClose={() => setPlayerSelectionModal({ isOpen: false, position: null, slotKey: null })}
-          onNavigateToShop={() => navigate(`/teams/${activeTeam.id}/pack-shop`)}
+          onNavigateToShop={() => navigate(`/teams/${activeTeam.id}/market`)}
           liveGameData={isPreviewMode ? new Map() : liveGameData}
           projections={projections}
           // Not needed for slot-to-bench mode

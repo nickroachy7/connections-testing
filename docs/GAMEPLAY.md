@@ -75,6 +75,16 @@ Players acquire NFL player cards through pack openings, build weekly lineups, an
 
 ### 3. Building Your Roster
 
+#### Market
+
+The Market is your one-stop shop for roster expansion. Access via the **MARKET** tab in the navigation.
+
+**Two Ways to Acquire Players:**
+1. **Pack Shop** - Purchase packs for random players and tokens
+2. **Free Agency** - Claim individual "waiver wire" players
+
+---
+
 #### Pack Shop
 
 **Available Packs**
@@ -97,7 +107,42 @@ Players acquire NFL player cards through pack openings, build weekly lineups, an
 
 Total: 12 players + 3 tokens = **Complete starting lineup + 3 bench players**
 
-**Roster Limit**: 20 cards maximum (players + tokens combined)
+**Roster Limit**: 75 players maximum
+
+---
+
+#### Free Agency (Waiver Wire)
+
+Claim individual players directly - no pack RNG required! Perfect for filling specific roster gaps.
+
+**How It Works:**
+1. One player available per position each day (QB, RB, WR, TE)
+2. Players rotate **daily at midnight**
+3. These are **waiver-wire quality** players (backup/depth tier)
+4. Will score points but aren't star players
+5. Great for emergency fills or bye week coverage
+
+**Pricing:**
+
+| Position | Cost | Typical Projection |
+|----------|------|-------------------|
+| QB | 75 coins | 5-10 pts |
+| RB | 50 coins | 4-8 pts |
+| WR | 50 coins | 4-8 pts |
+| TE | 40 coins | 3-6 pts |
+
+**Rules:**
+- ✅ Claim as many players as you want (if you have coins)
+- ✅ Same player can be claimed by multiple teams
+- ❌ Cannot claim a player you already own
+- ❌ Cannot claim a player you've previously claimed (ever)
+- ❌ Cannot claim if roster is full (75 players)
+
+**Use Cases:**
+- Fill a bye week slot cheaply
+- Replace an injured player quickly
+- Try out a new position without pack RNG
+- Budget-conscious roster building
 
 **Pack Opening Flow**
 1. User navigates to Pack Shop
@@ -409,7 +454,7 @@ Each contest type offers Standard, Half PPR, and Full PPR variants.
 **Team-Specific Routes**
 ```
 /teams/:teamId/starting-lineup   - Build lineup
-/teams/:teamId/pack-shop          - Buy packs
+/teams/:teamId/market             - Buy packs & claim free agents
 /teams/:teamId/inventory          - View cards
 /teams/:teamId/activity           - Transaction log
 /teams/:teamId/leaderboard        - Rankings

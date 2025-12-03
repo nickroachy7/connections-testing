@@ -22,7 +22,7 @@ const Standings = lazy(() => import('./pages/Standings'))
 const Login = lazy(() => import('./pages/Login'))
 const Signup = lazy(() => import('./pages/Signup'))
 const Inventory = lazy(() => import('./pages/Inventory'))
-const PackShop = lazy(() => import('./pages/PackShop'))
+const Market = lazy(() => import('./pages/Market'))
 const TeamManager = lazy(() => import('./pages/TeamManager'))
 const Leaderboard = lazy(() => import('./pages/Leaderboard'))
 const NotFound = lazy(() => import('./pages/NotFound'))
@@ -157,8 +157,8 @@ const router = createBrowserRouter([
             element: <Inventory />
           },
           {
-            path: 'pack-shop',
-            element: <PackShop />
+            path: 'market',
+            element: <Market />
           },
           {
             path: 'info',

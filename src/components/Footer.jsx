@@ -72,8 +72,8 @@ const Footer = () => {
                   </a>
                 </li>
                 <li>
-                  <a href="/pack-shop" className="text-primary-black-400 hover:text-primary-green-400 text-xs transition-colors">
-                    Pack Shop
+                  <a href="/fantasy" className="text-primary-black-400 hover:text-primary-green-400 text-xs transition-colors">
+                    Market
                   </a>
                 </li>
                 <li>

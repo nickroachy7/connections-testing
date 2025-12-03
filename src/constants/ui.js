@@ -27,6 +27,7 @@ export const ACTIVITY_ICONS = {
   quick_sell: '💰',
   starter_pack: '🎁',
   reward: '🏆',
+  free_agent_claim: '🏃',
   DEFAULT: '📝'
 };
 

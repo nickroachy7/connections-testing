@@ -12,7 +12,7 @@ export default function FantasyNavigation({ teamId, teamType = 'public' }) {
   const baseNavItems = [
     { path: `/teams/${teamId}/starting-lineup`, label: 'LINEUP' },
     { path: `/teams/${teamId}/inventory`, label: 'INVENTORY' },
-    { path: `/teams/${teamId}/pack-shop`, label: 'SHOP' }
+    { path: `/teams/${teamId}/market`, label: 'MARKET' }
   ];
 
   // Public team specific items

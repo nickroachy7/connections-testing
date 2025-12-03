@@ -53,6 +53,8 @@ export default function RecentActivityFeed({ teamId, userId, limit = 10 }) {
         return 'Received starter pack';
       case 'reward':
         return `Earned ${metadata.reward_type || 'reward'}`;
+      case 'free_agent_claim':
+        return 'Claimed free agent';
       default:
         return 'Unknown activity';
     }
