@@ -149,7 +149,7 @@ export default function Contests() {
           ENTERED CONTESTS SECTION
           ======================================== */}
       {hasEnteredContest && currentEntries.length > 0 && (
-        <div className="space-y-3">
+        <div className="space-y-3 pt-4">
           {/* Section Header with lives */}
           <div className="flex items-center justify-between px-1">
             <div className="flex items-center gap-2">
@@ -200,7 +200,7 @@ export default function Contests() {
       
       {/* Future week info - only show if no contests entered yet */}
       {!isPrivateTeam && isShowingFutureWeek && !hasEnteredContest && (
-        <div className="mb-4 p-3 bg-primary-green-500/10 border border-primary-green-500/30 rounded-lg flex items-start gap-2">
+        <div className={`${hasEnteredContest ? 'mt-6' : 'mt-4'} mb-4 p-3 bg-primary-green-500/10 border border-primary-green-500/30 rounded-lg flex items-start gap-2`}>
           <Calendar className="w-4 h-4 text-primary-green-500 flex-shrink-0 mt-0.5" />
           <div>
             <p className="text-xs text-primary-green-300">
@@ -210,23 +210,31 @@ export default function Contests() {
         </div>
       )}
       
-      {/* Can Enter More - subtle inline message */}
-      {contests.length > 0 && (canEnterMore || !hasEnteredContest) && !isPrivateTeam && (
-        <div className="mt-8 mb-3">
-          <div className="flex items-center justify-between px-1">
-            <h2 className="text-xs font-semibold text-primary-black-400 uppercase tracking-wide">
-              {hasEnteredContest ? 'Enter More Contests' : 'Available Contests'}
-            </h2>
-            {hasEnteredContest && canEnterMore && remainingEntries > 0 && (
-              <span className="text-[10px] text-primary-green-400">
-                {remainingEntries} entr{remainingEntries === 1 ? 'y' : 'ies'} remaining
-              </span>
-            )}
+      {/* Available Contests Section Header */}
+      {(() => {
+        const availableContests = contests.filter(contest => {
+          const isAlreadyEntered = enteredContestIds.includes(contest.id);
+          const isFull = contest.max_entries && contest.current_entries >= contest.max_entries;
+          return !isAlreadyEntered && !isFull;
+        });
+        
+        if (availableContests.length === 0 || isPrivateTeam || (!canEnterMore && hasEnteredContest)) return null;
+        
+        return (
+          <div className={`${hasEnteredContest ? 'mt-6' : 'pt-4'} mb-3`}>
+            <div className="flex items-center justify-between px-1">
+              <h2 className="text-xs font-semibold text-primary-black-400 uppercase tracking-wide">
+                Available Contests
+              </h2>
+              {hasEnteredContest && canEnterMore && remainingEntries > 0 && (
+                <span className="text-[10px] text-primary-green-400">
+                  {remainingEntries} entr{remainingEntries === 1 ? 'y' : 'ies'} remaining
+                </span>
+              )}
+            </div>
           </div>
-        </div>
-      )}
-      
-      {/* Other Contests - REMOVED when already entered, only show available contests when not entered */}
+        );
+      })()}
       
       {/* Loading State */}
       {loading && contests.length === 0 && (
@@ -282,22 +290,29 @@ export default function Contests() {
       )}
       
       {/* Contest Grid - Stack on mobile, grid on larger screens */}
-      {!loading && !error && contests.length > 0 && (canEnterMore || !hasEnteredContest) && !isPrivateTeam && (
-        <div className="space-y-3 md:grid md:grid-cols-2 lg:grid-cols-3 md:gap-4 md:space-y-0">
-          {contests.map((contest) => {
-            const isAlreadyEntered = enteredContestIds.includes(contest.id);
-            return (
+      {/* Filter out already entered contests AND full contests */}
+      {!loading && !error && contests.length > 0 && (canEnterMore || !hasEnteredContest) && !isPrivateTeam && (() => {
+        const availableContests = contests.filter(contest => {
+          const isAlreadyEntered = enteredContestIds.includes(contest.id);
+          const isFull = contest.max_entries && contest.current_entries >= contest.max_entries;
+          return !isAlreadyEntered && !isFull;
+        });
+        
+        if (availableContests.length === 0) return null;
+        
+        return (
+          <div className="space-y-3 md:grid md:grid-cols-2 lg:grid-cols-3 md:gap-4 md:space-y-0">
+            {availableContests.map((contest) => (
               <ContestCard
                 key={contest.id}
                 contest={contest}
-                isEntered={isAlreadyEntered}
                 onJoin={setSelectedContest}
-                disabled={isPrivateTeam || isAlreadyEntered}
+                disabled={isPrivateTeam}
               />
-            );
-          })}
-        </div>
-      )}
+            ))}
+          </div>
+        );
+      })()}
       
       {/* Join Contest Modal */}
       {selectedContest && (
