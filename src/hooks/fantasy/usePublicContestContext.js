@@ -451,12 +451,22 @@ export function usePublicContestContext(teamId, options = {}) {
   }, [contestContext?.contestId, contestContext?.contest?.winCondition, contestContext?.week, contestContext?.season, contestEntries, teamId]);
 
   // Fetch on mount and when teamId changes
-  useEffect(() => {
-    fetchContestContext();
-  }, [fetchContestContext]);
+  // Stale time in milliseconds - don't refetch if data is fresher than this
+  const STALE_TIME = 30000; // 30 seconds
+  
+  const isDataStale = useCallback(() => {
+    if (!lastFetchRef.current) return true;
+    return Date.now() - lastFetchRef.current > STALE_TIME;
+  }, []);
 
-  // Route-change refetch: when user navigates between pages, refetch
-  // This catches cases where user joins a contest on /contests and navigates back
+  useEffect(() => {
+    // Only fetch on mount if we don't have data or it's stale
+    if (!contestContext || isDataStale()) {
+      fetchContestContext();
+    }
+  }, [teamId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Route-change refetch: only if data is stale
   useEffect(() => {
     if (!teamId) return;
     
@@ -466,48 +476,32 @@ export function usePublicContestContext(teamId, options = {}) {
       return;
     }
     
-    // Only refetch if the pathname actually changed
+    // Only refetch if the pathname actually changed AND data is stale
     if (lastPathnameRef.current !== location.pathname) {
       lastPathnameRef.current = location.pathname;
-      console.log('🎮 [usePublicContestContext] Route changed, refetching...', location.pathname);
-      fetchContestContext();
+      if (isDataStale()) {
+        console.log('🎮 [usePublicContestContext] Route changed and data stale, refetching...', location.pathname);
+        fetchContestContext();
+      }
     }
-  }, [location.pathname, fetchContestContext, teamId]);
+  }, [location.pathname, fetchContestContext, teamId, isDataStale]);
 
-  // Visibility-based refetch: when user returns to the tab/page, refetch
-  // This catches cases where user joins a contest on another page and comes back
+  // Visibility-based refetch: when user returns to the tab from another browser tab
+  // Only refetch if data is stale (30 seconds)
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && teamId) {
-        // Only refetch if it's been more than 2 seconds since last fetch
-        // to avoid double-fetching on initial page load
-        const now = Date.now();
-        if (!lastFetchRef.current || now - lastFetchRef.current > 2000) {
-          console.log('🎮 [usePublicContestContext] Visibility changed to visible, refetching...');
-          fetchContestContext();
-        }
-      }
-    };
-
-    // Focus event catches in-app navigation better than visibility
-    const handleFocus = () => {
-      if (teamId) {
-        const now = Date.now();
-        if (!lastFetchRef.current || now - lastFetchRef.current > 2000) {
-          console.log('🎮 [usePublicContestContext] Window focused, refetching...');
-          fetchContestContext();
-        }
+      if (document.visibilityState === 'visible' && teamId && isDataStale()) {
+        console.log('🎮 [usePublicContestContext] Visibility changed to visible and data stale, refetching...');
+        fetchContestContext();
       }
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('focus', handleFocus);
     
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('focus', handleFocus);
     };
-  }, [fetchContestContext, teamId]);
+  }, [fetchContestContext, teamId, isDataStale]);
 
   // Optional polling interval for live score updates
   useEffect(() => {

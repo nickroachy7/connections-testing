@@ -9,6 +9,9 @@ import FantasyNavigation from './FantasyNavigation';
  * Composes FantasyNavigation (tabs) and TeamMatchupBanner into a single unit.
  * Navigation tabs appear at the top (right below header).
  * Team banner only shows on the Starting Lineup page.
+ * 
+ * NOTE: TeamMatchupBanner is always mounted but visually hidden when not on
+ * Starting Lineup to prevent data refetching on navigation.
  */
 export default function FantasyNavBanner({ 
   username, 
@@ -31,8 +34,8 @@ export default function FantasyNavBanner({
       {/* Navigation tabs appear first - right below the header */}
       <FantasyNavigation teamId={teamId} teamType={team?.team_type} />
       
-      {/* Team banner only shows on Starting Lineup page */}
-      {isStartingLineupPage && (
+      {/* Team banner - always mounted to preserve hook state, but hidden when not on Starting Lineup */}
+      <div className={isStartingLineupPage ? '' : 'hidden'}>
         <TeamMatchupBanner
           username={username}
           teamName={teamName}
@@ -43,7 +46,7 @@ export default function FantasyNavBanner({
           team={team}
           previewMode={previewMode}
         />
-      )}
+      </div>
     </>
   );
 }
