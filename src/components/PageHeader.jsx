@@ -3,12 +3,15 @@ import PropTypes from 'prop-types';
 /**
  * PageHeader Component
  * 
- * Consistent header design across all pages in the application.
- * Layout: 
- * - Left: Page name (large) + helpful info/status below (smaller)
- * - Right: Actions (filters, buttons, view toggles, etc.)
+ * Compact, single-row header for all pages. Ensures visual consistency.
  * 
- * This component is isolated and won't affect the layout of other page components.
+ * Layout: Title [Subtitle?] -------- [Actions]
+ * 
+ * Design:
+ * - Single row, compact height
+ * - Transparent background
+ * - Title: text-sm font-semibold text-white
+ * - Subtitle: text-xs text-muted, inline with title
  */
 export default function PageHeader({ 
   title, 
@@ -17,27 +20,25 @@ export default function PageHeader({
   className = ''
 }) {
   return (
-    <div className={`mb-3 sm:mb-4 py-2 sm:py-4 ${className}`}>
-      <div className="flex items-center justify-between gap-4">
-        {/* Left: Title and Subtitle */}
-        <div className="min-w-0 flex-1">
-          <h1 className="text-base sm:text-xl font-bold text-primary-black-50 truncate">
-            {title}
-          </h1>
-          {subtitle && (
-            <p className="text-xs sm:text-sm text-primary-black-400 mt-0.5 truncate">
-              {subtitle}
-            </p>
-          )}
-        </div>
-        
-        {/* Right: Actions */}
-        {actions && (
-          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
-            {actions}
-          </div>
+    <div className={`bg-transparent flex items-center justify-between py-2 px-3 sm:px-4 ${className}`}>
+      {/* Left: Title + Subtitle */}
+      <div className="flex items-center gap-2">
+        <h1 className="text-sm font-semibold text-white">
+          {title}
+        </h1>
+        {subtitle && (
+          <span className="text-xs text-primary-black-400">
+            {typeof subtitle === 'string' ? subtitle : subtitle}
+          </span>
         )}
       </div>
+      
+      {/* Right: Actions */}
+      {actions && (
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {actions}
+        </div>
+      )}
     </div>
   );
 }

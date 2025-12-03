@@ -87,7 +87,7 @@ import { POSITION_COLORS, getPositionColor } from '@/constants/colors';
 Position badge colors are **context-dependent**:
 
 | Context | `slotKey` Prop | Badge Color | Meaning |
-|---------|----------------|-------------|---------|
+|---------|----------------|-------------|---------|  
 | **Starting Lineup** | `"QB"`, `"RB1"`, etc. | **Colored** | Player is assigned to this slot |
 | **Bench** | `null` | **Grey** | Player is on bench, not slotted |
 | **Inventory** | `null` | **Grey** | Player is in inventory, not in lineup |
@@ -151,17 +151,18 @@ Do NOT use these legacy prefixes in new code:
 
 ### Header Hierarchy
 
-There are two levels of headers used in the app:
+There are two levels of headers used in the app. **Both have transparent backgrounds** so the page background color shows through.
 
 | Level | Component | Use Case | Example |
-|-------|-----------|----------|---------|
+|-------|-----------|----------|---------|  
 | **Page** | `PageHeader` | Top of each page | "Inventory", "Starting Lineup" |
-| **Section** | `SectionHeader` | Sub-sections within a page | "Bench (5)", "Tokens (6)" |
+| **Section** | `SectionHeader` | Sub-sections within a page | "Bench 13", "Tokens 6" |
 
 **PageHeader** (`src/components/PageHeader.jsx`):
-- Large title (text-base to text-xl)
-- Optional subtitle with status info
+- Large title (`text-lg sm:text-xl`, white)
+- Optional subtitle with status info (supports JSX for icons/dynamic content)
 - Right-side actions (buttons, filters, toggles)
+- **Transparent background** - page color shows through
 - Used once at top of each main page
 
 ```jsx
@@ -170,18 +171,30 @@ There are two levels of headers used in the app:
   subtitle="Roster: 15/20"
   actions={<ViewToggle />}
 />
+
+// Subtitle with JSX (e.g., icons, dynamic status)
+<PageHeader 
+  title="Starting Lineup"
+  subtitle={
+    <div className="flex items-center gap-1">
+      <CheckIcon className="w-3 h-3" />
+      <span className="text-primary-green-500">Lineup Saved</span>
+    </div>
+  }
+/>
 ```
 
 **SectionHeader** (`src/components/ui/SectionHeader.jsx`):
-- Smaller title (text-sm)
-- Optional count badge
+- Smaller title (`text-sm`, muted gray `text-primary-black-300`)
+- Optional count displayed inline (not a badge)
 - Optional right-side actions
+- **Transparent background** - page color shows through
 - Used for sub-sections like Bench, Tokens, Players
 
 ```jsx
 <SectionHeader 
   title="Bench" 
-  count={5}
+  count={13}
 />
 ```
 
@@ -292,210 +305,3 @@ import { ChevronRight, Settings, User } from 'lucide-react';
 
 <ChevronRight className="w-4 h-4 text-primary-black-400" />
 ```
-
-### Icon Sizes
-
-| Context | Size |
-|---------|------|
-| Navigation | `w-5 h-5` |
-| List items | `w-4 h-4` |
-| Buttons | `w-4 h-4` |
-| Badges | `w-3 h-3` |
-
-### No Emojis Rule
-
-| ❌ Bad | ✅ Good |
-|--------|---------|
-| `📦 Pack` | `<Package /> Pack` |
-| `🏆 Win` | Green checkmark icon |
-| `💰 Coins` | Coin icon component |
-
----
-
-## Component Styling
-
-### Cards
-
-```jsx
-// Standard card
-<div className="bg-primary-black-800 rounded-lg p-4">
-
-// Elevated card (higher contrast)
-<div className="bg-primary-black-700 rounded-lg p-4 border border-primary-black-600">
-
-// Interactive card
-<div className="bg-primary-black-800 rounded-lg p-4 hover:bg-primary-black-700 cursor-pointer transition-colors">
-```
-
-### Buttons
-
-```jsx
-// Primary button
-<button className="bg-primary-green-600 hover:bg-primary-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
-
-// Secondary button
-<button className="bg-primary-black-700 hover:bg-primary-black-600 text-white px-4 py-2 rounded-lg transition-colors">
-
-// Ghost button
-<button className="text-primary-black-300 hover:text-white px-3 py-2 transition-colors">
-
-// Danger button
-<button className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors">
-```
-
-### Badges
-
-```jsx
-// Position badge
-<span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-600 text-white">
-  QB
-</span>
-
-// Tier badge
-<span className="px-1 py-0.5 rounded text-[10px] font-bold bg-gray-500 text-white">
-  B
-</span>
-
-// Status badge
-<span className="text-xs text-primary-green-400">LIVE</span>
-```
-
-### Modals & Sheets
-
-**IMPORTANT: Use the unified `SwapModal` component** for all swap/selection operations.
-See `COMPONENT_REGISTRY.md` for SwapModal documentation.
-
-```jsx
-// Modal overlay
-<div className="fixed inset-0 bg-black/70 z-50">
-
-// Modal content (centered) - use BaseModal component
-<div className="fixed inset-0 flex items-center justify-center p-4">
-  <div className="bg-primary-black-800 rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
-
-// Bottom sheet (mobile) - use BottomSheet component
-<div className="fixed inset-x-0 bottom-0 bg-primary-black-800 rounded-t-2xl max-h-[80vh] overflow-y-auto">
-  <div className="w-12 h-1 bg-primary-black-600 rounded-full mx-auto mt-3 mb-4" /> // Drag handle
-```
-
-**Modal Best Practices:**
-1. **Use BottomSheet for mobile selection lists** - swipe to dismiss, proper scroll locking
-2. **Always include Cancel button** - visible and functional
-3. **Lock body scroll** - prevent scrolling behind modal
-4. **One modal component per concern** - SwapModal handles all swap flows
-
-### Lists
-
-```jsx
-// List container
-<div className="divide-y divide-primary-black-700">
-  {items.map(item => (
-    <div key={item.id} className="py-2 px-3">
-      {/* item content */}
-    </div>
-  ))}
-</div>
-```
-
----
-
-## Patterns & Anti-Patterns
-
-### ✅ DO
-
-1. **Use semantic spacing** - Consistent gaps and padding
-2. **Use color variables** - Never hardcode hex values
-3. **Truncate text** - Prevent layout breaks
-4. **Add loading states** - Show spinners during data fetch
-5. **Handle empty states** - Show meaningful empty messages
-6. **Use transitions** - `transition-colors` for hovers
-7. **Round corners consistently** - `rounded-lg` for cards, `rounded` for badges
-
-### ❌ DON'T
-
-1. **No emojis** - Use icons instead
-2. **No gradient backgrounds** - Keep it flat
-3. **No shadows** - Use border or bg changes for depth
-4. **No custom colors** - Use the palette
-5. **No inconsistent padding** - Follow the spacing scale
-6. **No orphan text** - Ensure proper wrapping
-7. **No magic numbers** - Use Tailwind classes
-
-### Common Patterns
-
-#### Row Layout (Player/Token)
-
-```jsx
-<div className="flex items-center gap-3 py-2">
-  {/* Position badge */}
-  <span className="...">QB</span>
-  
-  {/* Avatar */}
-  <div className="w-10 h-10 rounded-full bg-primary-black-700" />
-  
-  {/* Info */}
-  <div className="flex-1 min-w-0">
-    <p className="font-medium text-white truncate">Player Name</p>
-    <p className="text-xs text-primary-black-400">Team • Matchup</p>
-  </div>
-  
-  {/* Points */}
-  <div className="text-right">
-    <p className="font-medium text-white">12.5</p>
-    <p className="text-xs text-primary-black-400">pts</p>
-  </div>
-</div>
-```
-
-#### Section Header
-
-```jsx
-<div className="flex items-center justify-between py-2">
-  <h3 className="text-sm font-semibold text-primary-black-300">
-    Section Title
-  </h3>
-  <span className="text-xs text-primary-black-400">
-    (5)
-  </span>
-</div>
-```
-
----
-
-## Quick Reference
-
-### Color Classes Cheat Sheet
-
-```
-Backgrounds:
-- Page bg: bg-primary-black-900
-- Card bg: bg-primary-black-800
-- Elevated: bg-primary-black-700
-- Border: border-primary-black-700
-
-Text:
-- Primary: text-white
-- Secondary: text-primary-black-300
-- Muted: text-primary-black-400
-- Disabled: text-primary-black-500
-
-Accents:
-- Success/Active: text-primary-green-500, bg-primary-green-600
-- Warning/Alert: text-accent-orange-500, bg-accent-orange-600
-```
-
-### Size Classes Cheat Sheet
-
-```
-Badges: text-[10px] px-1.5 py-0.5 rounded
-Small text: text-xs
-Body text: text-sm
-Headings: text-lg or text-xl
-Icons: w-4 h-4 (standard), w-5 h-5 (nav)
-Avatars: w-10 h-10 (list), w-12 h-12 (featured)
-```
-
----
-
-**Last Updated**: December 2, 2025
-**Maintained By**: Development Team

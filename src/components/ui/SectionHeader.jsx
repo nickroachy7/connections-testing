@@ -3,18 +3,19 @@ import PropTypes from 'prop-types';
 /**
  * SectionHeader Component
  * 
- * Consistent styling for sub-section headers within a page.
- * Use this for sections like "Bench", "Tokens", "Players" within a larger page.
+ * Sub-section header for dividing content within a page.
+ * Use for sections like "Bench", "Tokens", "Players" within a larger page.
  * 
  * HIERARCHY:
- * - PageHeader: Top-level page title (e.g., "Inventory", "Starting Lineup")
- * - SectionHeader: Sub-sections within a page (e.g., "Bench (5)", "Tokens (6)")
+ * - PageHeader: Top-level page title (one per page)
+ * - SectionHeader: Sub-sections within pages (multiple per page)
  * 
- * Design principles:
- * - Smaller than PageHeader
- * - Optional count badge
+ * Design:
+ * - Transparent background (page color shows through)
+ * - Smaller text than PageHeader
+ * - Optional count displayed inline (not as badge)
  * - Optional right-side actions
- * - Consistent padding with list items below
+ * - Consistent horizontal padding with content below
  */
 export default function SectionHeader({ 
   title, 
@@ -23,12 +24,12 @@ export default function SectionHeader({
   className = ''
 }) {
   return (
-    <div className={`flex items-center justify-between px-2 sm:px-4 py-2 ${className}`}>
+    <div className={`bg-transparent flex items-center justify-between px-2 sm:px-4 py-1.5 ${className}`}>
       {/* Left: Title with optional count */}
-      <h3 className="text-sm font-semibold text-primary-black-200 flex items-center gap-2">
+      <h3 className="text-xs font-medium text-primary-black-400 flex items-center gap-1.5">
         {title}
         {count !== null && (
-          <span className="text-xs font-medium text-primary-black-400 bg-primary-black-800 px-1.5 py-0.5 rounded">
+          <span className="text-xs font-normal text-primary-black-500">
             {count}
           </span>
         )}
@@ -36,7 +37,7 @@ export default function SectionHeader({
       
       {/* Right: Optional actions */}
       {actions && (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           {actions}
         </div>
       )}
