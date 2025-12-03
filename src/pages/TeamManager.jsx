@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useRevalidator, useOutletContext, useLocation } from 'react-router-dom';
 import { getUserInventory, quickSellCard, supabase } from '../services/supabase';
 import { calculateBatchProjections, getInstantBaselineProjections } from '../utils/projections';
-import { shouldBlockLineupChanges, shouldBlockTokenActions, getRosterLimitErrorMessage } from '../utils/rosterLimits';
+import { shouldBlockLineupChanges, shouldBlockTokenActions, getRosterLimitErrorMessage, getRosterCount, getOverLimitCount, ROSTER_LIMIT } from '../utils/rosterLimits';
 import { calculatePlayerSellValue, calculateTokenSellValue } from '../utils/sellValueCalculator';
 import { useIsMobile } from '../hooks';
 import PlayerCard from '../components/PlayerCard';
@@ -220,17 +220,14 @@ export default function TeamManager() {
     
     // Check roster limit
     if (shouldBlockLineupChanges(inventory)) {
-      const playerCount = inventory?.players?.length || 0;
-      const tokenCount = inventory?.tokens?.length || 0;
-      const totalCount = playerCount + tokenCount;
+      const currentCount = getRosterCount(inventory);
+      const overBy = getOverLimitCount(inventory);
       console.error('🚫 Lineup change blocked - Roster over limit:', {
-        players: playerCount,
-        tokens: tokenCount,
-        total: totalCount,
-        limit: 20,
-        overBy: totalCount - 20
+        players: currentCount,
+        limit: ROSTER_LIMIT,
+        overBy
       });
-      setRosterLimitModal({ isOpen: true, currentCount: totalCount, overBy: totalCount - 20 });
+      setRosterLimitModal({ isOpen: true, currentCount, overBy });
       setDraggedPlayer(null);
       return;
     }
@@ -860,10 +857,9 @@ export default function TeamManager() {
   const handleClickToAdd = (position) => {
     // Check roster limit first - if over limit, show modal and don't apply filter
     if (shouldBlockLineupChanges(inventory)) {
-      const playerCount = inventory?.players?.length || 0;
-      const tokenCount = inventory?.tokens?.length || 0;
-      const totalCount = playerCount + tokenCount;
-      setRosterLimitModal({ isOpen: true, currentCount: totalCount, overBy: totalCount - 20 });
+      const currentCount = getRosterCount(inventory);
+      const overBy = getOverLimitCount(inventory);
+      setRosterLimitModal({ isOpen: true, currentCount, overBy });
       return;
     }
     
@@ -937,10 +933,9 @@ export default function TeamManager() {
     
     // Check roster limit
     if (shouldBlockLineupChanges(inventory)) {
-      const playerCount = inventory?.players?.length || 0;
-      const tokenCount = inventory?.tokens?.length || 0;
-      const totalCount = playerCount + tokenCount;
-      setRosterLimitModal({ isOpen: true, currentCount: totalCount, overBy: totalCount - 20 });
+      const currentCount = getRosterCount(inventory);
+      const overBy = getOverLimitCount(inventory);
+      setRosterLimitModal({ isOpen: true, currentCount, overBy });
       return;
     }
     
@@ -1067,10 +1062,10 @@ export default function TeamManager() {
     if (!player) return [];
     
     const positionMap = {
-      'Quarterback': ['QB'],
-      'Running Back': ['RB1', 'RB2', 'FLEX'],
-      'Wide Receiver': ['WR1', 'WR2', 'WR3', 'FLEX'],
-      'Tight End': ['TE', 'FLEX']
+      'Quarterback': ['QB', 'SUPERFLEX'],
+      'Running Back': ['RB1', 'RB2', 'FLEX', 'SUPERFLEX'],
+      'Wide Receiver': ['WR1', 'WR2', 'WR3', 'FLEX', 'SUPERFLEX'],
+      'Tight End': ['TE', 'FLEX', 'SUPERFLEX']
     };
     
     const eligibleSlots = positionMap[player.player_card.position] || [];
@@ -1096,10 +1091,9 @@ export default function TeamManager() {
     
     // Check roster limit
     if (shouldBlockLineupChanges(inventory)) {
-      const playerCount = inventory?.players?.length || 0;
-      const tokenCount = inventory?.tokens?.length || 0;
-      const totalCount = playerCount + tokenCount;
-      setRosterLimitModal({ isOpen: true, currentCount: totalCount, overBy: totalCount - 20 });
+      const currentCount = getRosterCount(inventory);
+      const overBy = getOverLimitCount(inventory);
+      setRosterLimitModal({ isOpen: true, currentCount, overBy });
       setSwapModal({ isOpen: false, mode: null, currentPlayer: null, currentToken: null, currentSlot: null });
       return;
     }
@@ -1286,10 +1280,9 @@ export default function TeamManager() {
     
     // Check roster limit
     if (shouldBlockLineupChanges(inventory)) {
-      const playerCount = inventory?.players?.length || 0;
-      const tokenCount = inventory?.tokens?.length || 0;
-      const totalCount = playerCount + tokenCount;
-      setRosterLimitModal({ isOpen: true, currentCount: totalCount, overBy: totalCount - 20 });
+      const currentCount = getRosterCount(inventory);
+      const overBy = getOverLimitCount(inventory);
+      setRosterLimitModal({ isOpen: true, currentCount, overBy });
       setSwapModal({ isOpen: false, mode: null, currentPlayer: null, currentToken: null, currentSlot: null });
       return;
     }
@@ -1379,7 +1372,8 @@ export default function TeamManager() {
       'WR2': ['Wide Receiver'],
       'WR3': ['Wide Receiver'],
       'TE': ['Tight End'],
-      'FLEX': ['Running Back', 'Wide Receiver', 'Tight End']
+      'FLEX': ['Running Back', 'Wide Receiver', 'Tight End'],
+      'SUPERFLEX': ['Quarterback', 'Running Back', 'Wide Receiver', 'Tight End']
     };
     
     const allowedPositions = positionMap[position] || [];
@@ -1749,13 +1743,13 @@ export default function TeamManager() {
                 Roster Over Limit
               </h2>
               <p className="text-primary-black-300 mb-4">
-                Your roster is currently <span className="font-bold text-red-400">{rosterLimitModal.currentCount}/20</span> cards
+                Your roster is currently <span className="font-bold text-red-400">{rosterLimitModal.currentCount}/{ROSTER_LIMIT}</span> player cards
                 {rosterLimitModal.overBy > 0 && (
                   <span className="text-red-400"> ({rosterLimitModal.overBy} over limit)</span>
                 )}
               </p>
               <p className="text-primary-black-400">
-                You must sell cards to get back to 20 or fewer before making lineup changes or applying tokens.
+                You must sell cards to get back to {ROSTER_LIMIT} or fewer before making lineup changes.
               </p>
             </div>
 

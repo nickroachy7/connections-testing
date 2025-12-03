@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { quickSellCard } from '../services/supabase';
 import { calculatePlayerSellValue, calculateTokenSellValue } from '../utils/sellValueCalculator';
+import { ROSTER_LIMIT } from '../utils/rosterLimits';
 import InventoryPanel from '../components/InventoryPanel';
 import RosterLimitBanner from '../components/RosterLimitBanner';
 import RosterCount from '../components/RosterCount';
@@ -228,7 +229,7 @@ export default function Inventory() {
         <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 pt-2 pb-0">
           <PageHeader
             title="Inventory"
-            subtitle={`${inventory.players?.length || 0}/20`}
+            subtitle={`${inventory.players?.length || 0}/${ROSTER_LIMIT}`}
             actions={
               <div className="flex items-center gap-1.5">
                 {/* View Toggle */}

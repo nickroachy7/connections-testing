@@ -1,25 +1,23 @@
 /**
  * Roster Limit Utilities
  * 
- * Manages roster size limits (20 total players + tokens)
+ * Manages roster size limits (22 player cards)
+ * Tokens do NOT count against roster limit
  * Prevents lineup changes when over limit
  * Allows pack purchases even when over limit
  */
 
-export const ROSTER_LIMIT = 20;
+export const ROSTER_LIMIT = 22;
 
 /**
- * Calculate total roster count (players + tokens)
+ * Calculate roster count (players only - tokens don't count)
  * @param {Object} inventory - Inventory object with players and tokens arrays
- * @returns {number} Total count of players and tokens
+ * @returns {number} Count of player cards only
  */
 export function getRosterCount(inventory) {
   if (!inventory) return 0;
   
-  const playerCount = inventory.players?.length || 0;
-  const tokenCount = inventory.tokens?.length || 0;
-  
-  return playerCount + tokenCount;
+  return inventory.players?.length || 0;
 }
 
 /**
@@ -95,7 +93,7 @@ export function getRosterStatus(inventory) {
  * @returns {string} Error message to display
  */
 export function getRosterLimitErrorMessage() {
-  return `Your roster is over the ${ROSTER_LIMIT} card limit. Please sell cards to get back to ${ROSTER_LIMIT} or fewer before making lineup changes or applying tokens.`;
+  return `Your roster is over the ${ROSTER_LIMIT} player card limit. Please sell cards to get back to ${ROSTER_LIMIT} or fewer before making lineup changes.`;
 }
 
 /**
