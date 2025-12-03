@@ -173,18 +173,18 @@ export default function TeamScoreBanner({
           </div>
           
           {/* Main Score Row - Compact Horizontal Layout */}
-          <div className={`${isMobile ? 'px-3 py-2.5' : 'px-4 py-3'}`}>
-            <div className="flex items-center gap-3">
+          <div className={`${isMobile ? 'px-3 py-2' : 'px-4 py-2.5'}`}>
+            <div className="flex items-center gap-2">
               {/* Status Badge - Left */}
               <div className={`bg-amber-500/20 text-amber-400 font-bold uppercase rounded ${
-                isMobile ? 'text-[9px] px-2 py-1' : 'text-[10px] px-2.5 py-1'
+                isMobile ? 'text-[9px] px-1.5 py-0.5' : 'text-[10px] px-2 py-0.5'
               } whitespace-nowrap`}>
                 Pre-Game
               </div>
               
               {/* Progress Bar - Center (flexible) */}
               <div className="flex-1 min-w-0">
-                <div className="relative h-2.5 bg-black/40 rounded-full overflow-hidden">
+                <div className="relative h-1.5 bg-black/40 rounded-full overflow-hidden">
                   <div 
                     className={`absolute left-0 top-0 bottom-0 rounded-full transition-all duration-500 ${
                       hasLineup ? 'bg-gradient-to-r from-primary-green-600 to-primary-green-400' : 'bg-white/20'
@@ -202,26 +202,26 @@ export default function TeamScoreBanner({
               </div>
               
               {/* Score Comparison - Right */}
-              <div className="flex items-baseline gap-2 whitespace-nowrap">
+              <div className="flex items-center gap-1.5 whitespace-nowrap">
                 {/* User's Score */}
                 <div className="text-right">
-                  <div className={`font-black text-white ${isMobile ? 'text-base' : 'text-lg'} leading-none`}>
+                  <div className={`font-bold text-white ${isMobile ? 'text-sm' : 'text-base'} leading-none`}>
                     {hasLineup ? projectedScore.toFixed(1) : '—'}
                   </div>
-                  <div className={`text-white/40 ${isMobile ? 'text-[8px]' : 'text-[9px]'} uppercase`}>
+                  <div className={`text-white/40 ${isMobile ? 'text-[7px]' : 'text-[8px]'} uppercase`}>
                     proj
                   </div>
                 </div>
                 
                 {/* vs */}
-                <span className={`text-white/30 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>vs</span>
+                <span className={`text-white/30 ${isMobile ? 'text-[9px]' : 'text-[10px]'}`}>vs</span>
                 
                 {/* Target Score */}
                 <div className="text-left">
-                  <div className={`font-semibold text-white/60 ${isMobile ? 'text-sm' : 'text-base'} leading-none`}>
+                  <div className={`font-semibold text-white/60 ${isMobile ? 'text-xs' : 'text-sm'} leading-none`}>
                     {targetScore > 0 ? targetScore.toFixed(1) : '—'}
                   </div>
-                  <div className={`text-white/40 ${isMobile ? 'text-[8px]' : 'text-[9px]'}`}>
+                  <div className={`text-white/40 ${isMobile ? 'text-[7px]' : 'text-[8px]'}`}>
                     {winCondition === 'h2h' ? 'opp' : 'med'}
                   </div>
                 </div>
@@ -340,11 +340,11 @@ export default function TeamScoreBanner({
         </div>
         
         {/* Main Score Row - Compact Horizontal Layout */}
-        <div className={`${isMobile ? 'px-3 py-2.5' : 'px-4 py-3'}`}>
-          <div className="flex items-center gap-3">
+        <div className={`${isMobile ? 'px-3 py-2' : 'px-4 py-2.5'}`}>
+          <div className="flex items-center gap-2">
             {/* Status Badge - Left */}
-            <div className={`flex items-center gap-1.5 ${statusConfig.bgColor} ${statusConfig.color} font-bold uppercase rounded ${
-              isMobile ? 'text-[9px] px-2 py-1' : 'text-[10px] px-2.5 py-1'
+            <div className={`flex items-center gap-1 ${statusConfig.bgColor} ${statusConfig.color} font-bold uppercase rounded ${
+              isMobile ? 'text-[9px] px-1.5 py-0.5' : 'text-[10px] px-2 py-0.5'
             } whitespace-nowrap`}>
               {statusConfig.pulse && (
                 <span className="relative flex h-1.5 w-1.5">
@@ -357,7 +357,7 @@ export default function TeamScoreBanner({
             
             {/* Progress Bar - Center (flexible) */}
             <div className="flex-1 min-w-0">
-              <div className="relative h-2.5 bg-black/40 rounded-full overflow-hidden">
+              <div className="relative h-1.5 bg-black/40 rounded-full overflow-hidden">
                 {/* Target marker */}
                 {winCondition !== 'top_points' && comparisonValue > 0 && (
                   <div 
@@ -380,43 +380,43 @@ export default function TeamScoreBanner({
             {/* Score Comparison - Right */}
             {winCondition === 'top_points' ? (
               // Rank-based display
-              <div className="flex items-center gap-2 whitespace-nowrap">
+              <div className="flex items-center gap-1.5 whitespace-nowrap">
                 <div className="text-right">
-                  <div className={`font-black ${isWinning ? 'text-primary-green-400' : 'text-white'} ${isMobile ? 'text-base' : 'text-lg'} leading-none`}>
+                  <div className={`font-bold ${isWinning ? 'text-primary-green-400' : 'text-white'} ${isMobile ? 'text-sm' : 'text-base'} leading-none`}>
                     {(userScore || 0).toFixed(1)}
                   </div>
-                  <div className={`text-white/40 ${isMobile ? 'text-[8px]' : 'text-[9px]'} uppercase`}>
+                  <div className={`text-white/40 ${isMobile ? 'text-[7px]' : 'text-[8px]'} uppercase`}>
                     {isFinal ? 'final' : 'pts'}
                   </div>
                 </div>
                 <div className={`${winConfig.bgColor} ${winConfig.color} font-bold rounded ${
-                  isMobile ? 'text-xs px-2 py-1' : 'text-sm px-2.5 py-1'
+                  isMobile ? 'text-[10px] px-1.5 py-0.5' : 'text-xs px-2 py-0.5'
                 }`}>
                   {getRankDisplay()}
                 </div>
               </div>
             ) : (
               // Score comparison display
-              <div className="flex items-baseline gap-2 whitespace-nowrap">
+              <div className="flex items-center gap-1.5 whitespace-nowrap">
                 {/* User's Score */}
                 <div className="text-right">
-                  <div className={`font-black ${isWinning ? 'text-primary-green-400' : 'text-white'} ${isMobile ? 'text-base' : 'text-lg'} leading-none`}>
+                  <div className={`font-bold ${isWinning ? 'text-primary-green-400' : 'text-white'} ${isMobile ? 'text-sm' : 'text-base'} leading-none`}>
                     {(userScore || 0).toFixed(1)}
                   </div>
-                  <div className={`${isWinning ? 'text-primary-green-400' : 'text-amber-400'} ${isMobile ? 'text-[8px]' : 'text-[9px]'} font-medium`}>
+                  <div className={`${isWinning ? 'text-primary-green-400' : 'text-amber-400'} ${isMobile ? 'text-[7px]' : 'text-[8px]'} font-medium`}>
                     {scoreDiffText}
                   </div>
                 </div>
                 
                 {/* vs */}
-                <span className={`text-white/30 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>vs</span>
+                <span className={`text-white/30 ${isMobile ? 'text-[9px]' : 'text-[10px]'}`}>vs</span>
                 
                 {/* Target Score */}
                 <div className="text-left">
-                  <div className={`font-semibold text-white/60 ${isMobile ? 'text-sm' : 'text-base'} leading-none`}>
+                  <div className={`font-semibold text-white/60 ${isMobile ? 'text-xs' : 'text-sm'} leading-none`}>
                     {(comparisonValue || 0).toFixed(1)}
                   </div>
-                  <div className={`text-white/40 ${isMobile ? 'text-[8px]' : 'text-[9px]'}`}>
+                  <div className={`text-white/40 ${isMobile ? 'text-[7px]' : 'text-[8px]'}`}>
                     {winCondition === 'h2h' ? 'opp' : 'med'}
                   </div>
                 </div>
