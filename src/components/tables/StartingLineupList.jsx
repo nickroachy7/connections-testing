@@ -136,7 +136,7 @@ const StartingLineupList = ({
             }}
             className={`grid transition-all min-h-[76px] cursor-pointer py-2.5 px-3 ${
               index % 2 === 0 ? 'bg-primary-black-900' : 'bg-primary-black-800/40'
-            } hover:bg-primary-black-800/60`}
+            }`}
             style={{ 
               gridTemplateColumns: '32px 40px 1fr 28px 56px',
               gap: '10px',
