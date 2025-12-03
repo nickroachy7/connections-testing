@@ -172,6 +172,7 @@ export function useMultipleContests(teamId) {
           id: entry.id,
           entry,
           contest,
+          contestId: contest.id, // Added for navigation
           contestEntries: contestEntries || [],
           entrantCount: contestEntries?.length || 0,
           weekStatus,

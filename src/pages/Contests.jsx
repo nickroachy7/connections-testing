@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useOutletContext } from 'react-router-dom';
+import { useOutletContext, useSearchParams } from 'react-router-dom';
 import { Trophy, RefreshCw, Calendar, AlertCircle, Heart } from 'lucide-react';
 import ContestCard from '../components/ContestCard';
 import ExpandableContestBanner from '../components/ExpandableContestBanner';
@@ -9,6 +9,7 @@ import { supabase } from '../services/supabase';
 
 export default function Contests() {
   const { activeTeam, lineup, lineupStats } = useOutletContext();
+  const [searchParams, setSearchParams] = useSearchParams();
   
   const [contests, setContests] = useState([]);
   const [currentEntries, setCurrentEntries] = useState([]); // Array of entries
@@ -21,6 +22,20 @@ export default function Contests() {
   
   // Modal state
   const [selectedContest, setSelectedContest] = useState(null);
+  
+  // Get contest ID from URL params (for auto-expand)
+  const expandContestId = searchParams.get('expand');
+  
+  // Clear the expand param after it's been used
+  useEffect(() => {
+    if (expandContestId && !loading) {
+      // Remove the param from URL after a short delay to allow expansion
+      const timer = setTimeout(() => {
+        setSearchParams({}, { replace: true });
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [expandContestId, loading, setSearchParams]);
   
   // Determine contest status
   const isUpcoming = weekStatus === 'building' || weekStatus === 'locked' || 
@@ -210,6 +225,7 @@ export default function Contests() {
           {currentEntries.map((entry) => {
             const contest = entry.contest || contests.find(c => c.id === entry.contest_id);
             const entryScore = lineupStats?.projectedPoints || 0;
+            const contestId = contest?.id || entry.contest_id;
             
             return (
               <ExpandableContestBanner
@@ -223,6 +239,7 @@ export default function Contests() {
                 userScore={entryScore}
                 lineupReady={lineupReady}
                 teamId={activeTeam?.id}
+                defaultExpanded={expandContestId === contestId}
               />
             );
           })}

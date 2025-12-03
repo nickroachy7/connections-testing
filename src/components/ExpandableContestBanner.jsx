@@ -19,9 +19,10 @@ function ExpandableContestBanner({
   isUpcoming,
   userScore,
   lineupReady,
-  teamId
+  teamId,
+  defaultExpanded = false
 }) {
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const [standings, setStandings] = useState([]);
   const [loadingStandings, setLoadingStandings] = useState(false);
 
@@ -283,7 +284,8 @@ ExpandableContestBanner.propTypes = {
   isUpcoming: PropTypes.bool,
   userScore: PropTypes.number,
   lineupReady: PropTypes.bool,
-  teamId: PropTypes.string
+  teamId: PropTypes.string,
+  defaultExpanded: PropTypes.bool
 };
 
 export default memo(ExpandableContestBanner);

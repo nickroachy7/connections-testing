@@ -26,6 +26,13 @@ const MemoizedContestBanner = memo(function MemoizedContestBanner({
   const contestUserPct = Math.round((userScore / contestMaxScore) * 100);
   const contestMedianPct = Math.round((contestMedianVal / contestMaxScore) * 100);
 
+  // Pass contest ID when clicking
+  const handleClick = () => {
+    if (onContestClick) {
+      onContestClick(contestItem.contestId);
+    }
+  };
+
   return (
     <TeamScoreBanner
       week={contestItem.eligibleWeek || displayWeek?.week}
@@ -51,7 +58,7 @@ const MemoizedContestBanner = memo(function MemoizedContestBanner({
       contestMedianScore={contestItem.contestMedian}
       contestRank={contestItem.contestRank}
       contestWeek={contestItem.eligibleWeek}
-      onContestClick={onContestClick}
+      onContestClick={handleClick}
       lineupReady={lineupReady}
     />
   );
