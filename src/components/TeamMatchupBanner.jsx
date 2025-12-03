@@ -842,12 +842,14 @@ export default function TeamMatchupBanner({
             </div>
           </div>
           </div>
+        </div>
+      </div>
           
-          {/* Contest/Score Section - Full width at bottom */}
-          <div className="md:hidden bg-primary-black-900">
-            {contestLoading ? (
+      {/* Contest/Score Section - Below the team banner, separate card */}
+      <div className="md:hidden px-3 pt-2 pb-2">
+        {contestLoading ? (
               /* Loading skeleton to prevent flash */
-              <div className="px-3 py-3 animate-pulse">
+              <div className="px-3 py-3 animate-pulse bg-primary-black-800 rounded-xl">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <div className="h-4 bg-primary-black-700 rounded w-24" />
@@ -889,150 +891,151 @@ export default function TeamMatchupBanner({
               contestWeek={contestWeek}
               onContestClick={isInContest && !isInLeague ? () => navigate('/contests') : undefined}
               lineupReady={hasWeeklyLineup || (lineup && lineup.length > 0)}
-              isBottomSection={true}
             />
             )}
           </div>
 
-          {/* Desktop Layout */}
-          <div className="hidden md:block px-4 sm:px-5 py-4">
-            <div className="flex items-center gap-6">
-              {/* Left: Team Identity */}
-              <div className="flex items-center gap-3 flex-1">
-                {/* Avatar */}
-                <div className="flex-shrink-0">
-                  {teamImage ? (
-                    <img
-                      src={teamImage}
-                      alt={localTeamName || 'Team'}
-                      className="w-24 h-24 rounded-lg object-cover border-2 border-white/30 shadow-xl"
-                    />
-                  ) : (
-                    <div className="w-24 h-24 rounded-lg bg-white/10 border-2 border-white/30 flex items-center justify-center">
-                      <svg className="w-10 h-10 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                      </svg>
+          {/* Desktop Layout - separate container with gradient */}
+          <div className="hidden md:block px-3 sm:px-4 pt-3 pb-2">
+            <div className={`${getCurrentTheme().bg} transition-all duration-300 rounded-2xl shadow-lg shadow-black/40 overflow-hidden`}>
+              <div className="px-4 sm:px-5 py-4">
+                <div className="flex items-center gap-6">
+                  {/* Left: Team Identity */}
+                  <div className="flex items-center gap-3 flex-1">
+                    {/* Avatar */}
+                    <div className="flex-shrink-0">
+                      {teamImage ? (
+                        <img
+                          src={teamImage}
+                          alt={localTeamName || 'Team'}
+                          className="w-24 h-24 rounded-lg object-cover border-2 border-white/30 shadow-xl"
+                        />
+                      ) : (
+                        <div className="w-24 h-24 rounded-lg bg-white/10 border-2 border-white/30 flex items-center justify-center">
+                          <svg className="w-10 h-10 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                          </svg>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
 
-                {/* Team Info */}
-                <div className="flex-1 min-w-0 flex flex-col justify-center">
-                  <h1 className="text-4xl font-dk-display font-black text-white truncate leading-none">
-                    {localTeamName || 'Your Team'}
-                  </h1>
-                  {username && (
-                    <div className="text-base text-white/80 font-medium truncate mt-1">
-                      @{username}
-                    </div>
-                  )}
+                    {/* Team Info */}
+                    <div className="flex-1 min-w-0 flex flex-col justify-center">
+                      <h1 className="text-4xl font-dk-display font-black text-white truncate leading-none">
+                        {localTeamName || 'Your Team'}
+                      </h1>
+                      {username && (
+                        <div className="text-base text-white/80 font-medium truncate mt-1">
+                          @{username}
+                        </div>
+                      )}
 
-                  {/* Inline Stats Row: Rank, Record, Coins, Lives */}
-                  <div className="flex items-center gap-3 text-sm mt-2">
-                    {!isInLeague && <span className="font-dk-display font-bold text-white/90">#{globalRank || '--'}</span>}
-                    {!isInLeague && <span className="text-white/40">•</span>}
-                    <div className="flex items-center gap-1">
-                      <span className="font-dk-display font-bold text-green-400">{displayWins}</span>
-                      <span className="text-white/60">-</span>
-                      <span className="font-dk-display font-bold text-red-400">{displayLosses}</span>
-                    </div>
-                    <span className="text-white/40">•</span>
-                    <div className="flex items-center gap-1">
-                      <svg className="w-3.5 h-3.5 text-white/90" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z" />
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clipRule="evenodd" />
-                      </svg>
-                      <span className="font-dk-display font-bold text-white/90">{coins?.toLocaleString() || '0'}</span>
-                    </div>
-                    <span className="text-white/40">•</span>
-                    <div className="flex items-center gap-1">
-                      <svg className="w-3.5 h-3.5 text-white/90" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
-                      </svg>
-                      <span className="font-dk-display font-bold text-white/90">{lossesRemaining}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Center: Score Battle */}
-              <div className="flex-1 max-w-md">
-                {contestLoading ? (
-                  /* Loading skeleton to prevent flash */
-                  <div className="px-4 py-3 bg-primary-black-800 rounded-xl border border-primary-black-700 animate-pulse">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <div className="h-5 bg-primary-black-700 rounded w-28" />
-                        <div className="h-5 bg-primary-black-700 rounded w-16" />
+                      {/* Inline Stats Row: Rank, Record, Coins, Lives */}
+                      <div className="flex items-center gap-3 text-sm mt-2">
+                        {!isInLeague && <span className="font-dk-display font-bold text-white/90">#{globalRank || '--'}</span>}
+                        {!isInLeague && <span className="text-white/40">•</span>}
+                        <div className="flex items-center gap-1">
+                          <span className="font-dk-display font-bold text-green-400">{displayWins}</span>
+                          <span className="text-white/60">-</span>
+                          <span className="font-dk-display font-bold text-red-400">{displayLosses}</span>
+                        </div>
+                        <span className="text-white/40">•</span>
+                        <div className="flex items-center gap-1">
+                          <svg className="w-3.5 h-3.5 text-white/90" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z" />
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clipRule="evenodd" />
+                          </svg>
+                          <span className="font-dk-display font-bold text-white/90">{coins?.toLocaleString() || '0'}</span>
+                        </div>
+                        <span className="text-white/40">•</span>
+                        <div className="flex items-center gap-1">
+                          <svg className="w-3.5 h-3.5 text-white/90" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
+                          </svg>
+                          <span className="font-dk-display font-bold text-white/90">{lossesRemaining}</span>
+                        </div>
                       </div>
-                      <div className="h-5 bg-primary-black-700 rounded w-10" />
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="h-5 bg-primary-black-700 rounded w-16" />
-                      <div className="flex-1 h-2.5 bg-primary-black-700 rounded-full" />
-                      <div className="h-5 bg-primary-black-700 rounded w-20" />
                     </div>
                   </div>
-                ) : (
-                <TeamScoreBanner
-                  week={displayWeek?.week}
-                  isLive={isLive}
-                  isFinal={isFinal}
-                  isUpcoming={contestIsUpcoming}
-                  userScore={userScore}
-                  medianScore={medianScore}
-                  winPercentage={winPercentage}
-                  userPercentage={userPercentage}
-                  medianPercentage={medianPercentage}
-                  isAboveMedian={isAboveMedian}
-                  size="desktop"
-                  winCondition={displayWinCondition}
-                  opponentName={displayOpponentName}
-                  opponentScore={displayOpponentScore}
-                  isInLeague={isInLeague}
-                  isInContest={isInContest}
-                  noDataYet={noComparisonDataYet}
-                  teamStartsNextWeek={!isInContest ? teamStartsNextWeek : null}
-                  contestName={contestName}
-                  contestEntrantCount={entrantCount}
-                  contestMaxEntries={contestMaxEntries}
-                  contestMedianScore={contestMedian}
-                  contestRank={contestRank}
-                  contestWeek={contestWeek}
-                  onContestClick={isInContest && !isInLeague ? () => navigate('/contests') : undefined}
-                  lineupReady={hasWeeklyLineup || (lineup && lineup.length > 0)}
-                />
-                )}
-              </div>
 
-              {/* Right: Week Info + Team Settings */}
-              <div className="flex flex-col items-end gap-2">
-                <button
-                  onClick={() => navigate(`/teams/${teamId}/info`)}
-                  className="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 transition-all flex items-center gap-2 group"
-                >
-                  <svg className="w-4 h-4 text-white group-hover:rotate-45 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-                  <span className="text-sm font-medium text-white">Settings</span>
-                </button>
-
-                <div className="text-right">
-                  <div className="text-base font-dk-display font-black text-white/90">
-                    Week {displayWeek?.week || '—'}
+                  {/* Center: Score Battle */}
+                  <div className="flex-1 max-w-md">
+                    {contestLoading ? (
+                      /* Loading skeleton to prevent flash */
+                      <div className="px-4 py-3 bg-primary-black-800 rounded-xl border border-primary-black-700 animate-pulse">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <div className="h-5 bg-primary-black-700 rounded w-28" />
+                            <div className="h-5 bg-primary-black-700 rounded w-16" />
+                          </div>
+                          <div className="h-5 bg-primary-black-700 rounded w-10" />
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div className="h-5 bg-primary-black-700 rounded w-16" />
+                          <div className="flex-1 h-2.5 bg-primary-black-700 rounded-full" />
+                          <div className="h-5 bg-primary-black-700 rounded w-20" />
+                        </div>
+                      </div>
+                    ) : (
+                    <TeamScoreBanner
+                      week={displayWeek?.week}
+                      isLive={isLive}
+                      isFinal={isFinal}
+                      isUpcoming={contestIsUpcoming}
+                      userScore={userScore}
+                      medianScore={medianScore}
+                      winPercentage={winPercentage}
+                      userPercentage={userPercentage}
+                      medianPercentage={medianPercentage}
+                      isAboveMedian={isAboveMedian}
+                      size="desktop"
+                      winCondition={displayWinCondition}
+                      opponentName={displayOpponentName}
+                      opponentScore={displayOpponentScore}
+                      isInLeague={isInLeague}
+                      isInContest={isInContest}
+                      noDataYet={noComparisonDataYet}
+                      teamStartsNextWeek={!isInContest ? teamStartsNextWeek : null}
+                      contestName={contestName}
+                      contestEntrantCount={entrantCount}
+                      contestMaxEntries={contestMaxEntries}
+                      contestMedianScore={contestMedian}
+                      contestRank={contestRank}
+                      contestWeek={contestWeek}
+                      onContestClick={isInContest && !isInLeague ? () => navigate('/contests') : undefined}
+                      lineupReady={hasWeeklyLineup || (lineup && lineup.length > 0)}
+                    />
+                    )}
                   </div>
-                  {isLive && !isFinal && projectedFinal > livePoints && (
-                    <div className="text-sm text-white/60 font-bold">
-                      → {projectedFinal.toFixed(1)} proj
+
+                  {/* Right: Week Info + Team Settings */}
+                  <div className="flex flex-col items-end gap-2">
+                    <button
+                      onClick={() => navigate(`/teams/${teamId}/info`)}
+                      className="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 transition-all flex items-center gap-2 group"
+                    >
+                      <svg className="w-4 h-4 text-white group-hover:rotate-45 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      <span className="text-sm font-medium text-white">Settings</span>
+                    </button>
+
+                    <div className="text-right">
+                      <div className="text-base font-dk-display font-black text-white/90">
+                        Week {displayWeek?.week || '—'}
+                      </div>
+                      {isLive && !isFinal && projectedFinal > livePoints && (
+                        <div className="text-sm text-white/60 font-bold">
+                          → {projectedFinal.toFixed(1)} proj
+                        </div>
+                      )}
                     </div>
-                  )}
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      </div>
     </>
   );
 }
