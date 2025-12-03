@@ -1580,7 +1580,6 @@ export default function TeamManager() {
   return (
     <>
       <div 
-        className="bg-dk-black-primary"
         onDragOver={(e) => {
           // Allow dropping anywhere on the page
           if (draggedPlayer && draggedPlayer.source !== 'BENCH' && draggedPlayer.source !== 'INVENTORY') {
@@ -1605,27 +1604,23 @@ export default function TeamManager() {
         )}
 
         {/* Starting Lineup Display Section */}
-        <section className={`max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 pb-0 ${error ? 'mt-0' : 'mt-3 sm:mt-6'}`} aria-label="Starting Lineup">
+        <section className={`max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 pb-0 ${error ? 'mt-0' : 'mt-2'}`} aria-label="Starting Lineup">
           <PageHeader
             title="Starting Lineup"
             subtitle={
-              <div className="flex items-center gap-1 sm:gap-1.5">
-                {autoSaving ? (
-                  <>
-                    <div className="animate-spin h-2.5 w-2.5 sm:h-3 sm:w-3 border-2 border-primary-green-500 border-t-transparent rounded-full"></div>
-                    <span>Saving...</span>
-                  </>
-                ) : lastSaved ? (
-                  <>
-                    <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                    <span className="text-primary-green-500">Lineup Saved</span>
-                  </>
-                ) : (
-                  <span>No changes</span>
-                )}
-              </div>
+              autoSaving ? (
+                <span className="flex items-center gap-1">
+                  <span className="animate-spin h-2 w-2 border border-primary-green-500 border-t-transparent rounded-full"></span>
+                  Saving...
+                </span>
+              ) : lastSaved ? (
+                <span className="flex items-center gap-1 text-primary-green-500">
+                  <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  Lineup Saved
+                </span>
+              ) : null
             }
           />
           

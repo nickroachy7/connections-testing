@@ -754,13 +754,14 @@ export default function TeamMatchupBanner({
     <>
       <div className="px-3 sm:px-4 pt-3 pb-2">
         <div className={`${getCurrentTheme().bg} transition-all duration-300 rounded-2xl shadow-lg shadow-black/40 overflow-hidden`}>
+          {/* Team Info Section - with padding */}
           <div className="px-4 sm:px-5 py-4">
           
           {/* League Badge - Show if in a private league */}
           {isInLeague && leagueName && (
             <div className="mb-2 flex items-center gap-2">
               <span className="text-xs px-2 py-0.5 bg-amber-500/20 text-amber-400 rounded-full font-medium border border-amber-500/30">
-                🏆 {leagueName}
+                {leagueName}
               </span>
               <span className="text-xs text-white/50">
                 {leagueContext?.memberCount || leagueTeamCount || 1} {(leagueContext?.memberCount || leagueTeamCount || 1) === 1 ? 'team' : 'teams'}
@@ -768,10 +769,8 @@ export default function TeamMatchupBanner({
             </div>
           )}
           
-          {/* Contest details now shown inside TeamScoreBanner instead of here */}
-          
-          {/* Mobile Layout */}
-          <div className="md:hidden space-y-2">
+          {/* Mobile Layout - Team Identity Only */}
+          <div className="md:hidden">
             {/* Team Identity Row */}
             <div className="flex items-center gap-3 relative">
               {/* Team Info Button - Top Right */}
@@ -841,8 +840,11 @@ export default function TeamMatchupBanner({
                 </div>
               </div>
             </div>
-
-            {/* Week Status + Score */}
+          </div>
+          </div>
+          
+          {/* Contest/Score Section - Full width at bottom with solid black gradient (Mobile) */}
+          <div className="md:hidden bg-gradient-to-b from-neutral-900 to-black border-t border-white/10">
             <TeamScoreBanner
               week={displayWeek?.week}
               isLive={isLive}
@@ -870,11 +872,12 @@ export default function TeamMatchupBanner({
               contestWeek={contestWeek}
               onContestClick={isInContest && !isInLeague ? () => navigate('/contests') : undefined}
               lineupReady={hasWeeklyLineup || (lineup && lineup.length > 0)}
+              isBottomSection={true}
             />
           </div>
 
           {/* Desktop Layout */}
-          <div className="hidden md:block">
+          <div className="hidden md:block px-4 sm:px-5 py-4">
             <div className="flex items-center gap-6">
               {/* Left: Team Identity */}
               <div className="flex items-center gap-3 flex-1">
@@ -991,7 +994,6 @@ export default function TeamMatchupBanner({
                 </div>
               </div>
             </div>
-          </div>
           </div>
         </div>
       </div>

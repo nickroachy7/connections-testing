@@ -157,49 +157,40 @@ export default function Contests() {
   // Lineup readiness
   const lineupReady = (lineup?.length > 0) || (lineupStats?.projectedPoints > 0);
   
+  // Status badge for header
+  const statusBadge = hasEnteredContest ? (
+    <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
+      isUpcoming ? 'bg-amber-500/20 text-amber-400' :
+      isLive ? 'bg-red-500/20 text-red-400' :
+      'bg-blue-500/20 text-blue-400'
+    }`}>
+      {isUpcoming ? 'Upcoming' : isLive ? 'Live' : 'Final'}
+    </span>
+  ) : displayWeek ? `Week ${displayWeek}` : null;
+  
   return (
-    <div className="max-w-7xl mx-auto px-4 py-6">
-      {/* Header - Only show when NOT entered in a contest */}
-      {!hasEnteredContest && (
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-white flex items-center gap-3">
-              <Trophy className="w-7 h-7 text-primary-green-500" />
-              Public Contests
-            </h1>
-            <p className="text-primary-black-400 mt-1">
-              {displayWeek ? (
-                <>
-                  <span className="font-semibold text-white">Week {displayWeek}</span>
-                  {isShowingFutureWeek && (
-                    <span className="ml-2 text-amber-400">(Your first week)</span>
-                  )}
-                  <span> • Enter one contest per week</span>
-                </>
-              ) : 'Loading...'}
-            </p>
-          </div>
-          
-          <button
-            onClick={loadData}
-            disabled={loading}
-            className="p-2 bg-primary-black-800 hover:bg-primary-black-700 rounded-lg text-primary-black-400 hover:text-white transition-colors disabled:opacity-50"
-            title="Refresh"
-          >
-            <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
-          </button>
+    <div className="max-w-7xl mx-auto px-3 pb-4">
+      {/* Header */}
+      <div className="bg-transparent flex items-center justify-between py-2 px-3 sm:px-4">
+        <div className="flex items-center gap-2">
+          <h1 className="text-sm font-semibold text-white">
+            {hasEnteredContest ? 'Your Contest' : 'Contests'}
+          </h1>
+          {statusBadge}
         </div>
-      )}
+        {loading && (
+          <RefreshCw className="w-3 h-3 text-primary-black-400 animate-spin" />
+        )}
+      </div>
       
       {/* Private Team Warning */}
       {isPrivateTeam && (
-        <div className="mb-6 p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-xl flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" />
+        <div className="mb-4 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg flex items-start gap-2">
+          <AlertCircle className="w-4 h-4 text-yellow-500 flex-shrink-0 mt-0.5" />
           <div>
-            <h3 className="font-semibold text-yellow-200">Private Team</h3>
-            <p className="text-sm text-yellow-200/80">
-              This team was created for a private league and cannot enter public contests. 
-              Create a public team from the Teams page to compete in public contests.
+            <h3 className="text-xs font-semibold text-yellow-200">Private Team</h3>
+            <p className="text-xs text-yellow-200/80">
+              This team cannot enter public contests. Create a public team to compete.
             </p>
           </div>
         </div>
@@ -209,17 +200,7 @@ export default function Contests() {
           ENTERED CONTEST SECTION
           ======================================== */}
       {hasEnteredContest && currentEntry && (
-        <div className="mb-8">
-          {/* Section Header */}
-          <div className="flex items-center gap-2 mb-4">
-            <Trophy className="w-5 h-5 text-primary-green-500" />
-            <h2 className="text-lg font-bold text-white">Your Contest</h2>
-            <span className={`text-xs px-2 py-0.5 rounded font-medium ${
-              isUpcoming ? 'bg-amber-500/20 text-amber-400' :
-              isLive ? 'bg-red-500/20 text-red-400' :
-              'bg-blue-500/20 text-blue-400'
-            }`}>
-              {isUpcoming ? 'Upcoming' : isLive ? 'Live' : 'Final'}
+        <div className="mb-6">
             </span>
           </div>
           

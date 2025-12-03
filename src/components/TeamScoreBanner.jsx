@@ -45,7 +45,8 @@ export default function TeamScoreBanner({
   noDataYet = false,
   teamStartsNextWeek = null,
   onContestClick = null,
-  lineupReady = true
+  lineupReady = true,
+  isBottomSection = false
 }) {
   const isMobile = size === 'mobile';
   
@@ -92,7 +93,7 @@ export default function TeamScoreBanner({
   // ============================================
   if (teamStartsNextWeek && !isInContest) {
     return (
-      <div className={`bg-gradient-to-br from-amber-950/30 to-black/40 backdrop-blur-sm rounded-xl border border-amber-500/20 ${
+      <div className={`bg-primary-black-800 rounded-xl border border-primary-black-700 ${
         isMobile ? 'px-3 py-3' : 'px-5 py-4'
       }`}>
         <div className="flex items-center justify-between">
@@ -124,6 +125,13 @@ export default function TeamScoreBanner({
   // ============================================
   if (isInContest && contestName) {
     
+    // Container classes - transparent when in bottom section, otherwise styled
+    const containerClasses = isBottomSection 
+      ? `${onContestClick ? 'cursor-pointer' : ''}`
+      : `bg-gradient-to-br from-emerald-900/80 to-primary-black-900 rounded-xl border border-emerald-700/40 overflow-hidden ${
+          onContestClick ? 'cursor-pointer hover:border-emerald-600/50 transition-all' : ''
+        }`;
+    
     // ----------------------------------------
     // UPCOMING CONTEST (Week hasn't started)
     // ----------------------------------------
@@ -139,15 +147,13 @@ export default function TeamScoreBanner({
       
       return (
         <div 
-          className={`bg-gradient-to-br from-primary-green-950/30 to-black/40 backdrop-blur-sm rounded-xl border border-primary-green-500/30 overflow-hidden ${
-            onContestClick ? 'cursor-pointer hover:border-primary-green-500/50 transition-all' : ''
-          }`}
+          className={containerClasses}
           onClick={onContestClick}
         >
           {/* Header Bar - Contest Name + Win Type */}
-          <div className={`bg-primary-green-500/10 border-b border-primary-green-500/20 ${isMobile ? 'px-3 py-1.5' : 'px-4 py-2'}`}>
+          <div className={`${isBottomSection ? 'border-b border-white/5' : 'bg-emerald-800/25 border-b border-emerald-700/25'} ${isMobile ? 'px-3 py-1.5' : 'px-4 py-2'}`}>
             <div className="flex items-center gap-2">
-              <Trophy className={`${isMobile ? 'w-3.5 h-3.5' : 'w-4 h-4'} text-primary-green-400`} />
+              <Trophy className={`${isMobile ? 'w-3.5 h-3.5' : 'w-4 h-4'} ${isBottomSection ? 'text-primary-green-400' : 'text-emerald-400'}`} />
               <span className={`font-bold text-white ${isMobile ? 'text-xs' : 'text-sm'}`}>
                 {contestName}
               </span>
@@ -215,7 +221,7 @@ export default function TeamScoreBanner({
           </div>
           
           {/* Footer - Entrants + Lineup Status */}
-          <div className={`bg-black/20 border-t border-white/10 ${isMobile ? 'px-3 py-1.5' : 'px-4 py-2'}`}>
+          <div className={`${isBottomSection ? 'bg-black/30 border-t border-white/10' : 'bg-emerald-900/30 border-t border-emerald-700/25'} ${isMobile ? 'px-3 py-1.5' : 'px-4 py-2'}`}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 {/* Entrant Count */}
@@ -229,11 +235,11 @@ export default function TeamScoreBanner({
                 {/* Lineup Status */}
                 <div className="flex items-center gap-1">
                   {hasLineup ? (
-                    <CheckCircle className={`${isMobile ? 'w-3 h-3' : 'w-3.5 h-3.5'} text-green-400`} />
+                    <CheckCircle className={`${isMobile ? 'w-3 h-3' : 'w-3.5 h-3.5'} text-primary-green-400`} />
                   ) : (
                     <Zap className={`${isMobile ? 'w-3 h-3' : 'w-3.5 h-3.5'} text-amber-400`} />
                   )}
-                  <span className={`font-medium ${hasLineup ? 'text-green-400' : 'text-amber-400'} ${isMobile ? 'text-[10px]' : 'text-xs'}`}>
+                  <span className={`font-medium ${hasLineup ? 'text-primary-green-400' : 'text-amber-400'} ${isMobile ? 'text-[10px]' : 'text-xs'}`}>
                     {hasLineup ? `Ready for Week ${displayWeek}` : `Set Lineup for Week ${displayWeek}`}
                   </span>
                 </div>
@@ -295,17 +301,48 @@ export default function TeamScoreBanner({
     const userProgress = ((userScore || 0) / maxScore) * 100;
     const targetProgress = ((comparisonValue || 0) / maxScore) * 100;
     
+    // Get container styling based on status
+    const getContainerConfig = () => {
+      if (isFinal) return {
+        bg: 'bg-gradient-to-br from-blue-900/80 to-primary-black-900',
+        border: 'border-blue-700/40',
+        hoverBorder: 'hover:border-blue-600/50',
+        headerBg: 'bg-blue-800/25',
+        headerBorder: 'border-blue-700/25',
+        footerBg: 'bg-blue-900/30',
+        footerBorder: 'border-blue-700/25',
+        iconColor: 'text-blue-400'
+      };
+      return {
+        bg: 'bg-gradient-to-br from-red-900/80 to-primary-black-900',
+        border: 'border-red-700/40',
+        hoverBorder: 'hover:border-red-600/50',
+        headerBg: 'bg-red-800/25',
+        headerBorder: 'border-red-700/25',
+        footerBg: 'bg-red-900/30',
+        footerBorder: 'border-red-700/25',
+        iconColor: 'text-red-400'
+      };
+    };
+    
+    const containerConfig = getContainerConfig();
+    
+    // Use transparent styling when in bottom section
+    const liveContainerClasses = isBottomSection
+      ? `${onContestClick ? 'cursor-pointer' : ''}`
+      : `${containerConfig.bg} rounded-xl border ${containerConfig.border} overflow-hidden ${
+          onContestClick ? `cursor-pointer ${containerConfig.hoverBorder} transition-all` : ''
+        }`;
+    
     return (
       <div 
-        className={`bg-gradient-to-br ${statusConfig.gradientFrom} to-black/40 backdrop-blur-sm rounded-xl border ${statusConfig.borderColor} overflow-hidden ${
-          onContestClick ? 'cursor-pointer hover:border-opacity-70 transition-all' : ''
-        }`}
+        className={liveContainerClasses}
         onClick={onContestClick}
       >
         {/* Header Bar - Contest Name + Win Type */}
-        <div className={`${statusConfig.bgColor} border-b ${statusConfig.borderColor} ${isMobile ? 'px-3 py-1.5' : 'px-4 py-2'}`}>
+        <div className={`${isBottomSection ? 'border-b border-white/5' : `${containerConfig.headerBg} border-b ${containerConfig.headerBorder}`} ${isMobile ? 'px-3 py-1.5' : 'px-4 py-2'}`}>
           <div className="flex items-center gap-2">
-            <Trophy className={`${isMobile ? 'w-3.5 h-3.5' : 'w-4 h-4'} ${statusConfig.color}`} />
+            <Trophy className={`${isMobile ? 'w-3.5 h-3.5' : 'w-4 h-4'} ${isBottomSection ? 'text-primary-green-400' : containerConfig.iconColor}`} />
             <span className={`font-bold text-white ${isMobile ? 'text-xs' : 'text-sm'}`}>
               {contestName}
             </span>
@@ -402,7 +439,7 @@ export default function TeamScoreBanner({
         </div>
         
         {/* Footer - Entrants + Week */}
-        <div className={`bg-black/20 border-t border-white/10 ${isMobile ? 'px-3 py-1.5' : 'px-4 py-2'}`}>
+        <div className={`${isBottomSection ? 'bg-black/30 border-t border-white/10' : `${containerConfig.footerBg} border-t ${containerConfig.footerBorder}`} ${isMobile ? 'px-3 py-1.5' : 'px-4 py-2'}`}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               {/* Entrant Count */}
@@ -451,7 +488,7 @@ export default function TeamScoreBanner({
   const stdStatus = getStandardStatusConfig();
   
   return (
-    <div className={`bg-black/20 backdrop-blur-sm rounded-xl border border-white/10 ${
+    <div className={`bg-primary-black-800 rounded-xl border border-primary-black-700 ${
       isMobile ? 'px-3 py-2.5' : 'px-4 py-3'
     }`}>
       {/* Row 1: Week + Status Badge | Total Score */}
@@ -531,5 +568,6 @@ TeamScoreBanner.propTypes = {
   noDataYet: PropTypes.bool,
   teamStartsNextWeek: PropTypes.number,
   onContestClick: PropTypes.func,
-  lineupReady: PropTypes.bool
+  lineupReady: PropTypes.bool,
+  isBottomSection: PropTypes.bool
 };
