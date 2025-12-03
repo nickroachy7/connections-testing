@@ -185,7 +185,7 @@ export default function TeamSelection() {
   const privateTeams = teamsList.filter(t => t.team_type === 'private');
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       {/* Simulated Seasons Section */}
       {!loadingSeasons && simulatedSeasons.length > 0 && (
         <div className="mb-8 bg-blue-900/20 border-2 border-blue-700 rounded-lg">
@@ -224,13 +224,13 @@ export default function TeamSelection() {
       )}
 
       {/* Create New Team Button/Section */}
-      <div className="mb-8">
+      <div className="mb-6">
         {!isCreating ? (
           <button
             onClick={() => setIsCreating(true)}
-            className="w-full px-6 py-4 bg-dk-green-primary hover:bg-dk-green-secondary text-dk-black-primary font-dk-display font-black rounded-lg transition-all duration-200 flex items-center justify-center gap-3 border-2 border-dk-green-primary hover:border-dk-green-secondary text-lg"
+            className="px-5 py-2.5 bg-primary-green-500 hover:bg-primary-green-400 text-primary-black-950 font-bold rounded-xl transition-all duration-200 flex items-center gap-2 text-sm"
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
             <span>Create New Team</span>
@@ -295,12 +295,9 @@ export default function TeamSelection() {
         )}
       </div>
 
-      {/* Teams Grid */}
+      {/* DFS Teams Grid */}
       {publicTeams.length > 0 && (
-        <div className="mb-8">
-          <h2 className="text-2xl font-dk-display font-bold text-dk-white-primary mb-4">
-            Public Teams <span className="text-dk-white-muted text-base font-normal">({publicTeams.length})</span>
-          </h2>
+        <div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {publicTeams.map((team) => (
               <TeamMenuCard
@@ -317,30 +314,8 @@ export default function TeamSelection() {
         </div>
       )}
 
-      {/* Private Teams (League Teams) */}
-      {privateTeams.length > 0 && (
-        <div className="mb-8">
-          <h2 className="text-2xl font-dk-display font-bold text-dk-white-primary mb-4">
-            Private League Teams <span className="text-dk-white-muted text-base font-normal">({privateTeams.length})</span>
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {privateTeams.map((team) => (
-              <TeamMenuCard
-                key={team.id}
-                team={team}
-                isActive={team.is_active}
-                onClick={() => handleSelectTeam(team.id)}
-                onDelete={handleDeleteTeam}
-                showDelete={true}
-                isDeleting={deletingTeamId === team.id}
-              />
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* No Teams Message */}
-      {teamsList.length === 0 && !isCreating && (
+      {publicTeams.length === 0 && !isCreating && (
         <div className="bg-dk-black-secondary border-2 border-dk-black-light rounded-lg p-12 text-center">
           <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-dk-black-tertiary flex items-center justify-center">
             <svg className="w-10 h-10 text-dk-white-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">

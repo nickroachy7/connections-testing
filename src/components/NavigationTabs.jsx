@@ -17,11 +17,10 @@ export default function NavigationTabs({ navItems = [] }) {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-2 sm:px-3 md:px-6 lg:px-8 pt-3 md:pt-4">
-      {/* Rounded Container - EXACT match to FantasyNavigation */}
-      <div className="bg-primary-black-800/60 backdrop-blur-sm rounded-xl overflow-hidden">
-        {/* Mobile: Icon Navigation */}
-        <div className="flex md:hidden justify-around items-center px-2 py-2">
+    <div className="bg-primary-black-900/95 backdrop-blur-md">
+      {/* Sleeper-style Tab Navigation - matches FantasyNavigation exactly */}
+      <div className="max-w-7xl mx-auto">
+        <div className="flex justify-around md:justify-start md:gap-0">
           {navItems.map(item => {
             const active = isActive(item.path);
             
@@ -30,42 +29,19 @@ export default function NavigationTabs({ navItems = [] }) {
                 key={item.path}
                 onClick={() => item.enabled && navigate(item.path)}
                 disabled={!item.enabled}
-                className={`flex flex-col items-center gap-1 py-1 flex-1 transition-all duration-200 ${
-                  !item.enabled ? 'opacity-40 cursor-not-allowed' : ''
-                }`}
-              >
-                <div className={active && item.enabled ? 'text-primary-green-500' : 'text-primary-black-400'}>
-                  {item.icon}
-                </div>
-                <span className={`text-[10px] font-medium ${
-                  active && item.enabled ? 'text-primary-green-500' : 'text-primary-black-400'
-                }`}>
-                  {item.mobileLabel || item.label}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Desktop: Original Button Layout */}
-        <div className="hidden md:flex flex-wrap gap-2 p-2">
-          {navItems.map(item => {
-            const active = isActive(item.path);
-            
-            return (
-              <button
-                key={item.path}
-                onClick={() => item.enabled && navigate(item.path)}
-                disabled={!item.enabled}
-                className={`px-4 py-2.5 rounded-lg text-sm font-bold transition-all duration-200 whitespace-nowrap ${
+                className={`relative flex-1 md:flex-none px-4 md:px-6 py-3 text-xs md:text-sm font-bold tracking-wide transition-all duration-200 ${
                   active && item.enabled
-                    ? 'bg-primary-green-500 text-primary-black-950'
+                    ? 'text-white'
                     : !item.enabled
-                    ? 'bg-primary-black-800 text-primary-black-500 cursor-not-allowed opacity-50'
-                    : 'bg-primary-black-700 text-primary-black-300 hover:bg-primary-black-600 hover:text-primary-black-100'
+                    ? 'text-primary-black-500 cursor-not-allowed opacity-50'
+                    : 'text-primary-black-400 hover:text-primary-black-200'
                 }`}
               >
                 {item.label}
+                {/* Active indicator underline */}
+                {active && item.enabled && (
+                  <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-8 md:w-12 h-0.5 bg-primary-green-500 rounded-full" />
+                )}
               </button>
             );
           })}

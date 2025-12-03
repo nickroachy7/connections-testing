@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../services/supabase';
 
 const BANNER_THEMES = [
@@ -16,11 +17,10 @@ const BANNER_THEMES = [
 ];
 
 /**
- * TeamMenuCard - Compact team card for burger menu
+ * TeamMenuCard - Mini version of the team banner
  * 
- * Displays team identity and stats.
- * Uses the team's selected banner theme for visual consistency.
- * Clickable to switch to that team.
+ * Matches the styling of TeamMatchupBanner in a compact form.
+ * Displays team identity with avatar, name, username, and stats.
  */
 export default function TeamMenuCard({ 
   team, 
@@ -30,10 +30,11 @@ export default function TeamMenuCard({
   showDelete = false,
   isDeleting = false
 }) {
+  const navigate = useNavigate();
   const [globalRank, setGlobalRank] = useState(null);
   
-  const bannerTheme = localStorage.getItem(`bannerTheme_${team.id}`) || 'forest';
-  const theme = BANNER_THEMES.find(t => t.id === bannerTheme) || BANNER_THEMES[2];
+  const bannerTheme = localStorage.getItem(`bannerTheme_${team.id}`) || 'ocean';
+  const theme = BANNER_THEMES.find(t => t.id === bannerTheme) || BANNER_THEMES[1]; // Default to ocean
   
   const maxLosses = team.contest_type?.max_losses || 3;
   const lossesRemaining = maxLosses - (team.losses || 0);
@@ -63,86 +64,98 @@ export default function TeamMenuCard({
     fetchGlobalRank();
   }, [team.id]);
 
-  return (
-    <div className="relative w-full">
-      <button
-        onClick={onClick}
-        className="w-full text-left transition-all"
-      >
-        <div className={`${theme.bg} rounded-lg p-3 border-2 ${
-          isActive ? 'border-white/40' : 'border-white/20'
-        }`}>
-          {/* Team Identity Row */}
-          <div className="flex items-center gap-2.5">
-          {/* Team Avatar */}
-          <div className="flex-shrink-0">
-            {team.team_image_url ? (
-              <img
-                src={team.team_image_url}
-                alt={team.team_name}
-                className="w-12 h-12 rounded-lg object-cover border border-white/30"
-              />
-            ) : (
-              <div className="w-12 h-12 rounded-lg bg-white/10 border border-white/30 flex items-center justify-center">
-                <svg className="w-6 h-6 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
-              </div>
-            )}
-          </div>
+  const handleCardClick = () => {
+    if (onClick) {
+      onClick();
+    }
+  };
 
-          {/* Team Info */}
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-0.5">
-              <h3 className="text-sm sm:text-base font-dk-display font-black text-white truncate leading-tight">
+  const handleSettingsClick = (e) => {
+    e.stopPropagation();
+    navigate(`/teams/${team.id}/info`);
+  };
+
+  return (
+    <div className="relative">
+      <div 
+        onClick={handleCardClick}
+        className={`${theme.bg} rounded-2xl overflow-hidden cursor-pointer transition-all duration-200 hover:scale-[1.02]`}
+      >
+        <div className="px-4 py-3">
+          <div className="flex items-center gap-3">
+            {/* Team Avatar */}
+            <div className="flex-shrink-0">
+              {team.team_image_url ? (
+                <img
+                  src={team.team_image_url}
+                  alt={team.team_name}
+                  className="w-14 h-14 rounded-lg object-cover border-2 border-white/30 shadow-lg"
+                />
+              ) : (
+                <div className="w-14 h-14 rounded-lg bg-white/10 border-2 border-white/30 flex items-center justify-center">
+                  <svg className="w-7 h-7 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                </div>
+              )}
+            </div>
+
+            {/* Team Info */}
+            <div className="flex-1 min-w-0">
+              <h3 className="text-base font-bold text-white truncate leading-tight">
                 {team.team_name}
               </h3>
-              {/* Team Type Badge */}
-              <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
-                team.team_type === 'private' 
-                  ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' 
-                  : 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
-              }`}>
-                {team.team_type === 'private' ? 'PRIVATE' : 'PUBLIC'}
-              </span>
+              {team.users?.username && (
+                <div className="text-xs text-white/70 truncate">
+                  {team.users.username}
+                </div>
+              )}
+              
+              {/* Stats Row */}
+              <div className="flex items-center gap-1.5 text-xs mt-1">
+                <span className="font-bold text-white/90">#{globalRank || '--'}</span>
+                <span className="text-white/40">•</span>
+                <div className="flex items-center gap-0.5">
+                  <span className="font-bold text-green-400">{team.wins || 0}</span>
+                  <span className="text-white/60">-</span>
+                  <span className="font-bold text-red-400">{team.losses || 0}</span>
+                </div>
+                <span className="text-white/40">•</span>
+                <div className="flex items-center gap-0.5">
+                  <svg className="w-3 h-3 text-white/90" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z" />
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clipRule="evenodd" />
+                  </svg>
+                  <span className="font-bold text-white/90">{team.coins?.toLocaleString() || '0'}</span>
+                </div>
+                <span className="text-white/40">•</span>
+                <div className="flex items-center gap-0.5">
+                  <svg className="w-3 h-3 text-white/90" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
+                  </svg>
+                  <span className="font-bold text-white/90">{lossesRemaining}</span>
+                </div>
+              </div>
             </div>
-            {team.users?.username && (
-              <div className="text-xs sm:text-sm text-white/70 truncate">
-                @{team.users.username}
-              </div>
-            )}
-            
-            {/* Inline Stats */}
-            <div className="flex items-center gap-1.5 text-[10px] sm:text-xs mt-0.5">
-              <span className="font-dk-display font-bold text-white/90">#{globalRank || '--'}</span>
-              <span className="text-white/40">•</span>
-              <div className="flex items-center gap-0.5">
-                <span className="font-dk-display font-bold text-green-400">{team.wins || 0}</span>
-                <span className="text-white/60">-</span>
-                <span className="font-dk-display font-bold text-red-400">{team.losses || 0}</span>
-              </div>
-              <span className="text-white/40">•</span>
-              <div className="flex items-center gap-0.5">
-                <svg className="w-2.5 h-2.5 text-white/90" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z" />
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clipRule="evenodd" />
+
+            {/* Settings Button */}
+            <div className="flex-shrink-0">
+              <button
+                onClick={handleSettingsClick}
+                className="p-2 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 transition-all"
+                title="Team Settings"
+              >
+                <svg className="w-5 h-5 text-white/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
-                <span className="font-dk-display font-bold text-white/90">{team.coins?.toLocaleString() || '0'}</span>
-              </div>
-              <span className="text-white/40">•</span>
-              <div className="flex items-center gap-0.5">
-                <svg className="w-2.5 h-2.5 text-white/90" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
-                </svg>
-                <span className="font-dk-display font-bold text-white/90">{lossesRemaining}</span>
-              </div>
+              </button>
             </div>
           </div>
         </div>
-        </div>
-      </button>
+      </div>
       
-      {/* Delete Button Overlay */}
+      {/* Delete Button Overlay - Only show when delete mode is active */}
       {showDelete && onDelete && (
         <button
           onClick={(e) => {
@@ -150,7 +163,7 @@ export default function TeamMenuCard({
             onDelete(team.id, team.team_name);
           }}
           disabled={isDeleting}
-          className="absolute top-2 right-2 p-1.5 bg-red-500/90 hover:bg-red-600 text-white rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+          className="absolute top-2 right-2 p-1.5 bg-red-500/90 hover:bg-red-600 text-white rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg z-10"
           title="Delete team"
         >
           {isDeleting ? (

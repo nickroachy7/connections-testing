@@ -16,7 +16,7 @@ export default function TeamsLayout() {
   }, [initialTeams]);
 
   return (
-    <div className="min-h-screen bg-dk-black-primary">
+    <div className="min-h-screen bg-primary-black-800">
       {/* Header Section - Fantasy Home Banner - Persistent */}
       <header>
         <FantasyHomeBanner 
