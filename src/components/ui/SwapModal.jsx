@@ -391,7 +391,7 @@ export default function SwapModal({
       title={title}
       subtitle={subtitle}
       footer={
-        <div className="p-4 border-t border-primary-black-800">
+        <div className="p-4">
           <button
             onClick={onClose}
             className="w-full py-3.5 rounded-xl bg-primary-black-800 hover:bg-primary-black-700 text-primary-black-200 font-semibold transition-colors active:scale-[0.98]"
