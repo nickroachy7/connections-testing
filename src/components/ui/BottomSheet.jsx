@@ -1,132 +1,198 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import PropTypes from 'prop-types';
-import { X } from 'lucide-react';
 
 /**
- * BottomSheet - Mobile-optimized modal that slides up from bottom
+ * BottomSheet - Canonical mobile bottom sheet modal component
  * 
- * Features:
- * - Smooth slide-up animation
- * - Optional drag handle for mobile UX
- * - Backdrop dismiss
- * - Custom footer support
- * - Configurable max height
+ * Base component for all mobile-optimized modals that slide up from bottom.
+ * Handles: escape key, body scroll lock, backdrop click, swipe to dismiss
  * 
- * @component
+ * IMPORTANT: The footer (cancel button) should be passed as a separate prop,
+ * not included in children, so it stays fixed at the bottom.
+ * 
+ * Used by: PlayerSwapModal, BenchPlayerSwapModal, TokenSelectionModal, etc.
  */
-function BottomSheet({ 
-  isOpen, 
-  onClose, 
-  title, 
+export default function BottomSheet({
+  isOpen,
+  onClose,
+  title,
   subtitle,
-  children, 
+  children,
   footer,
   maxHeight = '85vh',
   showDragHandle = true,
   className = ''
 }) {
   const sheetRef = useRef(null);
+  const contentRef = useRef(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragOffset, setDragOffset] = useState(0);
+  const dragStartY = useRef(0);
 
-  // Close on ESC key
+  // Handle escape key
   useEffect(() => {
+    if (!isOpen) return;
+
     const handleEscape = (e) => {
-      if (e.key === 'Escape' && isOpen) {
+      if (e.key === 'Escape') {
         onClose();
       }
     };
 
-    if (isOpen) {
-      document.addEventListener('keydown', handleEscape);
-      // Prevent body scroll when modal is open
-      document.body.style.overflow = 'hidden';
-    }
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [isOpen, onClose]);
+
+  // Prevent body scroll when modal is open
+  useEffect(() => {
+    if (!isOpen) return;
+
+    // Store original styles
+    const scrollY = window.scrollY;
+
+    // Lock body scroll
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.width = '100%';
+    document.body.style.overflow = 'hidden';
 
     return () => {
-      document.removeEventListener('keydown', handleEscape);
-      document.body.style.overflow = 'unset';
+      // Restore body scroll
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.width = '';
+      document.body.style.overflow = '';
+      window.scrollTo(0, scrollY);
     };
-  }, [isOpen, onClose]);
+  }, [isOpen]);
+
+  // Handle drag start
+  const handleDragStart = useCallback((e) => {
+    const touch = e.touches?.[0] || e;
+    const contentScrollTop = contentRef.current?.scrollTop || 0;
+    
+    // If content is scrolled, don't start drag
+    if (contentScrollTop > 5) return;
+    
+    setIsDragging(true);
+    dragStartY.current = touch.clientY;
+  }, []);
+
+  // Handle drag move
+  const handleDragMove = useCallback((e) => {
+    if (!isDragging) return;
+    
+    const touch = e.touches?.[0] || e;
+    const deltaY = touch.clientY - dragStartY.current;
+    
+    // Only allow dragging down
+    if (deltaY > 0) {
+      setDragOffset(deltaY);
+    }
+  }, [isDragging]);
+
+  // Handle drag end
+  const handleDragEnd = useCallback(() => {
+    if (!isDragging) return;
+    
+    setIsDragging(false);
+    
+    // If dragged more than 100px down, close the modal
+    if (dragOffset > 100) {
+      onClose();
+    }
+    
+    setDragOffset(0);
+  }, [isDragging, dragOffset, onClose]);
+
+  // Add touch event listeners
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const sheet = sheetRef.current;
+    if (!sheet) return;
+
+    const options = { passive: true };
+    sheet.addEventListener('touchmove', handleDragMove, options);
+    sheet.addEventListener('touchend', handleDragEnd);
+    sheet.addEventListener('touchcancel', handleDragEnd);
+
+    return () => {
+      sheet.removeEventListener('touchmove', handleDragMove);
+      sheet.removeEventListener('touchend', handleDragEnd);
+      sheet.removeEventListener('touchcancel', handleDragEnd);
+    };
+  }, [isOpen, handleDragMove, handleDragEnd]);
 
   if (!isOpen) return null;
 
   return (
-    <>
+    <div className="fixed inset-0 z-50 flex items-end justify-center">
       {/* Backdrop */}
       <div 
-        className="fixed inset-0 bg-black/60 z-40 animate-fade-in"
+        className="absolute inset-0 bg-black/70 backdrop-blur-sm transition-opacity"
         onClick={onClose}
-        aria-hidden="true"
+        style={{ opacity: isDragging ? 0.5 : 1 }}
       />
-
-      {/* Bottom Sheet */}
+      
+      {/* Sheet */}
       <div
         ref={sheetRef}
         className={`
-          fixed bottom-0 left-0 right-0 z-50
-          bg-primary-black-800 
-          rounded-t-2xl
-          shadow-2xl
-          animate-slide-up
+          relative w-full bg-primary-black-900 rounded-t-2xl
+          shadow-2xl border-t border-primary-black-700
+          flex flex-col
+          ${!isDragging ? 'transition-transform duration-200' : ''}
           ${className}
         `}
-        style={{ maxHeight }}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={title ? 'bottom-sheet-title' : undefined}
+        style={{ 
+          maxHeight,
+          transform: `translateY(${dragOffset}px)`,
+        }}
       >
-        {/* Drag Handle (optional) */}
+        {/* Drag Handle - touchable area for swipe */}
         {showDragHandle && (
-          <div className="flex justify-center pt-3 pb-2">
-            <div className="w-12 h-1 bg-primary-black-600 rounded-full" />
+          <div 
+            className="flex justify-center pt-3 pb-2 cursor-grab active:cursor-grabbing"
+            onTouchStart={handleDragStart}
+            onMouseDown={handleDragStart}
+          >
+            <div className="w-12 h-1.5 bg-primary-black-600 rounded-full" />
           </div>
         )}
-
+        
         {/* Header */}
         {(title || subtitle) && (
-          <div className="flex items-start justify-between px-4 py-3 border-b border-primary-black-700">
-            <div className="flex-1">
-              {title && (
-                <h3 
-                  id="bottom-sheet-title"
-                  className="text-lg font-bold text-white"
-                >
-                  {title}
-                </h3>
-              )}
-              {subtitle && (
-                <p className="text-sm text-primary-black-400 mt-0.5">
-                  {subtitle}
-                </p>
-              )}
-            </div>
-            <button
-              onClick={onClose}
-              className="
-                ml-4 p-1.5 rounded-lg
-                text-primary-black-400 hover:text-white
-                hover:bg-primary-black-700
-                transition-colors
-              "
-              aria-label="Close"
-            >
-              <X className="w-5 h-5" />
-            </button>
+          <div className="px-4 pb-3 text-center border-b border-primary-black-800 flex-shrink-0">
+            {title && (
+              <h2 className="text-lg font-bold text-white">{title}</h2>
+            )}
+            {subtitle && (
+              <p className="text-sm text-primary-black-400 mt-0.5">{subtitle}</p>
+            )}
           </div>
         )}
-
-        {/* Content */}
-        <div className="overflow-y-auto px-4 py-4">
+        
+        {/* Scrollable Content */}
+        <div 
+          ref={contentRef}
+          className="flex-1 overflow-y-auto overscroll-contain"
+          style={{ 
+            maxHeight: footer ? `calc(${maxHeight} - 180px)` : `calc(${maxHeight} - 100px)`,
+            WebkitOverflowScrolling: 'touch'
+          }}
+        >
           {children}
         </div>
 
-        {/* Footer (optional) */}
+        {/* Fixed Footer */}
         {footer && (
-          <div className="border-t border-primary-black-700 px-4 py-3">
+          <div className="flex-shrink-0 border-t border-primary-black-800 bg-primary-black-900">
             {footer}
           </div>
         )}
       </div>
-    </>
+    </div>
   );
 }
 
@@ -160,5 +226,3 @@ if (typeof document !== 'undefined' && !document.querySelector('#bottom-sheet-st
   `;
   document.head.appendChild(styleSheet);
 }
-
-export default BottomSheet;
