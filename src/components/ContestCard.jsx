@@ -77,10 +77,10 @@ export default function ContestCard({
   return (
     <div 
       className={`
-        relative bg-primary-black-800 rounded-xl border transition-all duration-200
+        relative bg-primary-black-800 rounded-xl border-2 transition-all duration-200
         ${isEntered 
           ? 'border-primary-green-500 shadow-lg shadow-primary-green-500/10' 
-          : 'border-primary-black-700 hover:border-primary-black-600'
+          : 'border-gray-600 hover:border-gray-500'
         }
         ${canJoin ? 'cursor-pointer hover:shadow-lg' : ''}
       `}

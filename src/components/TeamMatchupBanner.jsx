@@ -843,8 +843,25 @@ export default function TeamMatchupBanner({
           </div>
           </div>
           
-          {/* Contest/Score Section - Full width at bottom with defined edges */}
-          <div className="md:hidden bg-primary-black-900 border-t-2 border-primary-green-600/50">
+          {/* Contest/Score Section - Full width at bottom */}
+          <div className="md:hidden bg-primary-black-900">
+            {contestLoading ? (
+              /* Loading skeleton to prevent flash */
+              <div className="px-3 py-3 animate-pulse">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <div className="h-4 bg-primary-black-700 rounded w-24" />
+                    <div className="h-4 bg-primary-black-700 rounded w-16" />
+                  </div>
+                  <div className="h-4 bg-primary-black-700 rounded w-8" />
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="h-5 bg-primary-black-700 rounded w-16" />
+                  <div className="flex-1 h-1.5 bg-primary-black-700 rounded-full" />
+                  <div className="h-4 bg-primary-black-700 rounded w-20" />
+                </div>
+              </div>
+            ) : (
             <TeamScoreBanner
               week={displayWeek?.week}
               isLive={isLive}
@@ -874,6 +891,7 @@ export default function TeamMatchupBanner({
               lineupReady={hasWeeklyLineup || (lineup && lineup.length > 0)}
               isBottomSection={true}
             />
+            )}
           </div>
 
           {/* Desktop Layout */}
@@ -939,6 +957,23 @@ export default function TeamMatchupBanner({
 
               {/* Center: Score Battle */}
               <div className="flex-1 max-w-md">
+                {contestLoading ? (
+                  /* Loading skeleton to prevent flash */
+                  <div className="px-4 py-3 bg-primary-black-800 rounded-xl border border-primary-black-700 animate-pulse">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <div className="h-5 bg-primary-black-700 rounded w-28" />
+                        <div className="h-5 bg-primary-black-700 rounded w-16" />
+                      </div>
+                      <div className="h-5 bg-primary-black-700 rounded w-10" />
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="h-5 bg-primary-black-700 rounded w-16" />
+                      <div className="flex-1 h-2.5 bg-primary-black-700 rounded-full" />
+                      <div className="h-5 bg-primary-black-700 rounded w-20" />
+                    </div>
+                  </div>
+                ) : (
                 <TeamScoreBanner
                   week={displayWeek?.week}
                   isLive={isLive}
@@ -967,6 +1002,7 @@ export default function TeamMatchupBanner({
                   onContestClick={isInContest && !isInLeague ? () => navigate('/contests') : undefined}
                   lineupReady={hasWeeklyLineup || (lineup && lineup.length > 0)}
                 />
+                )}
               </div>
 
               {/* Right: Week Info + Team Settings */}

@@ -128,8 +128,8 @@ export default function TeamScoreBanner({
     // Container classes - transparent when in bottom section, otherwise styled
     const containerClasses = isBottomSection 
       ? `${onContestClick ? 'cursor-pointer' : ''}`
-      : `bg-gradient-to-br from-emerald-900/80 to-primary-black-900 rounded-xl border border-emerald-700/40 overflow-hidden ${
-          onContestClick ? 'cursor-pointer hover:border-emerald-600/50 transition-all' : ''
+      : `bg-gradient-to-br from-emerald-900/80 to-primary-black-900 rounded-xl border-2 border-gray-600 overflow-hidden ${
+          onContestClick ? 'cursor-pointer hover:border-gray-500 transition-all' : ''
         }`;
     
     // ----------------------------------------
