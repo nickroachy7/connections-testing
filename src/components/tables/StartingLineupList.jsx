@@ -71,12 +71,6 @@ const StartingLineupList = ({
                   }
                 }}
                 onSell={onSell && !isLocked ? onSell : null}
-                getRowClassName={(p, idx, locked) => {
-                  // Consistent row styling across all lists
-                  return `transition-all min-h-[72px] ${
-                    locked ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'
-                  } ${idx % 2 === 0 ? 'bg-primary-black-800/30' : 'bg-primary-black-800/50'} hover:bg-primary-black-700/50`;
-                }}
                 renderExtraColumns={(p, i) => (
                   <>
                     {/* Token Button Column - Desktop only */}
@@ -141,8 +135,8 @@ const StartingLineupList = ({
               }
             }}
             className={`grid transition-all min-h-[76px] cursor-pointer py-2.5 px-3 ${
-              index % 2 === 0 ? 'bg-primary-black-800/30' : 'bg-primary-black-800/50'
-            } hover:bg-primary-black-700/50`}
+              index % 2 === 0 ? 'bg-primary-black-900' : 'bg-primary-black-800/40'
+            } hover:bg-primary-black-800/60`}
             style={{ 
               gridTemplateColumns: '32px 40px 1fr 28px 56px',
               gap: '10px',

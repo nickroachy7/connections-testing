@@ -119,7 +119,7 @@ const TokenTable = ({
 
       {/* Header Row - Desktop */}
       <div 
-        className="hidden md:grid bg-primary-black-800/30 border-b border-primary-black-700 py-2 px-2"
+        className="hidden md:grid bg-primary-black-900 border-b border-primary-black-700 py-2 px-2"
         style={{ 
           gridTemplateColumns: gridTemplate,
           gap: '8px'
@@ -153,8 +153,8 @@ const TokenTable = ({
         const isLocked = isRowLocked ? isRowLocked(token) : false;
         const defaultClassName = `
           grid transition-all md:border-l-4 md:border-transparent min-h-[72px] md:min-h-[48px]
-          ${isLocked ? 'cursor-not-allowed opacity-60' : 'cursor-move'}
-          ${index % 2 === 0 ? 'bg-primary-black-800/30' : 'bg-primary-black-800/50'}
+          ${isLocked ? 'cursor-not-allowed' : 'cursor-move'}
+          ${index % 2 === 0 ? 'bg-primary-black-900' : 'bg-primary-black-800/40'}
         `;
 
         const customClassName = getRowClassName ? getRowClassName(token, index) : defaultClassName;

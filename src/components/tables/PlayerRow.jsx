@@ -79,16 +79,21 @@ const PlayerRow = ({
   const hasGameDataLoaded = liveGameData && liveGameData.size > 0;
   const isBye = hasGameDataLoaded && !gameData;
   const isGameLiveOrFinal = gameStatus === 'live' || gameStatus === 'halftime' || gameStatus === 'final';
+  const isGameFinal = gameStatus === 'final';
 
   // Default row styling - consistent across all list contexts
-  // Uses subtle alternating backgrounds for visual separation
+  // Uses subtle alternating backgrounds that blend with page bg (primary-black-900)
+  // Final games get subtle grey-out effect to indicate completion
   const defaultClassName = `
-    grid transition-all min-h-[72px] md:min-h-[48px]
-    ${isLocked ? 'cursor-not-allowed opacity-60' : 'cursor-move'}
-    ${index % 2 === 0 ? 'bg-primary-black-800/30' : 'bg-primary-black-800/50'}
+    grid transition-all md:border-l-4 md:border-transparent min-h-[72px] md:min-h-[48px]
+    ${isLocked ? 'cursor-not-allowed' : 'cursor-move'}
+    ${index % 2 === 0 ? 'bg-primary-black-900' : 'bg-primary-black-800/40'}
   `;
 
   const customClassName = getRowClassName ? getRowClassName(player, index, isLocked) : defaultClassName;
+  
+  // Subtle styling for finished games - applied regardless of custom className
+  const finalGameClass = isGameFinal ? 'opacity-70' : '';
 
   // Desktop grid: checkbox/drag | badge | icon | info | pull% | sell | fpts [| extra]
   // When extra columns exist, add them to the end
@@ -126,7 +131,7 @@ const PlayerRow = ({
         onDragStart={handleDragStart}
         onDragEnd={onDragEnd}
         onClick={handleClick}
-        className={`hidden md:grid items-center ${customClassName} md:py-2 md:px-2 md:border-l-4 ${onClick ? 'cursor-pointer hover:bg-primary-black-700/50' : ''}`}
+        className={`hidden md:grid items-center ${customClassName} ${finalGameClass} md:py-2 md:px-2 ${onClick ? 'cursor-pointer hover:bg-primary-black-700/50' : ''}`}
         style={{ 
           gridTemplateColumns: desktopGridTemplate,
           gap: '8px'
@@ -348,7 +353,7 @@ const PlayerRow = ({
         >
           <div
             onClick={handleClick}
-            className={`grid ${customClassName} py-2.5 px-3 ${onClick ? 'cursor-pointer active:bg-primary-black-700/50' : ''}`}
+            className={`grid ${customClassName} ${finalGameClass} py-2.5 px-3 ${onClick ? 'cursor-pointer active:bg-primary-black-700/50' : ''}`}
             style={{ 
               gridTemplateColumns: mobileGridTemplate,
               gap: '10px',
@@ -384,7 +389,7 @@ const PlayerRow = ({
           onDragStart={handleDragStart}
           onDragEnd={onDragEnd}
           onClick={handleClick}
-          className={`grid md:hidden ${customClassName} py-2.5 px-3 ${onClick ? 'cursor-pointer active:bg-primary-black-700/50' : ''}`}
+          className={`grid md:hidden ${customClassName} ${finalGameClass} py-2.5 px-3 ${onClick ? 'cursor-pointer active:bg-primary-black-700/50' : ''}`}
           style={{ 
             gridTemplateColumns: mobileGridTemplate,
             gap: '10px',

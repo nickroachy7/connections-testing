@@ -45,7 +45,7 @@ const getPositionLabel = (key) => {
 const EmptySlotOption = ({ slotKey, onClick }) => (
   <div
     onClick={onClick}
-    className="grid py-3 px-4 transition-all min-h-[72px] cursor-pointer hover:bg-primary-black-700/50 bg-primary-black-800/30"
+    className="grid py-3 px-4 transition-all min-h-[72px] cursor-pointer hover:bg-primary-black-800/60 bg-primary-black-900"
     style={{ 
       gridTemplateColumns: '36px 44px 1fr 56px',
       gap: '10px',

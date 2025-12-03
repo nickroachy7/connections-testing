@@ -42,10 +42,11 @@ const TokenRow = ({
   renderExtraColumns = null
 }) => {
   // Default row styling - consistent across all list contexts
+  // Uses subtle alternating backgrounds that blend with page bg (primary-black-900)
   const defaultClassName = `
-    grid transition-all min-h-[72px] md:min-h-[48px]
-    ${isLocked ? 'cursor-not-allowed opacity-60' : 'cursor-move'}
-    ${index % 2 === 0 ? 'bg-primary-black-800/30' : 'bg-primary-black-800/50'}
+    grid transition-all md:border-l-4 md:border-transparent min-h-[72px] md:min-h-[48px]
+    ${isLocked ? 'cursor-not-allowed' : 'cursor-move'}
+    ${index % 2 === 0 ? 'bg-primary-black-900' : 'bg-primary-black-800/40'}
   `;
 
   const customClassName = getRowClassName ? getRowClassName(token, index, isLocked) : defaultClassName;
