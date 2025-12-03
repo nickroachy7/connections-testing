@@ -207,6 +207,7 @@ BottomSheet.propTypes = {
   showDragHandle: PropTypes.bool,
   className: PropTypes.string
 };
+<<<<<<< HEAD
 
 // Add keyframe animation via style tag
 if (typeof document !== 'undefined' && !document.querySelector('#bottom-sheet-styles')) {
@@ -226,3 +227,5 @@ if (typeof document !== 'undefined' && !document.querySelector('#bottom-sheet-st
   `;
   document.head.appendChild(styleSheet);
 }
+=======
+>>>>>>> f6c88b534f0bed3c7c3ec8bf1961173fb66944f5
