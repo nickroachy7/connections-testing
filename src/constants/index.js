@@ -6,3 +6,4 @@
 export * from './lineup';
 export * from './ui';
 export * from './colors';
+export * from './contestTypes';

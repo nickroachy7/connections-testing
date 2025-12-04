@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useOutletContext, useSearchParams } from 'react-router-dom';
 import { Trophy, RefreshCw, Calendar, AlertCircle, Heart } from 'lucide-react';
-import ContestCard from '../components/ContestCard';
-import ExpandableContestBanner from '../components/ExpandableContestBanner';
+import AvailableContestBanner from '../components/AvailableContestBanner';
+import EnteredContestBanner from '../components/EnteredContestBanner';
 import JoinContestModal from '../components/JoinContestModal';
 import { useContests } from '../hooks/fantasy/useContests';
 
@@ -159,21 +159,22 @@ export default function Contests() {
           {/* Contest Banners */}
           {currentEntries.map((entry) => {
             const contest = entry.contest || contests.find(c => c.id === entry.contest_id);
-            const entryScore = lineupStats?.projectedPoints || 0;
+            const projectedScore = lineupStats?.projectedPoints || 0;
             const contestId = contest?.id || entry.contest_id;
             
             return (
-              <ExpandableContestBanner
+              <EnteredContestBanner
                 key={entry.id}
-                entry={entry}
                 contest={contest}
-                displayWeek={displayWeek}
+                entry={entry}
+                teamId={activeTeam?.id}
+                userScore={entry.final_score || 0}
+                projectedScore={projectedScore}
+                medianScore={contest?.median_score || 0}
                 isLive={isLive}
                 isFinal={isFinal}
                 isUpcoming={isUpcoming}
-                userScore={entryScore}
                 lineupReady={lineupReady}
-                teamId={activeTeam?.id}
                 defaultExpanded={expandContestId === contestId}
               />
             );
@@ -274,7 +275,7 @@ export default function Contests() {
         return (
           <div className="space-y-3 md:grid md:grid-cols-2 lg:grid-cols-3 md:gap-4 md:space-y-0">
             {availableContests.map((contest) => (
-              <ContestCard
+              <AvailableContestBanner
                 key={contest.id}
                 contest={contest}
                 onJoin={setSelectedContest}

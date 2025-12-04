@@ -167,9 +167,37 @@ All components are organized into clear categories:
 | Component | Purpose |
 |-----------|---------|
 | `ContestPage` | Main contest page |
-| `ContestCard` | Contest summary card |
+| `AvailableContestBanner` | Available contest for joining (3-row structure) |
+| `EnteredContestBanner` | Entered contest with scores + expandable standings |
 | `StandingsTable` | Contest standings |
 | `StandingsRow` | Single team in standings |
+
+#### Contest Banner Components (UNIFIED STRUCTURE)
+
+**Both banner types follow a consistent 3-row structure:**
+
+**Row 1 - Header:** Contest type icon (colored by type), Name, Description, Participant count
+
+**Row 2 - Details:** Win Condition | Scoring Format | Field Size
+
+**Row 3 - Stakes:** Risk (heart/ticket), Reward (coins), [Join button for Available only]
+
+**EnteredContestBanner Additional Rows:**
+- **Row 4 - Scoring:** Status badge, progress bar, scores (varies by H2H/Median/Top Score)
+- **Expandable:** Standings panel (click to expand)
+
+**Contest Type Colors:**
+| Type | Color | Icon |
+|------|-------|------|
+| Median | Blue (`text-blue-400`) | Target |
+| H2H | Orange (`text-orange-400`) | Swords |
+| Top Score | Yellow (`text-yellow-400`) | Crown |
+| Survivor | Purple (`text-purple-400`) | Zap |
+
+**Legacy Components (DEPRECATED):**
+- ~~`ContestCard`~~ → Use `AvailableContestBanner`
+- ~~`TeamScoreBanner`~~ → Use `EnteredContestBanner`
+- ~~`ExpandableContestBanner`~~ → Use `EnteredContestBanner`
 
 ### Token Feature (`features/tokens/`)
 | Component | Purpose |
