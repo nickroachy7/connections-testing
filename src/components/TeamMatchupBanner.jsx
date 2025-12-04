@@ -22,12 +22,12 @@ const BANNER_THEMES = [
 ];
 
 /**
- * TeamBanner Component
+ * TeamMatchupBanner Component
  * 
  * Unified banner combining team identity and week status in a Sleeper-inspired layout.
  * Shows: Team info, global rank, stats, score vs median comparison, week status.
  */
-export default function TeamBanner({ 
+export default function TeamMatchupBanner({ 
   username, 
   teamName, 
   wins, 
@@ -58,7 +58,7 @@ export default function TeamBanner({
     contextCurrentWeek = fantasyContext?.currentWeek;
   } catch (error) {
     // Context not available - component used outside FantasyProvider
-    console.warn('TeamBanner: Fantasy context not available');
+    console.warn('TeamMatchupBanner: Fantasy context not available');
   }
   
   // League context - determines if we show league-specific stats (private teams)
@@ -105,9 +105,9 @@ export default function TeamBanner({
     remainingEntries: contestRemainingEntries
   } = useMultipleContests(teamId);
   
-  console.log('🎯 [TeamBanner] League context:', { isInLeague, leagueName, leagueWins, leagueLosses, leagueLives });
-  console.log('🎮 [TeamBanner] Contest context:', { isInContest, contestName, contestWinCondition, entrantCount, contestLoading });
-  console.log('📊 [TeamBanner] Multiple contests:', { count: multipleContests.length, hasMultiple: hasMultipleContests, selectedIndex: multiContestIndex, canEnterMore: canEnterMoreContests, remainingEntries: contestRemainingEntries });
+  console.log('🎯 [TeamMatchupBanner] League context:', { isInLeague, leagueName, leagueWins, leagueLosses, leagueLives });
+  console.log('🎮 [TeamMatchupBanner] Contest context:', { isInContest, contestName, contestWinCondition, entrantCount, contestLoading });
+  console.log('📊 [TeamMatchupBanner] Multiple contests:', { count: multipleContests.length, hasMultiple: hasMultipleContests, selectedIndex: multiContestIndex, canEnterMore: canEnterMoreContests, remainingEntries: contestRemainingEntries });
   
   // Track previous week status to detect finalization
   const previousWeekStatus = usePrevious(contextWeekStatus);
@@ -116,7 +116,7 @@ export default function TeamBanner({
   // This ensures newly joined contests appear immediately
   useEffect(() => {
     if (shouldRefetchContests) {
-      console.log('🔄 [TeamBanner] Navigated to starting lineup - refreshing contest data...');
+      console.log('🔄 [TeamMatchupBanner] Navigated to starting lineup - refreshing contest data...');
       refetchMultipleContests();
       refetchContestContext();
     }
@@ -125,7 +125,7 @@ export default function TeamBanner({
   // Refresh league context when week finalizes (updates wins/losses/lives)
   useEffect(() => {
     if (isInLeague && previousWeekStatus && previousWeekStatus !== 'finalized' && contextWeekStatus === 'finalized') {
-      console.log('🏆 [TeamBanner] Week finalized! Refreshing league stats...');
+      console.log('🏆 [TeamMatchupBanner] Week finalized! Refreshing league stats...');
       refetchLeagueContext();
     }
   }, [contextWeekStatus, previousWeekStatus, isInLeague, refetchLeagueContext]);
@@ -133,7 +133,7 @@ export default function TeamBanner({
   // Refresh public contest context when week finalizes
   useEffect(() => {
     if (isInContest && previousWeekStatus && previousWeekStatus !== 'finalized' && contextWeekStatus === 'finalized') {
-      console.log('🎮 [TeamBanner] Week finalized! Refreshing contest stats...');
+      console.log('🎮 [TeamMatchupBanner] Week finalized! Refreshing contest stats...');
       refetchContestContext();
     }
   }, [contextWeekStatus, previousWeekStatus, isInContest, refetchContestContext]);
@@ -677,7 +677,7 @@ export default function TeamBanner({
   })();
   
   // Debug logging for median source
-  console.log('🎯 [TeamBanner] Median calculation:', {
+  console.log('🎯 [TeamMatchupBanner] Median calculation:', {
     isInLeague,
     isInContest,
     leagueMedian,
@@ -816,11 +816,11 @@ export default function TeamBanner({
                   <img
                     src={teamImage}
                     alt={localTeamName || 'Team'}
-                    className="w-16 h-16 rounded-lg object-cover border-2 border-white/30 shadow-xl"
+                    className="w-20 h-20 rounded-lg object-cover border-2 border-white/30 shadow-xl"
                   />
                 ) : (
-                  <div className="w-16 h-16 rounded-lg bg-white/10 border-2 border-white/30 flex items-center justify-center">
-                    <svg className="w-6 h-6 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="w-20 h-20 rounded-lg bg-white/10 border-2 border-white/30 flex items-center justify-center">
+                    <svg className="w-8 h-8 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                     </svg>
                   </div>
@@ -829,50 +829,38 @@ export default function TeamBanner({
 
               {/* Team Info */}
               <div className="flex-1 min-w-0 pr-12 flex flex-col justify-center">
-                <div className="flex items-center gap-1.5">
-                  <h1 className="text-lg font-dk-display font-black text-white truncate leading-none">
-                    {localTeamName || 'Your Team'}
-                  </h1>
-                  <span className="text-[11px] text-white/50 font-medium">
-                    • {team?.team_type === 'private' ? 'League' : 'DFS'}
-                  </span>
-                </div>
+                <h1 className="text-xl font-dk-display font-black text-white truncate leading-none">
+                  {localTeamName || 'Your Team'}
+                </h1>
                 {username && (
-                  <div className="text-[11px] text-white/70 font-medium truncate mt-0.5">
+                  <div className="text-xs text-white/80 font-medium truncate mt-0.5">
                     {username}
                   </div>
                 )}
                 
-                {/* Inline Stats Row: Rank, Record, Coins, Lives, Tickets */}
-                <div className="flex items-center gap-1.5 text-[11px] mt-1">
-                  {!isInLeague && <span className="font-dk-display font-bold text-white/80">#{globalRank || '--'}</span>}
-                  {!isInLeague && <span className="text-white/30">•</span>}
-                  <div className="flex items-center gap-0.5">
+                {/* Inline Stats Row: Rank, Record, Coins, Lives */}
+                <div className="flex items-center gap-2 text-xs mt-1.5">
+                  {!isInLeague && <span className="font-dk-display font-bold text-white/90">#{globalRank || '--'}</span>}
+                  {!isInLeague && <span className="text-white/40">•</span>}
+                  <div className="flex items-center gap-1">
                     <span className="font-dk-display font-bold text-green-400">{displayWins}</span>
-                    <span className="text-white/50">-</span>
+                    <span className="text-white/60">-</span>
                     <span className="font-dk-display font-bold text-red-400">{displayLosses}</span>
                   </div>
-                  <span className="text-white/30">•</span>
-                  <div className="flex items-center gap-0.5">
-                    <svg className="w-2.5 h-2.5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                  <span className="text-white/40">•</span>
+                  <div className="flex items-center gap-1">
+                    <svg className="w-3 h-3 text-white/90" fill="currentColor" viewBox="0 0 20 20">
                       <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z" />
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clipRule="evenodd" />
                     </svg>
-                    <span className="font-dk-display font-bold text-white">{coins?.toLocaleString() || '0'}</span>
+                    <span className="font-dk-display font-bold text-white/90">{coins?.toLocaleString() || '0'}</span>
                   </div>
-                  <span className="text-white/30">•</span>
-                  <div className="flex items-center gap-0.5">
-                    <svg className="w-2.5 h-2.5 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                  <span className="text-white/40">•</span>
+                  <div className="flex items-center gap-1">
+                    <svg className="w-3 h-3 text-white/90" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
                     </svg>
-                    <span className="font-dk-display font-bold text-white">{lossesRemaining}</span>
-                  </div>
-                  <span className="text-white/30">•</span>
-                  <div className="flex items-center gap-0.5">
-                    <svg className="w-2.5 h-2.5 text-accent-orange-400" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M2 6a2 2 0 012-2h12a2 2 0 012 2v2a2 2 0 100 4v2a2 2 0 01-2 2H4a2 2 0 01-2-2v-2a2 2 0 100-4V6z" />
-                    </svg>
-                    <span className="font-dk-display font-bold text-white">{team?.tickets || 0}</span>
+                    <span className="font-dk-display font-bold text-white/90">{lossesRemaining}</span>
                   </div>
                 </div>
               </div>
@@ -1094,7 +1082,7 @@ export default function TeamBanner({
   );
 }
 
-TeamBanner.propTypes = {
+TeamMatchupBanner.propTypes = {
   username: PropTypes.string,
   teamName: PropTypes.string,
   wins: PropTypes.number,
