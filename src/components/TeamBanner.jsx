@@ -1,12 +1,14 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PropTypes from 'prop-types';
+import { Info, X } from 'lucide-react';
 import { supabase } from '../services/supabase';
 import { useFantasy } from '../contexts/FantasyContext';
 import { useProjectedMedian, useLeagueContext, usePublicContestContext, useMultipleContests } from '../hooks/fantasy';
 import { usePrevious } from '../hooks/usePrevious';
 import TeamScoreBanner from './TeamScoreBanner';
 import ContestBannerCarousel from './ContestBannerCarousel';
+import TeamInfoExpanded from './TeamInfoExpanded';
 
 const BANNER_THEMES = [
   { id: 'default', name: 'Classic Dark', bg: 'bg-dk-black-secondary' },
@@ -36,7 +38,8 @@ export default function TeamBanner({
   teamId,
   team,
   previewMode = false,
-  shouldRefetchContests = false
+  shouldRefetchContests = false,
+  onExpandedChange
 }) {
   const navigate = useNavigate();
   
@@ -47,6 +50,7 @@ export default function TeamBanner({
   let contextGameCounts = null;
   let contextGlobalMedian = null;
   let contextCurrentWeek = null;
+  let contextInventory = null;
   
   try {
     const fantasyContext = useFantasy();
@@ -56,6 +60,7 @@ export default function TeamBanner({
     contextGameCounts = fantasyContext?.gameCounts;
     contextGlobalMedian = fantasyContext?.globalMedian;
     contextCurrentWeek = fantasyContext?.currentWeek;
+    contextInventory = fantasyContext?.inventory;
   } catch (error) {
     // Context not available - component used outside FantasyProvider
     console.warn('TeamBanner: Fantasy context not available');
@@ -148,6 +153,15 @@ export default function TeamBanner({
   const [teamImage, setTeamImage] = useState(null);
   const [bannerTheme, setBannerTheme] = useState('forest');
   const [localTeamName, setLocalTeamName] = useState(teamName);
+  
+  // Info panel state
+  const [isInfoPanelOpen, setIsInfoPanelOpen] = useState(false);
+  
+  // Notify parent when expanded state changes
+  useEffect(() => {
+    onExpandedChange?.(isInfoPanelOpen);
+  }, [isInfoPanelOpen, onExpandedChange]);
+  
   const [globalRank, setGlobalRank] = useState(null);
   
   // Week and scoring state
@@ -776,7 +790,7 @@ export default function TeamBanner({
           <div className="px-4 sm:px-5 py-3">
           
           {/* League Badge - Show if in a private league */}
-          {isInLeague && leagueName && (
+          {isInLeague && leagueName && !isInfoPanelOpen && (
             <div className="mb-2 flex items-center gap-2">
               <span className="text-xs px-2 py-0.5 bg-amber-500/20 text-amber-400 rounded-full font-medium border border-amber-500/30">
                 {leagueName}
@@ -791,16 +805,21 @@ export default function TeamBanner({
           <div className="md:hidden">
             {/* Team Identity Row */}
             <div className="flex items-center gap-3 relative">
-              {/* Team Info Button - Top Right */}
+              {/* Team Info Button - Top Right (toggles between info and close) */}
               <button
-                onClick={() => navigate(`/teams/${teamId}/info`)}
-                className="absolute top-0 right-0 p-2 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 transition-all z-10"
-                title="Team Info & Settings"
+                onClick={() => setIsInfoPanelOpen(!isInfoPanelOpen)}
+                className={`absolute top-0 right-0 p-2 rounded-lg border transition-all z-10 ${
+                  isInfoPanelOpen 
+                    ? 'bg-white/20 border-white/30' 
+                    : 'bg-white/10 hover:bg-white/20 border-white/20'
+                }`}
+                title={isInfoPanelOpen ? "Close" : "Team Info"}
               >
-                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
+                {isInfoPanelOpen ? (
+                  <X className="w-4 h-4 text-white" />
+                ) : (
+                  <Info className="w-4 h-4 text-white" />
+                )}
               </button>
 
               {/* Team Image */}
@@ -870,12 +889,27 @@ export default function TeamBanner({
                 </div>
               </div>
             </div>
+            
+            {/* Expanded Team Info - Shows when info button is clicked */}
+            {isInfoPanelOpen && (
+              <TeamInfoExpanded
+                team={team}
+                inventory={contextInventory}
+                selectedTheme={bannerTheme}
+                onThemeChange={(themeId) => setBannerTheme(themeId)}
+                onTeamUpdate={() => {
+                  if (team?.team_image_url) setTeamImage(team.team_image_url);
+                  if (team?.team_name) setLocalTeamName(team.team_name);
+                }}
+              />
+            )}
           </div>
           </div>
         </div>
       </div>
-          
-      {/* Contest/Score Section - Below the team banner, separate card */}
+      
+      {/* Contest/Score Section - Below the team banner, separate card (hidden when expanded) */}
+      {!isInfoPanelOpen && (
       <div className="md:hidden px-3 pt-2 pb-2">
         {(contestLoading || multiContestLoading) ? (
               /* Loading skeleton to prevent flash */
@@ -941,6 +975,7 @@ export default function TeamBanner({
             />
             )}
           </div>
+          )}
 
           {/* Desktop Layout - separate container with gradient */}
           <div className="hidden md:block px-3 sm:px-4 pt-3 pb-2">
@@ -1058,14 +1093,11 @@ export default function TeamBanner({
                   {/* Right: Week Info + Team Settings */}
                   <div className="flex flex-col items-end gap-2">
                     <button
-                      onClick={() => navigate(`/teams/${teamId}/info`)}
+                      onClick={() => setIsInfoPanelOpen(true)}
                       className="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 transition-all flex items-center gap-2 group"
                     >
-                      <svg className="w-4 h-4 text-white group-hover:rotate-45 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                      </svg>
-                      <span className="text-sm font-medium text-white">Settings</span>
+                      <Info className="w-4 h-4 text-white" />
+                      <span className="text-sm font-medium text-white">Info</span>
                     </button>
 
                     <div className="text-right">
@@ -1096,5 +1128,6 @@ TeamBanner.propTypes = {
   teamId: PropTypes.string.isRequired,
   team: PropTypes.object,
   previewMode: PropTypes.bool,
-  shouldRefetchContests: PropTypes.bool
+  shouldRefetchContests: PropTypes.bool,
+  onExpandedChange: PropTypes.func
 };

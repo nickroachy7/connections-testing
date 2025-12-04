@@ -21,7 +21,8 @@ export default function FantasyNavBanner({
   coins,
   teamId,
   team,
-  previewMode = false
+  previewMode = false,
+  onExpandedChange
 }) {
   const location = useLocation();
   
@@ -48,6 +49,7 @@ export default function FantasyNavBanner({
           teamId={teamId}
           team={team}
           previewMode={previewMode}
+          onExpandedChange={onExpandedChange}
         />
       </div>
     </>
@@ -62,5 +64,6 @@ FantasyNavBanner.propTypes = {
   coins: PropTypes.number,
   teamId: PropTypes.string.isRequired,
   team: PropTypes.object,
-  previewMode: PropTypes.bool
+  previewMode: PropTypes.bool,
+  onExpandedChange: PropTypes.func
 };

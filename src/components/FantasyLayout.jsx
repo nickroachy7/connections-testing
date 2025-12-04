@@ -16,6 +16,9 @@ function FantasyLayoutInner() {
   // Local state for optimistic coin updates
   const [displayCoins, setDisplayCoins] = useState(activeTeam?.coins || 0);
   
+  // Track if banner is expanded (to hide main content)
+  const [isBannerExpanded, setIsBannerExpanded] = useState(false);
+  
   // Refresh team data when week status changes to 'finalized'
   // This updates wins/losses/lives in the banner immediately
   useEffect(() => {
@@ -60,28 +63,31 @@ function FantasyLayoutInner() {
           team={activeTeam}
           currentWeek={currentWeek}
           previewMode={isStartingLineupPage}
+          onExpandedChange={setIsBannerExpanded}
         />
       </header>
 
-      {/* Main Content - Rendered by child routes */}
-      <main>
-        {/* Pass loader data AND fantasy context data to child routes */}
-        <Outlet context={{
-          ...loaderData,
-          lineup,
-          setLineup,
-          projections,
-          liveGameData,
-          currentWeek,
-          inventory,
-          loadInventory,
-          updateInventory,
-          refreshProfile,
-          updateCoins,
-          teamStartsNextWeek,
-          lineupStats
-        }} />
-      </main>
+      {/* Main Content - Hidden when banner is expanded */}
+      {!isBannerExpanded && (
+        <main>
+          {/* Pass loader data AND fantasy context data to child routes */}
+          <Outlet context={{
+            ...loaderData,
+            lineup,
+            setLineup,
+            projections,
+            liveGameData,
+            currentWeek,
+            inventory,
+            loadInventory,
+            updateInventory,
+            refreshProfile,
+            updateCoins,
+            teamStartsNextWeek,
+            lineupStats
+          }} />
+        </main>
+      )}
     </div>
   );
 }
