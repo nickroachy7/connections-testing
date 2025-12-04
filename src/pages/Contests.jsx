@@ -1,24 +1,37 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useOutletContext, useSearchParams } from 'react-router-dom';
 import { Trophy, RefreshCw, Calendar, AlertCircle, Heart } from 'lucide-react';
 import ContestCard from '../components/ContestCard';
 import ExpandableContestBanner from '../components/ExpandableContestBanner';
 import JoinContestModal from '../components/JoinContestModal';
-import { getAvailableContests, getTeamContestEntryStatus, getTeamContestEntries } from '../services/contestService';
-import { supabase } from '../services/supabase';
+import { useContests } from '../hooks/fantasy/useContests';
 
 export default function Contests() {
   const { activeTeam, lineup, lineupStats } = useOutletContext();
   const [searchParams, setSearchParams] = useSearchParams();
   
-  const [contests, setContests] = useState([]);
-  const [currentEntries, setCurrentEntries] = useState([]); // Array of entries
-  const [entryStatus, setEntryStatus] = useState(null); // Lives/entries status
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [nflCurrentWeek, setNflCurrentWeek] = useState(null);
-  const [weekStatus, setWeekStatus] = useState(null);
-  const [displayWeek, setDisplayWeek] = useState(null);
+  // Use centralized hook with caching - no refetch on every navigation
+  const {
+    contests,
+    currentEntries,
+    nflCurrentWeek,
+    weekStatus,
+    displayWeek,
+    loading,
+    isRefreshing,
+    error,
+    hasEnteredContest,
+    canEnterMore,
+    livesRemaining,
+    remainingEntries,
+    enteredContestIds,
+    isUpcoming,
+    isLive,
+    isFinal,
+    isShowingFutureWeek,
+    refresh,
+    invalidateCache
+  } = useContests(activeTeam?.id, activeTeam?.current_week);
   
   // Modal state
   const [selectedContest, setSelectedContest] = useState(null);
@@ -37,92 +50,8 @@ export default function Contests() {
     }
   }, [expandContestId, loading, setSearchParams]);
   
-  // Determine contest status
-  const isUpcoming = weekStatus === 'building' || weekStatus === 'locked' || 
-    (displayWeek && nflCurrentWeek && displayWeek > nflCurrentWeek);
-  const isLive = weekStatus === 'live';
-  const isFinal = weekStatus === 'final' || weekStatus === 'finalized';
-  
-  // Determine which week to show contests for
-  const getTeamEligibleWeek = useCallback((nflWeek) => {
-    if (!activeTeam || !nflWeek) return nflWeek;
-    
-    if (activeTeam.current_week && activeTeam.current_week > nflWeek) {
-      return activeTeam.current_week;
-    }
-    
-    return nflWeek;
-  }, [activeTeam]);
-  
-  // Fetch contests and current entries
-  const loadData = useCallback(async () => {
-    if (!activeTeam) return;
-    
-    setLoading(true);
-    setError(null);
-    
-    try {
-      // Get current NFL week and config
-      const { data: config } = await supabase
-        .from('nfl_season_config')
-        .select('current_week, season_year, week_status')
-        .eq('is_active', true)
-        .single();
-      
-      setNflCurrentWeek(config?.current_week);
-      setWeekStatus(config?.week_status);
-      
-      // Determine which week to fetch contests for
-      const eligibleWeek = getTeamEligibleWeek(config?.current_week);
-      setDisplayWeek(eligibleWeek);
-      
-      // Fetch contests, entry status, and entries in parallel
-      const [contestsResult, statusResult, entriesResult] = await Promise.all([
-        getAvailableContests(eligibleWeek),
-        getTeamContestEntryStatus(activeTeam.id, eligibleWeek, config?.season_year),
-        getTeamContestEntries(activeTeam.id, eligibleWeek, config?.season_year)
-      ]);
-      
-      if (contestsResult.error) throw contestsResult.error;
-      
-      setContests(contestsResult.data || []);
-      setEntryStatus(statusResult.data);
-      setCurrentEntries(entriesResult.data || []);
-    } catch (err) {
-      console.error('Error loading contests:', err);
-      setError(err.message || 'Failed to load contests');
-    } finally {
-      setLoading(false);
-    }
-  }, [activeTeam, getTeamEligibleWeek]);
-  
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
-  
-  // Handle successful entry
-  const handleEntrySuccess = () => {
-    setSelectedContest(null);
-    loadData(); // Refresh data
-  };
-  
-  // Check if team has entered any contests
-  const hasEnteredContest = currentEntries.length > 0;
-  
-  // Check if team can enter more contests (based on lives)
-  const canEnterMore = entryStatus?.can_enter_more ?? true;
-  const livesRemaining = entryStatus?.lives_remaining ?? 3;
-  const entriesThisWeek = entryStatus?.entries_count ?? currentEntries.length;
-  const remainingEntries = entryStatus?.remaining_entries ?? (livesRemaining - entriesThisWeek);
-  
-  // Get IDs of contests already entered
-  const enteredContestIds = currentEntries.map(e => e.contest_id || e.contest?.id);
-  
   // Check if this is a private team (can't enter public contests)
   const isPrivateTeam = activeTeam?.team_type === 'private';
-  
-  // Check if we're showing a future week (team starts later)
-  const isShowingFutureWeek = displayWeek && nflCurrentWeek && displayWeek > nflCurrentWeek;
   
   // Lineup readiness
   const lineupReady = (lineup?.length > 0) || (lineupStats?.projectedPoints > 0);
@@ -138,9 +67,15 @@ export default function Contests() {
     </span>
   ) : displayWeek ? `Week ${displayWeek}` : null;
   
+  // Handle successful entry - invalidate cache and refresh
+  const handleEntrySuccess = () => {
+    setSelectedContest(null);
+    invalidateCache();
+  };
+  
   return (
     <div className="max-w-7xl mx-auto px-3 pb-4">
-      {/* Show loading state for initial load */}
+      {/* Show loading state for initial load only */}
       {loading && contests.length === 0 && currentEntries.length === 0 && (
         <div className="pt-4 space-y-3">
           {/* Skeleton for section header */}
@@ -176,7 +111,7 @@ export default function Contests() {
       {(!loading || contests.length > 0 || currentEntries.length > 0) && (
         <>
           {/* Minimal Header - just loading indicator when refreshing */}
-          {loading && (
+          {isRefreshing && (
             <div className="flex justify-end py-2 px-1">
               <RefreshCw className="w-3 h-3 text-primary-black-400 animate-spin" />
             </div>
@@ -298,7 +233,7 @@ export default function Contests() {
           <h3 className="text-lg font-semibold text-white mb-2">Failed to Load Contests</h3>
           <p className="text-primary-black-400 mb-4">{error}</p>
           <button
-            onClick={loadData}
+            onClick={refresh}
             className="px-4 py-2 bg-primary-black-800 hover:bg-primary-black-700 text-white rounded-lg transition-colors"
           >
             Try Again

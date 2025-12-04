@@ -2,6 +2,7 @@
 export { useLineupStats } from './useLineupStats';
 export { useProjectedMedian } from './useProjectedMedian';
 export { usePlayerProfile } from './usePlayerProfile';
-export { useLeagueContext } from './useLeagueContext';
+export { useLeagueContext, invalidateLeagueCache } from './useLeagueContext';
 export { usePublicContestContext } from './usePublicContestContext';
-export { useMultipleContests } from './useMultipleContests';
+export { useMultipleContests, invalidateMultiContestCache } from './useMultipleContests';
+export { useContests, invalidateContestCache } from './useContests';

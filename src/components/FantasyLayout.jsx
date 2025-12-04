@@ -8,7 +8,7 @@ import FantasyNavBanner from './FantasyNavBanner';
 function FantasyLayoutInner() {
   const loaderData = useLoaderData();
   const { user, profile, activeTeam } = loaderData;
-  const { lineup, setLineup, projections, liveGameData, currentWeek, weekStatus, inventory, loadInventory, updateInventory, teamStartsNextWeek } = useFantasy();
+  const { lineup, setLineup, projections, liveGameData, currentWeek, weekStatus, inventory, loadInventory, updateInventory, teamStartsNextWeek, lineupStats } = useFantasy();
   const location = useLocation();
   const revalidator = useRevalidator();
   const previousWeekStatus = usePrevious(weekStatus);
@@ -78,7 +78,8 @@ function FantasyLayoutInner() {
           updateInventory,
           refreshProfile,
           updateCoins,
-          teamStartsNextWeek
+          teamStartsNextWeek,
+          lineupStats
         }} />
       </main>
     </div>

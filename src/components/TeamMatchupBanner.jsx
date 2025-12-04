@@ -112,15 +112,8 @@ export default function TeamMatchupBanner({
   // Track previous week status to detect finalization
   const previousWeekStatus = usePrevious(contextWeekStatus);
   
-  // Refetch contest data when navigating TO the starting lineup page
-  // This ensures newly joined contests appear immediately
-  useEffect(() => {
-    if (shouldRefetchContests) {
-      console.log('🔄 [TeamMatchupBanner] Navigated to starting lineup - refreshing contest data...');
-      refetchMultipleContests();
-      refetchContestContext();
-    }
-  }, [shouldRefetchContests, refetchMultipleContests, refetchContestContext]);
+  // Note: Contest data caching is now handled by module-level cache in hooks
+  // Cache is invalidated when joining contests, so no forced refetch needed here
   
   // Refresh league context when week finalizes (updates wins/losses/lives)
   useEffect(() => {

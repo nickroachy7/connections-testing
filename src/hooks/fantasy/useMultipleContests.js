@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../../services/supabase';
 import { getTeamContestEntryStatus } from '../../services/contestService';
 
@@ -8,25 +8,81 @@ import { getTeamContestEntryStatus } from '../../services/contestService';
  * Fetches all contest entries for a team for their eligible week.
  * Supports switching between multiple contests with swipe gestures.
  * Includes all contest-specific data needed for TeamScoreBanner rendering.
+ * 
+ * Uses module-level caching to persist data across component mounts,
+ * preventing refetches when navigating between pages.
  */
-export function useMultipleContests(teamId) {
-  const [contests, setContests] = useState([]);
-  const [selectedIndex, setSelectedIndex] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [weekData, setWeekData] = useState(null);
-  const [entryStatus, setEntryStatus] = useState(null);
 
-  const fetchContests = useCallback(async () => {
+// Module-level cache to persist across component mounts
+const multiContestCache = {
+  data: null,
+  teamId: null,
+  week: null,
+  timestamp: null
+};
+
+const STALE_TIME = 5 * 60 * 1000; // 5 minutes
+
+// Helper to check if cache is valid for a given teamId
+function isCacheValidForTeam(teamId) {
+  if (!multiContestCache.data || !multiContestCache.timestamp) return false;
+  if (multiContestCache.teamId !== teamId) return false;
+  const age = Date.now() - multiContestCache.timestamp;
+  return age < STALE_TIME;
+}
+
+export function useMultipleContests(teamId) {
+  // Initialize from cache if valid for this team
+  const cacheValid = isCacheValidForTeam(teamId);
+  
+  const [contests, setContests] = useState(() => 
+    cacheValid ? multiContestCache.data.contests : []
+  );
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const [loading, setLoading] = useState(!cacheValid);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [error, setError] = useState(null);
+  const [weekData, setWeekData] = useState(() => 
+    cacheValid ? multiContestCache.data.weekData : null
+  );
+  const [entryStatus, setEntryStatus] = useState(() => 
+    cacheValid ? multiContestCache.data.entryStatus : null
+  );
+  
+  const mountedRef = useRef(true);
+
+  // Check if cache is valid (using the helper)
+  const isCacheValid = useCallback(() => {
+    return isCacheValidForTeam(teamId);
+  }, [teamId]);
+
+  const fetchContests = useCallback(async (forceRefresh = false) => {
     if (!teamId) {
       setContests([]);
       setLoading(false);
       return;
     }
 
-    try {
+    // Check cache first (unless force refresh)
+    if (!forceRefresh && isCacheValid()) {
+      console.log('🎯 [useMultipleContests] Using cached data');
+      setContests(multiContestCache.data.contests);
+      setWeekData(multiContestCache.data.weekData);
+      setEntryStatus(multiContestCache.data.entryStatus);
+      setLoading(false);
+      return;
+    }
+
+    // Show loading state only if no cached data
+    if (!multiContestCache.data) {
       setLoading(true);
-      setError(null);
+    } else {
+      setIsRefreshing(true);
+    }
+    
+    setError(null);
+
+    try {
 
       // Get current NFL week and team info
       const [configResult, teamResult] = await Promise.all([
@@ -192,19 +248,62 @@ export function useMultipleContests(teamId) {
         };
       }));
 
+      if (!mountedRef.current) return;
+
+      // Update cache
+      const newWeekData = { nflCurrentWeek, currentSeason, weekStatus, eligibleWeek, isLive, isFinal };
+      multiContestCache.data = {
+        contests: contestData,
+        weekData: newWeekData,
+        entryStatus: statusResult.data
+      };
+      multiContestCache.teamId = teamId;
+      multiContestCache.week = eligibleWeek;
+      multiContestCache.timestamp = Date.now();
+
+      // Update state
       setContests(contestData);
+      setWeekData(newWeekData);
+      
+      console.log('✅ [useMultipleContests] Data loaded:', contestData.length, 'contests for week', eligibleWeek);
     } catch (err) {
       console.error('Error fetching multiple contests:', err);
-      setError(err);
-      setContests([]);
+      if (mountedRef.current) {
+        setError(err);
+        setContests([]);
+      }
     } finally {
-      setLoading(false);
+      if (mountedRef.current) {
+        setLoading(false);
+        setIsRefreshing(false);
+      }
     }
-  }, [teamId]); // Only refetch when teamId changes, not selectedIndex
+  }, [teamId, isCacheValid]); // Only refetch when teamId changes
 
-  useEffect(() => {
-    fetchContests();
+  // Invalidate cache and force refresh
+  const invalidateCache = useCallback(() => {
+    multiContestCache.timestamp = null;
+    return fetchContests(true);
   }, [fetchContests]);
+
+  // Initial load - use cache if valid
+  useEffect(() => {
+    mountedRef.current = true;
+    
+    // If cache is valid for this team, use it immediately
+    if (isCacheValid()) {
+      setContests(multiContestCache.data.contests);
+      setWeekData(multiContestCache.data.weekData);
+      setEntryStatus(multiContestCache.data.entryStatus);
+      setLoading(false);
+    } else {
+      fetchContests();
+    }
+
+    return () => {
+      mountedRef.current = false;
+    };
+  }, [teamId]); // Only re-run when teamId changes
   
   // Entry status derived values
   const canEnterMore = entryStatus?.can_enter_more ?? false;
@@ -255,9 +354,11 @@ export function useMultipleContests(teamId) {
     totalContests: contests.length,
     hasMultiple: contests.length > 1,
     loading,
+    isRefreshing,
     error,
     weekData,
     refetch: fetchContests,
+    invalidateCache,
     nextContest,
     prevContest,
     goToContest,
@@ -279,4 +380,9 @@ export function useMultipleContests(teamId) {
     opponentName: currentContest?.opponentName || null,
     opponentScore: currentContest?.opponentScore || null
   };
+}
+
+// Export cache invalidation for external use
+export function invalidateMultiContestCache() {
+  multiContestCache.timestamp = null;
 }
