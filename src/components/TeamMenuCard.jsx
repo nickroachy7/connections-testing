@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Info } from 'lucide-react';
 import { supabase } from '../services/supabase';
 
+// BANNER_THEMES must match TeamBanner.jsx exactly - darker -900 colors
 const BANNER_THEMES = [
   { id: 'default', name: 'Classic Dark', bg: 'bg-dk-black-secondary' },
   { id: 'ocean', name: 'Ocean Blue', bg: 'bg-gradient-to-r from-blue-900 via-blue-800 to-cyan-900' },
@@ -31,8 +32,8 @@ export default function TeamMenuCard({
   const navigate = useNavigate();
   const [globalRank, setGlobalRank] = useState(null);
   
-  // Use saved theme or default to forest (matches TeamBanner default)
-  const bannerTheme = localStorage.getItem(`bannerTheme_${team.id}`) || 'forest';
+  // Use database theme first, fallback to localStorage for backwards compatibility
+  const bannerTheme = team.banner_theme || localStorage.getItem(`bannerTheme_${team.id}`) || 'forest';
   const theme = BANNER_THEMES.find(t => t.id === bannerTheme) || BANNER_THEMES[2]; // Default to forest
   
   const maxLosses = team.contest_type?.max_losses || 3;
@@ -80,8 +81,8 @@ export default function TeamMenuCard({
         onClick={handleCardClick}
         className={`${theme.bg} rounded-xl overflow-hidden cursor-pointer transition-all duration-200 hover:scale-[1.02]`}
       >
-        <div className="px-4 py-3">
-          <div className="flex items-center gap-3 relative">
+        <div className="px-4 py-3 h-[88px]">
+          <div className="flex items-center gap-3 relative h-full">
             {/* Team Avatar */}
             <div className="flex-shrink-0">
               {team.team_image_url ? (
@@ -101,19 +102,12 @@ export default function TeamMenuCard({
 
             {/* Team Info */}
             <div className="flex-1 min-w-0 pr-12 flex flex-col justify-center">
-              <div className="flex items-center gap-1.5">
-                <h3 className="text-lg font-bold text-white truncate leading-none">
-                  {team.team_name}
-                </h3>
-                <span className="text-[11px] text-white/50 font-medium">
-                  • DFS
-                </span>
+              <h3 className="text-lg font-bold text-white truncate leading-none">
+                {team.team_name}
+              </h3>
+              <div className="text-[11px] text-white/70 font-medium truncate mt-0.5 h-[14px]">
+                {team.users?.username || ''}
               </div>
-              {team.users?.username && (
-                <div className="text-[11px] text-white/70 font-medium truncate mt-0.5">
-                  {team.users.username}
-                </div>
-              )}
               
               {/* Stats Row - matches TeamBanner exactly */}
               <div className="flex items-center gap-1.5 text-[11px] mt-1">

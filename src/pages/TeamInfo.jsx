@@ -48,15 +48,15 @@ export default function TeamInfo() {
       loadTeamData();
     }
   }, [activeTeam?.id]);
-  // Initialize customization state from activeTeam and localStorage
+  // Initialize customization state from activeTeam
   useEffect(() => {
     if (activeTeam) {
       setEditedName(activeTeam.team_name || '');
       setTeamImage(activeTeam.team_image_url || null);
-      const savedTheme = localStorage.getItem(`bannerTheme_${activeTeam.id}`);
-      setSelectedTheme(savedTheme || 'forest');
+      // Load theme from database, fallback to localStorage for backwards compatibility
+      setSelectedTheme(activeTeam.banner_theme || localStorage.getItem(`bannerTheme_${activeTeam.id}`) || 'forest');
     }
-  }, [activeTeam?.id, activeTeam?.team_name, activeTeam?.team_image_url]);
+  }, [activeTeam?.id, activeTeam?.team_name, activeTeam?.team_image_url, activeTeam?.banner_theme]);
 
   const loadTeamData = async () => {
     try {
@@ -175,10 +175,27 @@ export default function TeamInfo() {
     }
   };
 
-  // Theme change handler
-  const handleThemeChange = (themeId) => {
+  // Theme change handler - saves to database
+  const handleThemeChange = async (themeId) => {
     setSelectedTheme(themeId);
-    localStorage.setItem(`bannerTheme_${activeTeam.id}`, themeId);
+    
+    // Save to database
+    try {
+      const { error } = await supabase
+        .from('teams')
+        .update({ banner_theme: themeId })
+        .eq('id', activeTeam.id);
+      
+      if (error) {
+        console.error('Error saving theme:', error);
+        showError('Failed to save theme');
+      } else {
+        // Also update localStorage for backwards compatibility
+        localStorage.setItem(`bannerTheme_${activeTeam.id}`, themeId);
+      }
+    } catch (err) {
+      console.error('Error saving theme:', err);
+    }
   };
 
   // Delete team handler

@@ -34,24 +34,21 @@ export default function TeamHeader({
   const fileInputRef = useRef(null);
   const colorPickerRef = useRef(null);
 
+  // themeOptions must match TeamBanner.jsx exactly - darker -900 colors
   const themeOptions = [
     { id: 'default', name: 'Classic Dark', bg: 'bg-dk-black-secondary', preview: 'linear-gradient(to right, #1a1a1a, #1a1a1a)' },
-    { id: 'ocean', name: 'Ocean Blue', bg: 'bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-500', preview: 'linear-gradient(to right, rgb(37, 99, 235), rgb(59, 130, 246), rgb(6, 182, 212))' },
-    { id: 'forest', name: 'Forest Green', bg: 'bg-gradient-to-r from-green-600 via-emerald-500 to-teal-500', preview: 'linear-gradient(to right, rgb(22, 163, 74), rgb(16, 185, 129), rgb(20, 184, 166))' },
-    { id: 'sunset', name: 'Sunset Orange', bg: 'bg-gradient-to-r from-orange-500 via-red-500 to-pink-500', preview: 'linear-gradient(to right, rgb(249, 115, 22), rgb(239, 68, 68), rgb(236, 72, 153))' },
-    { id: 'purple', name: 'Royal Purple', bg: 'bg-gradient-to-r from-purple-600 via-purple-500 to-indigo-500', preview: 'linear-gradient(to right, rgb(147, 51, 234), rgb(168, 85, 247), rgb(99, 102, 241))' },
-    { id: 'crimson', name: 'Fire Red', bg: 'bg-gradient-to-r from-red-600 via-orange-500 to-yellow-500', preview: 'linear-gradient(to right, rgb(220, 38, 38), rgb(249, 115, 22), rgb(234, 179, 8))' },
-    { id: 'midnight', name: 'Midnight Blue', bg: 'bg-gradient-to-r from-slate-800 via-blue-900 to-indigo-900', preview: 'linear-gradient(to right, rgb(30, 41, 59), rgb(30, 58, 138), rgb(49, 46, 129))' },
-    { id: 'emerald', name: 'Emerald Dream', bg: 'bg-gradient-to-r from-emerald-600 via-green-500 to-lime-500', preview: 'linear-gradient(to right, rgb(5, 150, 105), rgb(34, 197, 94), rgb(132, 204, 22))' },
-    { id: 'rose', name: 'Rose Gold', bg: 'bg-gradient-to-r from-pink-500 via-rose-400 to-red-400', preview: 'linear-gradient(to right, rgb(236, 72, 153), rgb(251, 113, 133), rgb(248, 113, 113))' },
-    { id: 'arctic', name: 'Arctic Ice', bg: 'bg-gradient-to-r from-cyan-500 via-blue-400 to-indigo-400', preview: 'linear-gradient(to right, rgb(6, 182, 212), rgb(96, 165, 250), rgb(129, 140, 248))' }
+    { id: 'ocean', name: 'Ocean Blue', bg: 'bg-gradient-to-r from-blue-900 via-blue-800 to-cyan-900', preview: 'linear-gradient(to right, rgb(30, 58, 138), rgb(30, 64, 175), rgb(22, 78, 99))' },
+    { id: 'forest', name: 'Forest Green', bg: 'bg-gradient-to-r from-emerald-900 via-green-800 to-teal-900', preview: 'linear-gradient(to right, rgb(6, 78, 59), rgb(22, 101, 52), rgb(19, 78, 74))' },
+    { id: 'sunset', name: 'Sunset Orange', bg: 'bg-gradient-to-r from-orange-900 via-red-900 to-pink-900', preview: 'linear-gradient(to right, rgb(124, 45, 18), rgb(127, 29, 29), rgb(131, 24, 67))' },
+    { id: 'purple', name: 'Royal Purple', bg: 'bg-gradient-to-r from-purple-900 via-purple-800 to-indigo-900', preview: 'linear-gradient(to right, rgb(88, 28, 135), rgb(107, 33, 168), rgb(49, 46, 129))' },
+    { id: 'crimson', name: 'Fire Red', bg: 'bg-gradient-to-r from-red-900 via-orange-900 to-yellow-900', preview: 'linear-gradient(to right, rgb(127, 29, 29), rgb(124, 45, 18), rgb(113, 63, 18))' },
+    { id: 'midnight', name: 'Midnight Blue', bg: 'bg-gradient-to-r from-slate-900 via-blue-950 to-indigo-950', preview: 'linear-gradient(to right, rgb(15, 23, 42), rgb(23, 37, 84), rgb(30, 27, 75))' },
+    { id: 'emerald', name: 'Emerald Dream', bg: 'bg-gradient-to-r from-emerald-900 via-green-800 to-lime-900', preview: 'linear-gradient(to right, rgb(6, 78, 59), rgb(22, 101, 52), rgb(54, 83, 20))' },
+    { id: 'rose', name: 'Rose Gold', bg: 'bg-gradient-to-r from-pink-900 via-rose-800 to-red-900', preview: 'linear-gradient(to right, rgb(131, 24, 67), rgb(159, 18, 57), rgb(127, 29, 29))' },
+    { id: 'arctic', name: 'Arctic Ice', bg: 'bg-gradient-to-r from-cyan-900 via-blue-900 to-indigo-900', preview: 'linear-gradient(to right, rgb(22, 78, 99), rgb(30, 58, 138), rgb(49, 46, 129))' }
   ];
 
-  useEffect(() => {
-    const savedTheme = localStorage.getItem(`bannerTheme_${teamId}`);
-    setBannerTheme(savedTheme || 'default');
-  }, [teamId]);
-
+  // Click outside handler for color picker
   useEffect(() => {
     function handleClickOutside(event) {
       if (colorPickerRef.current && !colorPickerRef.current.contains(event.target)) {
@@ -64,10 +61,24 @@ export default function TeamHeader({
     }
   }, [showColorPicker]);
 
-  const handleThemeChange = (themeId) => {
+  const handleThemeChange = async (themeId) => {
     setBannerTheme(themeId);
-    localStorage.setItem(`bannerTheme_${teamId}`, themeId);
     setShowColorPicker(false);
+    
+    // Save to database
+    try {
+      const { error } = await supabase
+        .from('teams')
+        .update({ banner_theme: themeId })
+        .eq('id', teamId);
+      
+      if (!error) {
+        // Also update localStorage for backwards compatibility
+        localStorage.setItem(`bannerTheme_${teamId}`, themeId);
+      }
+    } catch (err) {
+      console.error('Error saving theme:', err);
+    }
   };
 
   const getCurrentTheme = () => themeOptions.find(t => t.id === bannerTheme) || themeOptions[0];
@@ -77,13 +88,15 @@ export default function TeamHeader({
       const fetchTeamData = async () => {
         const { data, error } = await supabase
           .from('teams')
-          .select('team_image_url, team_name')
+          .select('team_image_url, team_name, banner_theme')
           .eq('id', teamId)
           .single();
 
         if (!error && data) {
           setTeamImage(data.team_image_url);
           setLocalTeamName(data.team_name);
+          // Load theme from database, fallback to localStorage
+          setBannerTheme(data.banner_theme || localStorage.getItem(`bannerTheme_${teamId}`) || 'default');
         }
       };
       fetchTeamData();
