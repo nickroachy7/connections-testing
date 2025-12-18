@@ -5,7 +5,21 @@ import {
   getTierBadgeInfo,
   getPullPercentageColor
 } from './tableHelpers.jsx';
-import { getPositionColorClasses as getPositionColorClassesFromConstants } from '../../constants/colors';
+import { getPositionColorClasses as getPositionColorClassesFromConstants, getInjuryColor } from '../../constants/colors';
+
+// Helper to get injury status abbreviation
+const getInjuryAbbr = (status) => {
+  if (!status || status === 'healthy') return null;
+  const s = status.toLowerCase();
+  if (s.includes('out') || s === 'o') return 'O';
+  if (s.includes('ir') || s.includes('injured reserve')) return 'IR';
+  if (s.includes('doubtful') || s === 'd') return 'D';
+  if (s.includes('questionable') || s === 'q') return 'Q';
+  if (s.includes('probable') || s === 'p') return 'P';
+  if (s.includes('pup')) return 'PUP';
+  if (s.includes('suspended')) return 'SUSP';
+  return status.substring(0, 3).toUpperCase();
+};
 
 /**
  * PlayerRow - CANONICAL player row component
@@ -234,11 +248,14 @@ const PlayerRow = ({
             <span className="px-1.5 py-0.5 bg-primary-black-700 text-primary-black-400 rounded text-[9px] font-semibold flex-shrink-0">
               {getPositionAbbr(player.player_card.position)}
             </span>
-            {showTierBadge && player.card_tier && (
-              <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${getTierBadgeInfo(player.card_tier).color} flex-shrink-0 leading-tight`}>
-                {getTierBadgeInfo(player.card_tier).initial}
-              </span>
-            )}
+{(() => {
+              const injuryAbbr = getInjuryAbbr(player.player_card?.injury_status);
+              return injuryAbbr ? (
+                <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${getInjuryColor(player.player_card?.injury_status)} flex-shrink-0 leading-tight`}>
+                  {injuryAbbr}
+                </span>
+              ) : null;
+            })()}
             {showInLineupBadge && isInLineup && (
               <span className="px-1.5 py-0.5 bg-primary-green-500/20 text-primary-green-400 rounded text-[9px] font-bold uppercase flex-shrink-0 leading-tight">
                 IN LINEUP
@@ -506,11 +523,14 @@ const MobileRowContent = ({
           <h4 className="font-bold text-primary-black-50 truncate text-sm leading-tight">
             {player.player_card.player_name}
           </h4>
-          {showTierBadge && player.card_tier && (
-            <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${getTierBadgeInfo(player.card_tier).color} flex-shrink-0 leading-tight`}>
-              {getTierBadgeInfo(player.card_tier).initial}
-            </span>
-          )}
+{(() => {
+            const injuryAbbr = getInjuryAbbr(player.player_card?.injury_status);
+            return injuryAbbr ? (
+              <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${getInjuryColor(player.player_card?.injury_status)} flex-shrink-0 leading-tight`}>
+                {injuryAbbr}
+              </span>
+            ) : null;
+          })()}
           {showInLineupBadge && isInLineup && (
             <span className="px-1.5 py-0.5 bg-primary-green-500/20 text-primary-green-400 rounded text-[8px] font-bold uppercase flex-shrink-0 leading-tight">
               IN LINEUP
