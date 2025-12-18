@@ -331,7 +331,7 @@ Deno.serve(async (req) => {
 
     const { data: players, error: playersError } = await supabase
       .from('player_cards')
-      .select('id, player_id, position, team_abbreviation')
+      .select('id, player_id, position, team_abbreviation, depth_chart_position')
       .eq('is_active', true);
 
     if (playersError) throw playersError;
@@ -361,45 +361,35 @@ Deno.serve(async (req) => {
       console.warn(`⚠️ No games found for Week ${currentWeek}. All players will be treated as having games.`);
     }
 
-    let updated = 0, apiCalls = 0, successfulCalls = 0, injuryChecks = 0, byeWeekCount = 0;
+    let updated = 0, apiCalls = 0, successfulCalls = 0, byeWeekCount = 0;
     const batchSize = 25; // BallDontLie API supports multiple player_ids per call
 
-    // First, fetch injury data for all players in batches
-    console.log('Fetching injury data for all players...');
+    // Build injury map from existing player_cards injury data (synced separately by sync-injuries)
+    console.log('Loading existing injury data from database...');
     const injuryMap = new Map<string, string>();
     
-    for (let i = 0; i < players.length; i += batchSize) {
-      const batch = players.slice(i, i + batchSize);
-      const batchPlayerIds = batch.map(p => parseInt(p.player_id));
-      
-      try {
-        const playerIdsParams = batchPlayerIds.map(id => `player_ids[]=${id}`).join('&');
-        const injuryUrl = `https://api.balldontlie.io/nfl/v1/injuries?${playerIdsParams}`;
-        
-        const injuryResponse = await fetch(injuryUrl, {
-          headers: { 'Authorization': nflApiKey }
-        });
-        
-        if (injuryResponse.ok) {
-          const injuryData = await injuryResponse.json();
-          if (injuryData?.data && injuryData.data.length > 0) {
-            injuryChecks++;
-            injuryData.data.forEach((injury: any) => {
-              if (injury.player?.id && injury.designation) {
-                injuryMap.set(injury.player.id.toString(), injury.designation);
-              }
-            });
-            console.log(`Injury batch ${Math.floor(i/batchSize)+1}: Found ${injuryData.data.length} injury reports`);
-          }
+    const { data: injuryData, error: injuryError } = await supabase
+      .from('player_cards')
+      .select('player_id, injury_status')
+      .not('injury_status', 'eq', 'healthy')
+      .not('injury_status', 'is', null);
+    
+    if (!injuryError && injuryData) {
+      injuryData.forEach((p: any) => {
+        if (p.player_id && p.injury_status) {
+          injuryMap.set(p.player_id, p.injury_status);
         }
-        
-        await new Promise(r => setTimeout(r, 100));
-      } catch (e) {
-        console.log(`Injury API error for batch ${Math.floor(i/batchSize)+1}:`, e);
-      }
+      });
+      console.log(`Loaded ${injuryMap.size} players with injury status from database`);
+    } else if (injuryError) {
+      console.warn('Could not load injury data:', injuryError.message);
     }
     
-    console.log(`Total injury statuses retrieved: ${injuryMap.size}`);
+    console.log(`Total injury statuses loaded: ${injuryMap.size}`);
+
+    // Build a map of team -> position -> players with their stats to determine starters
+    // This helps identify backup QBs, RB2s, etc. who shouldn't get full projections
+    const teamPositionMap = new Map<string, Map<string, { playerId: string; attempts: number }[]>>();
 
     // Helper function for API calls with retry logic
     async function fetchWithRetry(url: string, headers: any, retries = 3): Promise<Response> {
@@ -486,18 +476,46 @@ Deno.serve(async (req) => {
           };
           projected = seasonAvg * (multipliers[player.position] || 1.0);
           
-          // Detect backup/low-usage players and heavily reduce projections
-          // If they've played < 4 games OR have very low total production, they're likely backups
-          const totalSeasonPoints = calculateFantasyPoints(stats, player.position, defaultScoringType);
-          const isLowUsage = gamesPlayed < 4 || totalSeasonPoints < 20;
+          // Detect backup/low-usage players and reduce projections appropriately
+          // Key insight: QB backups don't play, but WR3/RB2 often contribute in fantasy
           
-          if (isLowUsage) {
-            // Backups/rarely used players get minimal projections (they shouldn't be started)
-            const backupProjections: Record<string, number> = {
-              'Quarterback': 3, 'Running Back': 2, 'Wide Receiver': 2,
-              'Tight End': 1.5, 'Kicker': 5, 'Place kicker': 5, 'Defense': 4,
+          const totalSeasonPoints = calculateFantasyPoints(stats, player.position, defaultScoringType);
+          
+          // For QBs: check pass attempts per game (starters avg 30+, backups much less)
+          const attemptsPerGame = stats.passing_attempts ? stats.passing_attempts / gamesPlayed : 0;
+          const isBackupQBByStats = player.position === 'Quarterback' && attemptsPerGame < 20;
+          
+          // Depth chart position from Sleeper API
+          // depth_chart_position: 1=starter, 2=backup, 3+=deep backup
+          const isStarterByDepthChart = player.depth_chart_position === 1;
+          
+          // ONLY QBs get zero projection for being a backup - since only 1 QB plays
+          // WR/RB/TE depth chart positions 2-4 still contribute fantasy points
+          const isBackupQBByDepthChart = player.position === 'Quarterback' && 
+            player.depth_chart_position && player.depth_chart_position >= 2;
+          
+          // For non-QBs, only flag as "backup" if they have very low usage stats
+          // (depth chart position 2-3 for WR/RB is fine - they still play)
+          const isLowUsageByStats = gamesPlayed < 4 || totalSeasonPoints < 15;
+          
+          // Decision logic:
+          // - QBs: depth chart backup = 0 projection (only 1 QB plays)
+          // - Other positions: use stats to determine if they're fantasy-irrelevant
+          const isBackup = isBackupQBByDepthChart || 
+            (!isStarterByDepthChart && !player.depth_chart_position && isLowUsageByStats) ||
+            (player.position === 'Quarterback' && !isStarterByDepthChart && isBackupQBByStats);
+          
+          if (isBackup) {
+            // True backups (QBs or low-usage players) get 0 projections
+            projected = 0;
+          } else if (isStarterByDepthChart && projected < 5) {
+            // Depth chart starters with low/no stats get a baseline projection
+            // This handles cases like a backup QB becoming starter due to injury
+            const starterBaselines: Record<string, number> = {
+              'Quarterback': 14, 'Running Back': 8, 'Wide Receiver': 8,
+              'Tight End': 6, 'Kicker': 7, 'Place kicker': 7, 'Defense': 7,
             };
-            projected = backupProjections[player.position] || 2;
+            projected = starterBaselines[player.position] || 6;
           }
           
           // Apply injury multiplier
@@ -547,6 +565,7 @@ Deno.serve(async (req) => {
         }
 
         // Individual UPDATE query for each player - includes new rarity fields
+        // NOTE: injury_status is NOT updated here - managed by sync-injuries function
         const { error } = await supabase
           .from('player_cards')
           .update({
@@ -556,8 +575,6 @@ Deno.serve(async (req) => {
             season_avg_points: Math.round(seasonAvg * 10) / 10,
             games_played_season: gamesPlayed,
             games_played: gamesPlayed,
-            injury_status: injuryStatus,
-            injury_designation: injuryStatus,
             projection_notes: projectionNotes,
             pull_percentage: rarity.display_percentage,
             rarity_tier: rarity.rarity_tier,
@@ -578,7 +595,7 @@ Deno.serve(async (req) => {
 
     console.log(`✅ Projection update complete: ${updated}/${players.length} players updated`);
     console.log(`📊 Stats API calls: ${apiCalls} (${successfulCalls} successful)`);
-    console.log(`🏥 Injury checks: ${injuryChecks} batches, ${injuryMap.size} total injury statuses found`);
+    console.log(`🏥 Injuries loaded from DB: ${injuryMap.size}`);
     console.log(`🚫 Bye weeks: ${byeWeekCount} players on bye (projection set to 0)`);
 
     return new Response(JSON.stringify({
@@ -587,8 +604,7 @@ Deno.serve(async (req) => {
       total_players: players.length, 
       api_calls: apiCalls,
       successful_calls: successfulCalls,
-      injury_checks: injuryChecks,
-      injuries_found: injuryMap.size,
+      injuries_loaded: injuryMap.size,
       bye_week_count: byeWeekCount,
       season: currentSeason,
       week: currentWeek,

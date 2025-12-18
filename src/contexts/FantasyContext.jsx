@@ -211,28 +211,14 @@ export function FantasyProvider({ children, user, activeTeam, initialInventory }
         return;
       }
       
-      // Check if any games have started for current week
-      const hasGamesStarted = gamesData.some(g => g.game_status === 'live' || g.game_status === 'halftime' || g.game_status === 'final');
-      
-      // If no games started yet, show previous week's final stats
-      let displayWeek = weekNumber;
+      // FIXED: Always show current week's games - don't fall back to previous week
+      // This ensures:
+      // 1. Pre-game: Players see scheduled matchups with game times
+      // 2. Live: Players see live scores
+      // 3. Final: Players see final results
+      // Previously this would show Week 15's final results during Week 16 pre-game, which was confusing
+      let displayWeek = teamWeek;
       let displayGames = gamesData;
-      
-      if (!hasGamesStarted && weekNumber > 1) {
-        console.log('🎮 [FantasyContext] No games started yet, loading previous week stats');
-        displayWeek = weekNumber - 1;
-        
-        const { data: previousWeekGames, error: prevError } = await supabase
-          .from('game_scores')
-          .select('*')
-          .eq('week_number', displayWeek)
-          .eq('season_year', seasonYear)
-          .eq('game_status', 'final');
-        
-        if (!prevError && previousWeekGames) {
-          displayGames = previousWeekGames;
-        }
-      }
       
       // Load player stats for display week
       const gameIds = displayGames.map(g => g.game_id);

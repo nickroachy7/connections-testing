@@ -332,11 +332,11 @@ const PlayerRow = ({
           {gameData?.currentPoints !== undefined && isGameLiveOrFinal ? (
             <>
               <span className="text-base text-white font-bold leading-tight">{gameData.currentPoints.toFixed(1)}</span>
-              {projection?.projected && projection.projected > 0 && (
+              {projection?.projected !== undefined && (
                 <span className="text-[10px] text-primary-black-500 leading-tight">{projection.projected.toFixed(1)}</span>
               )}
             </>
-          ) : projection?.projected && projection.projected > 0 ? (
+          ) : projection?.projected !== undefined ? (
             <>
               <span className="text-sm text-primary-black-500 leading-tight">--</span>
               <span className="text-[10px] text-primary-black-500 leading-tight">{projection.projected.toFixed(1)}</span>
@@ -607,13 +607,13 @@ const MobileRowContent = ({
       {gameData?.currentPoints !== undefined && isGameLiveOrFinal ? (
         <div className="flex flex-col items-center">
           <span className="text-sm text-white font-bold leading-tight">{gameData.currentPoints.toFixed(1)}</span>
-          {projection?.projected && projection.projected > 0 && (
+          {projection?.projected !== undefined && (
             <span className="text-[9px] text-primary-black-500 leading-tight">{projection.projected.toFixed(1)}</span>
           )}
         </div>
       ) : (
         <div className="flex flex-col items-center">
-          {projection?.projected && projection.projected > 0 ? (
+          {projection?.projected !== undefined ? (
             <>
               <span className="text-[11px] text-primary-black-500">--</span>
               <span className="text-[9px] text-primary-black-500 leading-tight">{projection.projected.toFixed(1)}</span>
