@@ -467,7 +467,7 @@ export default function TeamInfo() {
         </div>
       </div>
 
-      {/* Performance Summary - Mobile Optimized 2x2 Grid */
+      {/* Performance Summary - Mobile Optimized 2x2 Grid */}
       <div className="bg-primary-black-800/60 backdrop-blur-sm rounded-xl p-4 sm:p-6 border border-primary-black-700">
         <h2 className="text-lg sm:text-xl font-bold text-white mb-4 flex items-center gap-2">
           <Award className="w-5 h-5 text-primary-green-500" />
