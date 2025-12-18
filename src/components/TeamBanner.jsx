@@ -149,9 +149,9 @@ export default function TeamBanner({
   const [h2hOpponent, setH2hOpponent] = useState(null);
   const [h2hOpponentScore, setH2hOpponentScore] = useState(null);
   
-  // Team customization state
-  const [teamImage, setTeamImage] = useState(null);
-  const [bannerTheme, setBannerTheme] = useState('forest');
+  // Team customization state - initialize from team prop to avoid color flash
+  const [teamImage, setTeamImage] = useState(team?.team_image_url || null);
+  const [bannerTheme, setBannerTheme] = useState(team?.banner_theme || localStorage.getItem(`bannerTheme_${teamId}`) || 'forest');
   const [localTeamName, setLocalTeamName] = useState(teamName);
   
   // Info panel state
@@ -338,21 +338,13 @@ export default function TeamBanner({
     }
   }, [isInContest, displayWeek, isLive, isFinal, contestContext, contestWinCondition, contestOpponent, calculateContestMedian, calculateProjectedContestMedian, getOpponentScore, getCurrentRank, livePoints, projectedPoints]);
 
-  // Load banner theme from localStorage
-  useEffect(() => {
-    if (teamId) {
-      const savedTheme = localStorage.getItem(`bannerTheme_${teamId}`);
-      setBannerTheme(savedTheme || 'forest');
-    }
-  }, [teamId]);
-
-  // Load team image and name
+  // Load team data including banner theme from database
   useEffect(() => {
     if (teamId) {
       const fetchTeamData = async () => {
         const { data, error } = await supabase
           .from('teams')
-          .select('team_image_url, team_name, simulated_season_id')
+          .select('team_image_url, team_name, simulated_season_id, banner_theme')
           .eq('id', teamId)
           .single();
 
@@ -360,6 +352,8 @@ export default function TeamBanner({
           setTeamImage(data.team_image_url);
           setLocalTeamName(data.team_name);
           setSimulatedSeasonId(data.simulated_season_id);
+          // Load theme from database, fallback to localStorage for backwards compatibility
+          setBannerTheme(data.banner_theme || localStorage.getItem(`bannerTheme_${teamId}`) || 'forest');
         }
       };
       fetchTeamData();

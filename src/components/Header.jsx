@@ -15,10 +15,10 @@ const Header = () => {
 
   return (
     <header className="bg-primary-black-900/95 backdrop-blur-md sticky top-0 z-[110]">
-      <div className="px-4 pt-8 pb-6">
-        <div className="flex items-center justify-between relative">
+      <div className="px-4 pt-4 pb-3">
+        <div className="flex items-center justify-between relative h-8">
           {/* Back Button - Left */}
-          <div className="w-10 z-[111]">
+          <div className="w-10 z-[111] flex items-center">
             {showBackButton && (
               <button
                 onClick={() => navigate('/fantasy')}
