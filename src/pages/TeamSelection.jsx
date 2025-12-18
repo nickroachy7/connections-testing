@@ -12,7 +12,6 @@ export default function TeamSelection() {
   
   const [newTeamName, setNewTeamName] = useState('')
   const [loading, setLoading] = useState(false)
-  const [deletingTeamId, setDeletingTeamId] = useState(null)
   const [isSimulated, setIsSimulated] = useState(false)
   const [simulatedSeasons, setSimulatedSeasons] = useState([])
   const [loadingSeasons, setLoadingSeasons] = useState(true)
@@ -128,32 +127,6 @@ export default function TeamSelection() {
       setLoading(false)
       setNewTeamName('')
       setIsCreating(false)
-    }
-  }
-
-  const handleDeleteTeam = async (teamId, teamName) => {
-    if (!confirm(`Are you sure you want to delete "${teamName}"? This will permanently delete all players, tokens, lineups, and data associated with this team.`)) {
-      return
-    }
-
-    setDeletingTeamId(teamId)
-    try {
-      const { error } = await supabase.rpc('delete_team', {
-        p_team_id: teamId,
-        p_user_id: user.id
-      })
-
-      if (error) throw error
-
-      success(`Team "${teamName}" has been deleted`)
-      
-      // Remove team from local state
-      setTeams(teamsList.filter(t => t.id !== teamId))
-    } catch (error) {
-      console.error('Error deleting team:', error)
-      showError(error.message || 'Failed to delete team')
-    } finally {
-      setDeletingTeamId(null)
     }
   }
 
@@ -303,9 +276,6 @@ export default function TeamSelection() {
                 team={team}
                 isActive={team.is_active}
                 onClick={() => handleSelectTeam(team.id)}
-                onDelete={handleDeleteTeam}
-                showDelete={true}
-                isDeleting={deletingTeamId === team.id}
               />
             ))}
           </div>

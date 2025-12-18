@@ -71,8 +71,9 @@ const Header = () => {
     return null
   }
 
-  // Check if NOT on fantasy home page (show back button on all other pages)
-  const showBackButton = location.pathname !== '/fantasy';
+  // Main navigation pages - don't show back button on these
+  const mainPages = ['/home', '/fantasy', '/tbd', '/profile'];
+  const showBackButton = !mainPages.includes(location.pathname);
 
   return (
     <>

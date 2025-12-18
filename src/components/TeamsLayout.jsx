@@ -17,14 +17,9 @@ export default function TeamsLayout() {
 
   return (
     <div className="min-h-screen bg-primary-black-800">
-      {/* Header Section - Fantasy Home Banner - Persistent */}
+      {/* Header Section - Navigation Tabs - Persistent */}
       <header>
-        <FantasyHomeBanner 
-          username={profile?.username}
-          totalTeams={teams.length}
-          profile={profile}
-          teams={teams}
-        />
+        <FantasyHomeBanner />
       </header>
 
       {/* Main Content - Rendered by child routes */}

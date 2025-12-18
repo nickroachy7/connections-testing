@@ -35,6 +35,9 @@ const Activity = lazy(() => import('./pages/Activity'))
 const ViewTeam = lazy(() => import('./pages/ViewTeam'))
 const TeamInfo = lazy(() => import('./pages/TeamInfo'))
 const Contests = lazy(() => import('./pages/Contests'))
+const Home = lazy(() => import('./pages/Home'))
+const TBD = lazy(() => import('./pages/TBD'))
+const Profile = lazy(() => import('./pages/Profile'))
 
 // Loading fallback component
 function PageLoader() {
@@ -92,7 +95,18 @@ const router = createBrowserRouter([
         path: '/signup',
         element: <Signup />
       },
-      // Team Selection - wrapped in TeamsLayout for persistent banner
+      // Main pages - wrapped in TeamsLayout for persistent navigation banner
+      {
+        path: '/home',
+        element: <TeamsLayout />,
+        loader: dashboardLoader,
+        children: [
+          {
+            index: true,
+            element: <Home />
+          }
+        ]
+      },
       {
         path: '/fantasy',
         element: <TeamsLayout />,
@@ -101,6 +115,28 @@ const router = createBrowserRouter([
           {
             index: true,
             element: <TeamSelection />
+          }
+        ]
+      },
+      {
+        path: '/tbd',
+        element: <TeamsLayout />,
+        loader: dashboardLoader,
+        children: [
+          {
+            index: true,
+            element: <TBD />
+          }
+        ]
+      },
+      {
+        path: '/profile',
+        element: <TeamsLayout />,
+        loader: dashboardLoader,
+        children: [
+          {
+            index: true,
+            element: <Profile />
           }
         ]
       },
