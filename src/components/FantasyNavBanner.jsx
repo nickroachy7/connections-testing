@@ -36,7 +36,7 @@ export default function FantasyNavBanner({
   return (
     <>
       {/* Navigation tabs appear first - right below the header */}
-      <FantasyNavigation teamId={teamId} teamType={team?.team_type} />
+      <FantasyNavigation teamId={teamId} />
       
       {/* Team banner - always mounted to preserve hook state, but hidden when not on Starting Lineup */}
       <div className={isStartingLineupPage ? '' : 'hidden'}>

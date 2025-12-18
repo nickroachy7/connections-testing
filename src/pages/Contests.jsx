@@ -50,9 +50,6 @@ export default function Contests() {
     }
   }, [expandContestId, loading, setSearchParams]);
   
-  // Check if this is a private team (can't enter public contests)
-  const isPrivateTeam = activeTeam?.team_type === 'private';
-  
   // Lineup readiness
   const lineupReady = (lineup?.length > 0) || (lineupStats?.projectedPoints > 0);
   
@@ -117,19 +114,6 @@ export default function Contests() {
             </div>
           )}
           
-          {/* Private Team Warning */}
-          {isPrivateTeam && (
-            <div className="mb-4 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg flex items-start gap-2">
-              <AlertCircle className="w-4 h-4 text-yellow-500 flex-shrink-0 mt-0.5" />
-              <div>
-                <h3 className="text-xs font-semibold text-yellow-200">Private Team</h3>
-                <p className="text-xs text-yellow-200/80">
-                  This team cannot enter public contests. Create a public team to compete.
-                </p>
-              </div>
-            </div>
-          )}
-          
           {/* ========================================
               ENTERED CONTESTS SECTION
               ======================================== */}
@@ -144,7 +128,7 @@ export default function Contests() {
               {statusBadge}
             </div>
             {/* Lives indicator */}
-            {!isPrivateTeam && livesRemaining > 0 && (
+            {livesRemaining > 0 && (
               <div className="flex items-center gap-1">
                 {[...Array(livesRemaining)].map((_, i) => (
                   <Heart 
@@ -187,7 +171,7 @@ export default function Contests() {
           ======================================== */}
       
       {/* Future week info - only show if no contests entered yet */}
-      {!isPrivateTeam && isShowingFutureWeek && !hasEnteredContest && (
+      {isShowingFutureWeek && !hasEnteredContest && (
         <div className={`${hasEnteredContest ? 'mt-6' : 'mt-4'} mb-4 p-3 bg-primary-green-500/10 border border-primary-green-500/30 rounded-lg flex items-start gap-2`}>
           <Calendar className="w-4 h-4 text-primary-green-500 flex-shrink-0 mt-0.5" />
           <div>
@@ -206,7 +190,7 @@ export default function Contests() {
           return !isAlreadyEntered && !isFull;
         });
         
-        if (availableContests.length === 0 || isPrivateTeam) return null;
+        if (availableContests.length === 0) return null;
         
         return (
           <div className={`${hasEnteredContest ? 'mt-6' : 'pt-4'} mb-3`}>
@@ -260,7 +244,7 @@ export default function Contests() {
       
       {/* Contest Grid - Stack on mobile, grid on larger screens */}
       {/* Filter out already entered contests AND full contests */}
-      {!loading && !error && contests.length > 0 && !isPrivateTeam && (() => {
+      {!loading && !error && contests.length > 0 && (() => {
         const availableContests = contests.filter(contest => {
           const isAlreadyEntered = enteredContestIds.includes(contest.id);
           const isFull = contest.max_entries && contest.current_entries >= contest.max_entries;

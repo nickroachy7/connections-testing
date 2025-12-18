@@ -179,10 +179,8 @@ export default function TeamSelection() {
 
   if (!user) return null
 
-  // Ensure teams is an array and separate by type
+  // Ensure teams is an array - all teams are now DFS (public) teams
   const teamsList = Array.isArray(teams) ? teams : [];
-  const publicTeams = teamsList.filter(t => t.team_type === 'public' || !t.team_type);
-  const privateTeams = teamsList.filter(t => t.team_type === 'private');
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -296,10 +294,10 @@ export default function TeamSelection() {
       </div>
 
       {/* DFS Teams Grid */}
-      {publicTeams.length > 0 && (
+      {teamsList.length > 0 && (
         <div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {publicTeams.map((team) => (
+            {teamsList.map((team) => (
               <TeamMenuCard
                 key={team.id}
                 team={team}
@@ -315,7 +313,7 @@ export default function TeamSelection() {
       )}
 
       {/* No Teams Message */}
-      {publicTeams.length === 0 && !isCreating && (
+      {teamsList.length === 0 && !isCreating && (
         <div className="bg-dk-black-secondary border-2 border-dk-black-light rounded-lg p-12 text-center">
           <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-dk-black-tertiary flex items-center justify-center">
             <svg className="w-10 h-10 text-dk-white-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">

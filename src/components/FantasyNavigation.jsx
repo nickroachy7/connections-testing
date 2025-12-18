@@ -1,34 +1,18 @@
 import { useNavigate, useLocation } from 'react-router-dom';
 import PropTypes from 'prop-types';
 
-export default function FantasyNavigation({ teamId, teamType = 'public' }) {
+export default function FantasyNavigation({ teamId }) {
   const navigate = useNavigate();
   const location = useLocation();
 
   const isViewMode = location.pathname.includes('/view');
-  const isPublicTeam = teamType === 'public';
 
-  // Base navigation items (same for both types)
-  const baseNavItems = [
+  // Navigation items for DFS teams
+  const allNavItems = [
     { path: `/teams/${teamId}/starting-lineup`, label: 'LINEUP' },
     { path: `/teams/${teamId}/inventory`, label: 'INVENTORY' },
-    { path: `/teams/${teamId}/market`, label: 'MARKET' }
-  ];
-
-  // Public team specific items
-  const publicOnlyItems = [
+    { path: `/teams/${teamId}/market`, label: 'MARKET' },
     { path: `/teams/${teamId}/contests`, label: 'CONTESTS' }
-  ];
-
-  // Private team specific items
-  const privateOnlyItems = [
-    { path: `/teams/${teamId}/league`, label: 'LEAGUE' }
-  ];
-
-  // Build full nav based on team type
-  const allNavItems = [
-    ...baseNavItems,
-    ...(isPublicTeam ? publicOnlyItems : privateOnlyItems)
   ];
 
   const navItems = isViewMode 
@@ -69,6 +53,5 @@ export default function FantasyNavigation({ teamId, teamType = 'public' }) {
 }
 
 FantasyNavigation.propTypes = {
-  teamId: PropTypes.string.isRequired,
-  teamType: PropTypes.oneOf(['public', 'private'])
+  teamId: PropTypes.string.isRequired
 };

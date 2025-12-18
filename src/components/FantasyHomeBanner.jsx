@@ -81,7 +81,6 @@ export default function FantasyHomeBanner({ username, totalTeams, profile, teams
   const navItems = [
     { path: '/fantasy', label: 'DFS', enabled: true },
     { path: '/fantasy/contest-lobby', label: 'LOBBY', enabled: false },
-    { path: '/fantasy/leagues', label: 'FRANCHISE', enabled: true },
     { path: '/fantasy/players', label: 'PLAYERS', enabled: false }
   ];
 

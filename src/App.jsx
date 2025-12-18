@@ -33,10 +33,8 @@ const PackOpening = lazy(() => import('./pages/PackOpening'))
 const SimulatedSeason = lazy(() => import('./pages/SimulatedSeason'))
 const Activity = lazy(() => import('./pages/Activity'))
 const ViewTeam = lazy(() => import('./pages/ViewTeam'))
-const Leagues = lazy(() => import('./pages/Leagues'))
 const TeamInfo = lazy(() => import('./pages/TeamInfo'))
 const Contests = lazy(() => import('./pages/Contests'))
-const TeamLeague = lazy(() => import('./pages/TeamLeague'))
 
 // Loading fallback component
 function PageLoader() {
@@ -103,10 +101,6 @@ const router = createBrowserRouter([
           {
             index: true,
             element: <TeamSelection />
-          },
-          {
-            path: 'leagues',
-            element: <Leagues />
           }
         ]
       },
@@ -167,10 +161,6 @@ const router = createBrowserRouter([
           {
             path: 'contests',
             element: <Contests />
-          },
-          {
-            path: 'league',
-            element: <TeamLeague />
           },
           {
             path: 'activity',

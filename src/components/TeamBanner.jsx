@@ -846,7 +846,7 @@ export default function TeamBanner({
                     {localTeamName || 'Your Team'}
                   </h1>
                   <span className="text-[11px] text-white/50 font-medium">
-                    • {team?.team_type === 'private' ? 'League' : 'DFS'}
+                    • DFS
                   </span>
                 </div>
                 {username && (
