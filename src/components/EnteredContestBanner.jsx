@@ -382,16 +382,18 @@ function EnteredContestBanner({
             ======================================== */}
         <div className="px-3 py-2">
           <div className="flex items-center justify-between">
-            {/* Left: Risk & Reward - Compact */}
-            <div className="flex items-center gap-3">
+            {/* Left: Risk & Reward - Labeled */}
+            <div className="flex items-center gap-4">
               {/* Risk */}
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] uppercase tracking-wide text-white/40">Risk</span>
                 <Heart className="w-3 h-3 text-red-500 fill-red-500" />
                 <span className="text-xs font-medium text-white/60">{entry_cost}</span>
               </div>
 
-              {/* Reward - Only coins get color */}
-              <div className="flex items-center gap-1">
+              {/* Reward */}
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] uppercase tracking-wide text-white/40">Win</span>
                 <Coins className="w-3 h-3 text-yellow-500" />
                 <span className="text-xs font-medium text-yellow-500">{coin_reward}</span>
               </div>
