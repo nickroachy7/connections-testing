@@ -92,10 +92,10 @@ The Market is your one-stop shop for roster expansion. Access via the **MARKET**
 | Pack | Players | Tokens | Cost | Best For |
 |------|---------|--------|------|----------|
 | 🎁 Starter Pack | 12 | 3 | Free | New teams - full starting lineup + 3 bench |
-| 🥉 Bronze Pack | 3 | 1 | 150 | Budget roster additions |
-| 🥈 Silver Pack | 5 | 2 | 400 | Good value upgrade |
-| 🥇 Gold Pack | 8 | 3 | 750 | Premium roster boost |
-| 💎 Elite Pack | 12 | 5 | 1500 | Major roster overhaul |
+| 🥉 Bronze Pack | 3 | 1 | 15 | Budget roster additions |
+| 🥈 Silver Pack | 5 | 2 | 35 | Good value upgrade |
+| 🥇 Gold Pack | 8 | 3 | 60 | Premium roster boost |
+| 💎 Elite Pack | 12 | 5 | 100 | Major roster overhaul |
 
 **Starter Pack Contents (Team Creation)**
 - 2 QB (for QB and SUPERFLEX slots)
@@ -126,10 +126,10 @@ Claim individual players directly - no pack RNG required! Perfect for filling sp
 
 | Position | Cost | Typical Projection |
 |----------|------|-------------------|
-| QB | 75 coins | 5-10 pts |
-| RB | 50 coins | 4-8 pts |
-| WR | 50 coins | 4-8 pts |
-| TE | 40 coins | 3-6 pts |
+| QB | 5 coins | 5-10 pts |
+| RB | 4 coins | 4-8 pts |
+| WR | 4 coins | 4-8 pts |
+| TE | 3 coins | 3-6 pts |
 
 **Rules:**
 - ✅ Claim as many players as you want (if you have coins)
@@ -326,7 +326,7 @@ Weekly contests allow teams to compete for coin rewards by risking their Lives. 
 Team starts with 3 Lives (0 losses, max_losses = 3)
 
 Week 1: Enter 2 Duels (using 2 lives)
-- Win first Duel: Keep life, earn 50 coins
+- Win first Duel: Keep life, earn 5 coins
 - Lose second Duel: Lose 1 life (now 2 lives remaining)
 
 Week 2: Can enter up to 2 contests (2 lives remaining)
@@ -339,7 +339,7 @@ Week 2: Can enter up to 2 contests (2 lives remaining)
 |----------|-------|
 | Size | 2 Teams |
 | Win Condition | Outscore your opponent |
-| Reward | 50 Coins |
+| Reward | 5 Coins |
 | Risk | 1 Life |
 
 - You are matched against one other team
@@ -352,7 +352,7 @@ Week 2: Can enter up to 2 contests (2 lives remaining)
 |----------|-------|
 | Size | 12 Teams |
 | Win Condition | Score at or above the median |
-| Reward | 100 Coins |
+| Reward | 10 Coins |
 | Risk | 1 Life |
 
 - Compete against 11 other teams
@@ -402,20 +402,29 @@ Week 2: Can enter up to 2 contests (2 lives remaining)
 
 ### 8. Economy & Rewards
 
-#### Coin System
+#### Coin System (Micro-Economy)
+
+**Target Balance Range: 5-100 coins**
 
 **Earning Coins**
-- Starting balance: 200 coins (rebalanced)
-- Weekly contest wins: 50-100 coins (based on contest type)
-- Win bonuses: Coming soon
-- Achievement rewards: Coming soon
+- Starting balance: 25 coins
+- Duel wins: 5 coins
+- Arena wins: 10 coins
+- Quick selling players: 1-8 coins (based on rarity)
+- Quick selling tokens: 2-8 coins
 
 **Spending Coins**
-- Bronze Pack: 150 coins
-- Silver Pack: 400 coins
-- Gold Pack: 750 coins
-- Elite Pack: 1500 coins
-- Free Agency Claims: 40-75 coins per player
+- Bronze Pack: 15 coins (3 players + 1 token)
+- Silver Pack: 35 coins (5 players + 2 tokens)
+- Gold Pack: 60 coins (8 players + 3 tokens)
+- Elite Pack: 100 coins (12 players + 5 tokens)
+- Free Agency Claims: 3-5 coins per player
+
+**Economy Philosophy**
+- Coins are scarce and meaningful
+- Every win feels rewarding
+- Saving up for packs takes strategy
+- Quick selling creates meaningful decisions
 
 #### Inventory Management
 

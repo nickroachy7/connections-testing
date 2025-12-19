@@ -37,7 +37,7 @@ export default function JoinContestModal({
     current_entries,
     scoring_type,
     win_condition,
-    coin_reward = 50,
+    coin_reward = 5,
     entry_cost = 1,
     template
   } = contest;

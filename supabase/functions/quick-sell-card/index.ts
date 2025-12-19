@@ -1,4 +1,5 @@
-import { createClient } from '@supabase/supabase-js'
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -8,6 +9,8 @@ const corsHeaders = {
 /**
  * Calculate dynamic sell value based on card tier, pull percentage, and performance
  * Formula: base_value × tier_multiplier × scarcity_multiplier × performance_multiplier
+ * 
+ * MICRO-ECONOMY (2025-12-19): Base values are now 1-8 coins, target player balance 5-100
  */
 function calculateDynamicSellValue(
   baseValue: number,
@@ -25,30 +28,29 @@ function calculateDynamicSellValue(
   }
   
   // Scarcity multiplier based on pull percentage (lower % = rarer = more valuable)
-  // REBALANCED 2025-11-19: Reduced multipliers to prevent excessive sell values
+  // MICRO-ECONOMY 2025-12-19: Tightened multipliers for smaller value range
   let scarcityMultiplier = 1.0
-  if (pullPercentage <= 5) scarcityMultiplier = 2.0        // Was 3.0 - LEGENDARY
-  else if (pullPercentage <= 15) scarcityMultiplier = 1.5   // Was 2.0 - EPIC
-  else if (pullPercentage <= 30) scarcityMultiplier = 1.3   // Was 1.5 - RARE
-  else if (pullPercentage <= 50) scarcityMultiplier = 1.1   // Was 1.2 - UNCOMMON
+  if (pullPercentage <= 5) scarcityMultiplier = 1.5        // LEGENDARY
+  else if (pullPercentage <= 15) scarcityMultiplier = 1.3   // EPIC
+  else if (pullPercentage <= 30) scarcityMultiplier = 1.2   // RARE
+  else if (pullPercentage <= 50) scarcityMultiplier = 1.1   // UNCOMMON
   // else COMMON = 1.0
   
   // Performance multiplier based on season PPG (real-world performance)
-  // REBALANCED 2025-11-19: Reduced multipliers to prevent excessive sell values
+  // MICRO-ECONOMY 2025-12-19: Tightened range for smaller swings
   let performanceMultiplier = 1.0
-  if (seasonPPG >= 20) performanceMultiplier = 1.3      // Was 1.5 - Elite performers
-  else if (seasonPPG >= 15) performanceMultiplier = 1.2  // Was 1.3 - High performers
-  else if (seasonPPG >= 10) performanceMultiplier = 1.1  // Was 1.1 - Solid performers
-  else if (seasonPPG >= 5) performanceMultiplier = 1.0   // Was 1.0 - Average performers
-  else if (seasonPPG < 5) performanceMultiplier = 0.7    // Was 0.8 - Low performers
+  if (seasonPPG >= 20) performanceMultiplier = 1.2       // Elite performers
+  else if (seasonPPG >= 15) performanceMultiplier = 1.1   // High performers
+  else if (seasonPPG >= 10) performanceMultiplier = 1.0   // Solid performers
+  else if (seasonPPG >= 5) performanceMultiplier = 0.9    // Average performers
+  else if (seasonPPG < 5) performanceMultiplier = 0.8     // Low performers
   
   const tierMult = tierMultipliers[cardTier] || 1.0
   const rawValue = baseValue * tierMult * scarcityMultiplier * performanceMultiplier
   
-  // Round to nearest 5 coins for clean numbers, minimum 10 coins
-  // REBALANCED 2025-11-19: Reduced from 50 to 10 to allow lower-value cards
-  const roundedValue = Math.round(rawValue / 5) * 5
-  return Math.max(10, roundedValue)
+  // MICRO-ECONOMY: Round to nearest whole coin, minimum 1 coin
+  const roundedValue = Math.round(rawValue)
+  return Math.max(1, roundedValue)
 }
 
 Deno.serve(async (req) => {

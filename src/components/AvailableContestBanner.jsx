@@ -24,7 +24,7 @@ export default function AvailableContestBanner({
     win_condition = 'median',
     scoring_format = 'ppr',
     scoring_type = 'half_ppr',
-    coin_reward = 50,
+    coin_reward = 5,
     entry_cost = 1,
     status
   } = contest;

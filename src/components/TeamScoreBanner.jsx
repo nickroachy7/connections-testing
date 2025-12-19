@@ -43,7 +43,7 @@ export default function TeamScoreBanner({
   contestRank = null,
   contestWeek = null,
   contestEntryCost = 1,
-  contestCoinReward = 50,
+  contestCoinReward = 5,
   noDataYet = false,
   teamStartsNextWeek = null,
   onContestClick = null,
