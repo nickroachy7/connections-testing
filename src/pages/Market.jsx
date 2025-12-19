@@ -207,7 +207,7 @@ export default function Market() {
       return;
     }
 
-    if (!window.confirm(`Claim ${player.player_name} for ${player.coin_cost} coins?`)) {
+    if (!window.confirm(`Buy ${player.player_name} for ${player.coin_cost} coins?`)) {
       return;
     }
 
@@ -224,18 +224,30 @@ export default function Market() {
 
       if (claimError) throw claimError;
 
-      setSuccess(`${player.player_name} claimed and added to your roster!`);
+      // Optimistically update the free agents list to show as claimed
+      setFreeAgents(prev => prev.map(fa => 
+        fa.id === player.id 
+          ? { ...fa, already_claimed: true, in_inventory: true }
+          : fa
+      ));
+
+      // Optimistically update coins in local state
+      setSelectedTeamData(prev => prev ? { ...prev, coins: prev.coins - player.coin_cost } : prev);
       
-      // Refresh data
+      // Refresh context data (inventory and team data)
       if (contextRefresh) {
         contextRefresh();
       }
       
-      // Reload free agents to update status
-      await loadFreeAgents();
+      // Also refresh inventory from context if available
+      if (outletContext.loadInventory) {
+        outletContext.loadInventory();
+      }
     } catch (err) {
       console.error('Error claiming free agent:', err);
       setError(err.message || 'Failed to claim player');
+      // Reload free agents on error to reset state
+      await loadFreeAgents();
     } finally {
       setClaiming(prev => ({ ...prev, [player.id]: false }));
     }
@@ -274,15 +286,16 @@ export default function Market() {
     return (
       <div
         className={`
-          grid transition-all items-center py-2.5 px-3
+          grid items-center py-2.5 px-3 select-none outline-none
           ${index % 2 === 0 ? 'bg-primary-black-900' : 'bg-[#121212]'}
-          ${isPurchasable ? 'cursor-pointer hover:bg-primary-black-700/50' : ''}
+          ${isPurchasable ? 'cursor-pointer' : ''}
           ${!canAfford ? 'opacity-60' : ''}
         `}
         style={{ 
           gridTemplateColumns: '40px 1fr auto',
           gap: '10px',
-          minHeight: '76px'
+          minHeight: '76px',
+          WebkitTapHighlightColor: 'transparent'
         }}
         onClick={() => isPurchasable && handlePurchasePack(pack)}
       >
@@ -347,24 +360,18 @@ export default function Market() {
     return (
       <div
         className={`
-          grid transition-all items-center py-2.5 px-3
+          grid items-center py-2.5 px-3 select-none outline-none
           ${index % 2 === 0 ? 'bg-primary-black-900' : 'bg-[#121212]'}
-          ${alreadyClaimed ? 'opacity-50' : isClaimable ? 'cursor-pointer hover:bg-primary-black-700/50' : ''}
+          ${alreadyClaimed ? 'opacity-50' : isClaimable ? 'cursor-pointer' : ''}
         `}
         style={{ 
-          gridTemplateColumns: '32px 40px 1fr auto',
+          gridTemplateColumns: '40px 1fr auto',
           gap: '10px',
-          minHeight: '76px'
+          minHeight: '76px',
+          WebkitTapHighlightColor: 'transparent'
         }}
         onClick={() => isClaimable && handleClaimFreeAgent(player)}
       >
-        {/* Position Badge */}
-        <div className="flex items-center justify-center">
-          <span className="px-2 py-1 rounded text-[10px] font-bold bg-primary-black-700 text-primary-black-300">
-            {positionAbbrev}
-          </span>
-        </div>
-
         {/* Player Avatar */}
         <div className="w-10 h-10 rounded bg-primary-black-700 flex items-center justify-center overflow-hidden border-2 border-gray-600">
           <svg className="w-6 h-6 text-primary-black-400" fill="currentColor" viewBox="0 0 24 24">
@@ -412,8 +419,8 @@ export default function Market() {
               Need {player.coin_cost - teamCoins}
             </span>
           ) : (
-            <button className="px-3 py-1.5 bg-primary-green-600 hover:bg-primary-green-500 rounded transition-colors">
-              <span className="text-xs font-semibold text-white">Claim</span>
+            <button className="px-2.5 py-1 bg-primary-green-600 hover:bg-primary-green-500 rounded transition-colors">
+              <span className="text-[11px] font-semibold text-white">Buy</span>
             </button>
           )}
         </div>
