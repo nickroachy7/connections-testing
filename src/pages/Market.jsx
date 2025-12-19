@@ -3,19 +3,36 @@ import { useAuth } from '../hooks/useAuth';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import { getUserTeams, getAvailablePacks, supabase } from '../services/supabase';
 import { getRosterStatus } from '../utils/rosterLimits';
-import RosterLimitBanner from '../components/RosterLimitBanner';
-import RosterCount from '../components/RosterCount';
 import PageHeader from '../components/PageHeader';
-import PackCard from '../components/PackCard';
-import FreeAgentCard from '../components/FreeAgentCard';
+import SectionHeader from '../components/ui/SectionHeader';
 
 /**
  * Market Page
  * 
- * Two sections:
- * 1. Pack Shop - Purchase card packs (redesigned)
- * 2. Free Agency - Claim individual waiver-wire players (new)
+ * Single page with two sections:
+ * 1. Pack Shop - Purchase card packs (row-based design)
+ * 2. Free Agency - Claim individual waiver-wire players
+ * 
+ * Both sections use consistent row-based design matching player lists
  */
+
+// Tier display info
+const TIER_INFO = {
+  bronze: { label: 'Bronze', bgColor: 'bg-amber-700/30', textColor: 'text-amber-400' },
+  silver: { label: 'Silver', bgColor: 'bg-gray-500/30', textColor: 'text-gray-300' },
+  gold: { label: 'Gold', bgColor: 'bg-yellow-500/30', textColor: 'text-yellow-400' },
+  elite: { label: 'Elite', bgColor: 'bg-purple-500/30', textColor: 'text-purple-400' },
+  starter: { label: 'Starter', bgColor: 'bg-primary-green-500/30', textColor: 'text-primary-green-400' }
+};
+
+// Position abbreviations for free agents
+const POSITION_ABBREV = {
+  'Quarterback': 'QB',
+  'Running Back': 'RB',
+  'Wide Receiver': 'WR',
+  'Tight End': 'TE',
+};
+
 export default function Market() {
   const { user, profile, loading, refreshProfile } = useAuth();
   const navigate = useNavigate();
@@ -25,9 +42,6 @@ export default function Market() {
   const contextTeam = outletContext.activeTeam;
   const contextRefresh = outletContext.refreshProfile;
   const inventory = outletContext.inventory;
-  
-  // Tab state
-  const [activeTab, setActiveTab] = useState('packs'); // 'packs' | 'freeagency'
   
   // Packs state
   const [packs, setPacks] = useState([]);
@@ -120,12 +134,12 @@ export default function Market() {
     }
   }, [user, profile, loading, navigate, loadTeams, loadPacks]);
 
-  // Load free agents when team changes or tab switches
+  // Load free agents when team is selected (no tab dependency now)
   useEffect(() => {
-    if (selectedTeam && activeTab === 'freeagency') {
+    if (selectedTeam) {
       loadFreeAgents();
     }
-  }, [selectedTeam, activeTab, loadFreeAgents]);
+  }, [selectedTeam, loadFreeAgents]);
 
   // Handle pack purchase
   const handlePurchasePack = async (pack) => {
@@ -252,54 +266,181 @@ export default function Market() {
 
   const teamCoins = selectedTeamData?.coins ?? 0;
 
+  // Pack row component - styled exactly like PlayerRow mobile
+  const PackRow = ({ pack, index }) => {
+    const canAfford = teamCoins >= pack.coin_cost;
+    const isPurchasable = selectedTeam && canAfford && !opening[pack.id];
+    
+    return (
+      <div
+        className={`
+          grid transition-all items-center py-2.5 px-3
+          ${index % 2 === 0 ? 'bg-primary-black-900' : 'bg-[#121212]'}
+          ${isPurchasable ? 'cursor-pointer hover:bg-primary-black-700/50' : ''}
+          ${!canAfford ? 'opacity-60' : ''}
+        `}
+        style={{ 
+          gridTemplateColumns: '40px 1fr auto',
+          gap: '10px',
+          minHeight: '76px'
+        }}
+        onClick={() => isPurchasable && handlePurchasePack(pack)}
+      >
+        {/* Pack Image */}
+        <div className="w-10 h-10 flex items-center justify-center overflow-hidden">
+          <img 
+            src="/green-pack.png" 
+            alt={pack.pack_name}
+            className="w-full h-full object-contain"
+          />
+        </div>
+
+        {/* Pack Info */}
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 mb-0.5">
+            <span className="font-semibold text-white text-sm truncate">
+              {pack.pack_name}
+            </span>
+          </div>
+          <div className="text-xs text-primary-black-400 truncate">
+            {pack.player_count} players · {pack.token_count} tokens
+          </div>
+        </div>
+
+        {/* Price + CTA */}
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5">
+            <svg className="w-4 h-4 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
+              <circle cx="10" cy="10" r="8" />
+            </svg>
+            <span className="text-sm font-semibold text-white">{pack.coin_cost}</span>
+          </div>
+          
+          {opening[pack.id] ? (
+            <div className="w-12 flex justify-center">
+              <svg className="animate-spin h-4 w-4 text-primary-black-400" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+            </div>
+          ) : !canAfford ? (
+            <span className="text-xs text-accent-orange-400 whitespace-nowrap">
+              Need {pack.coin_cost - teamCoins}
+            </span>
+          ) : (
+            <button className="px-2.5 py-1 bg-primary-green-600 hover:bg-primary-green-500 rounded transition-colors">
+              <span className="text-[11px] font-semibold text-white">Buy</span>
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  // Free Agent row component - styled exactly like PlayerRow mobile
+  const FreeAgentRow = ({ player, index }) => {
+    const canAfford = teamCoins >= player.coin_cost;
+    const alreadyClaimed = player.already_claimed || player.in_inventory;
+    const isClaimable = selectedTeam && canAfford && !claiming[player.id] && !alreadyClaimed;
+    const positionAbbrev = POSITION_ABBREV[player.player_position] || player.player_position?.substring(0, 2);
+    
+    return (
+      <div
+        className={`
+          grid transition-all items-center py-2.5 px-3
+          ${index % 2 === 0 ? 'bg-primary-black-900' : 'bg-[#121212]'}
+          ${alreadyClaimed ? 'opacity-50' : isClaimable ? 'cursor-pointer hover:bg-primary-black-700/50' : ''}
+        `}
+        style={{ 
+          gridTemplateColumns: '32px 40px 1fr auto',
+          gap: '10px',
+          minHeight: '76px'
+        }}
+        onClick={() => isClaimable && handleClaimFreeAgent(player)}
+      >
+        {/* Position Badge */}
+        <div className="flex items-center justify-center">
+          <span className="px-2 py-1 rounded text-[10px] font-bold bg-primary-black-700 text-primary-black-300">
+            {positionAbbrev}
+          </span>
+        </div>
+
+        {/* Player Avatar */}
+        <div className="w-10 h-10 rounded bg-primary-black-700 flex items-center justify-center overflow-hidden border-2 border-gray-600">
+          <svg className="w-6 h-6 text-primary-black-400" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+          </svg>
+        </div>
+
+        {/* Player Info */}
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 mb-0.5">
+            <span className="font-semibold text-white text-sm truncate">
+              {player.player_name}
+            </span>
+            <span className="px-1.5 py-0.5 bg-primary-black-700 text-primary-black-400 rounded text-[10px] font-semibold flex-shrink-0">
+              {player.team_abbreviation}
+            </span>
+          </div>
+          <div className="text-xs text-primary-black-400 truncate">
+            Proj: <span className="text-primary-green-400 font-medium">{Number(player.weekly_projected_points).toFixed(1)}</span> pts
+          </div>
+        </div>
+
+        {/* Price + CTA */}
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5">
+            <svg className="w-4 h-4 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
+              <circle cx="10" cy="10" r="8" />
+            </svg>
+            <span className="text-sm font-semibold text-white">{player.coin_cost}</span>
+          </div>
+          
+          {claiming[player.id] ? (
+            <div className="w-14 flex justify-center">
+              <svg className="animate-spin h-5 w-5 text-primary-black-400" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+            </div>
+          ) : player.in_inventory ? (
+            <span className="text-xs text-primary-black-500 whitespace-nowrap">In Roster</span>
+          ) : player.already_claimed ? (
+            <span className="text-xs text-primary-black-500 whitespace-nowrap">Claimed</span>
+          ) : !canAfford ? (
+            <span className="text-xs text-accent-orange-400 whitespace-nowrap">
+              Need {player.coin_cost - teamCoins}
+            </span>
+          ) : (
+            <button className="px-3 py-1.5 bg-primary-green-600 hover:bg-primary-green-500 rounded transition-colors">
+              <span className="text-xs font-semibold text-white">Claim</span>
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   return (
-    <>
+    <div className="min-h-screen">
       {/* Main Content Section */}
-      <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 pb-4 sm:pb-8">
+      <div className="pb-4 sm:pb-8">
         <PageHeader
           title="Market"
-          className="mt-2"
+          className="mt-2 px-2 sm:px-4"
           actions={
-            <div className="flex items-center gap-2">
-              {/* Tab Navigation - Compact */}
-              <div className="flex gap-0.5 bg-primary-black-800 rounded p-0.5">
-                <button
-                  onClick={() => setActiveTab('packs')}
-                  className={`px-2.5 py-1 rounded text-xs font-medium transition-colors ${
-                    activeTab === 'packs'
-                      ? 'bg-primary-black-600 text-white'
-                      : 'text-primary-black-400 hover:text-white'
-                  }`}
-                >
-                  Packs
-                </button>
-                <button
-                  onClick={() => setActiveTab('freeagency')}
-                  className={`px-2.5 py-1 rounded text-xs font-medium transition-colors ${
-                    activeTab === 'freeagency'
-                      ? 'bg-primary-black-600 text-white'
-                      : 'text-primary-black-400 hover:text-white'
-                  }`}
-                >
-                  Free Agency
-                </button>
-              </div>
-              
-              {/* Coin Balance */}
-              <div className="flex items-center gap-1.5 bg-primary-black-800 px-2 py-1 rounded">
-                <svg className="w-3.5 h-3.5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z" />
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clipRule="evenodd" />
-                </svg>
-                <span className="text-xs font-semibold text-white">{teamCoins.toLocaleString()}</span>
-              </div>
+            <div className="flex items-center gap-1.5 bg-primary-black-800 px-2.5 py-1.5 rounded">
+              <svg className="w-4 h-4 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                <circle cx="10" cy="10" r="8" />
+              </svg>
+              <span className="text-sm font-semibold text-white">{teamCoins.toLocaleString()}</span>
             </div>
           }
         />
 
         {/* Alerts Section */}
         {(error || success) && (
-          <div className="mb-4">
+          <div className="mb-4 px-2 sm:px-4">
             {error && (
               <div className="p-3 bg-red-900/50 border border-red-600 text-red-300 rounded-lg text-sm mb-2">
                 {error}
@@ -314,100 +455,61 @@ export default function Market() {
           </div>
         )}
 
-        {/* Content based on active tab */}
-        <div className="max-w-4xl mx-auto">
-          {activeTab === 'packs' && (
-            <>
-              {/* Packs List */}
-              <div className="space-y-2">
-                {packs.map((pack) => (
-                  <PackCard
-                    key={pack.id}
-                    pack={pack}
-                    onPurchase={handlePurchasePack}
-                    isOpening={opening[pack.id]}
-                    userCoins={teamCoins}
-                    disabled={!selectedTeam}
-                  />
-                ))}
-              </div>
-
-              {/* Empty State */}
-              {packs.length === 0 && (
-                <div className="text-center py-12">
-                  <svg className="w-16 h-16 mx-auto text-primary-black-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                  </svg>
-                  <h3 className="text-lg font-semibold text-primary-black-50 mb-2">
-                    No packs available
-                  </h3>
-                  <p className="text-sm text-primary-black-400">
-                    Check back later for new pack offerings.
-                  </p>
-                </div>
-              )}
-            </>
+        {/* Packs Section */}
+        <div className="mb-6">
+          <SectionHeader 
+            title="PACKS" 
+            count={packs.length}
+          />
+          
+          {packs.length > 0 ? (
+            <div>
+              {packs.map((pack, index) => (
+                <PackRow key={pack.id} pack={pack} index={index} />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-primary-black-400 text-sm">
+              No packs available
+            </div>
           )}
+        </div>
 
-          {activeTab === 'freeagency' && (
-            <>
-              {/* Free Agency Section Header */}
-              <div className="mb-4 flex items-center justify-between">
-                <p className="text-sm text-primary-black-400">
-                  Claim budget players to fill roster gaps.
-                </p>
-                <span className="text-xs text-primary-black-500">
-                  Refreshes in {getNextRefreshTime()}
-                </span>
+        {/* Free Agency Section */}
+        <div>
+          <SectionHeader 
+            title="FREE AGENCY" 
+            count={freeAgents.length}
+            actions={
+              <span className="text-xs text-primary-black-500">
+                Refreshes in {getNextRefreshTime()}
+              </span>
+            }
+          />
+          
+          {freeAgencyLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="flex items-center gap-3">
+                <svg className="animate-spin h-5 w-5 text-primary-green-400" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span className="text-primary-black-300 text-sm">Loading free agents...</span>
               </div>
-
-              {/* Free Agents Loading */}
-              {freeAgencyLoading && (
-                <div className="flex items-center justify-center py-12">
-                  <div className="flex items-center gap-3">
-                    <svg className="animate-spin h-5 w-5 text-primary-green-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    <span className="text-primary-black-300">Loading free agents...</span>
-                  </div>
-                </div>
-              )}
-
-              {/* Free Agents List */}
-              {!freeAgencyLoading && freeAgents.length > 0 && (
-                <div className="divide-y divide-primary-black-700 bg-primary-black-800 rounded-lg overflow-hidden">
-                  {freeAgents.map((player) => (
-                    <FreeAgentCard
-                      key={player.id}
-                      player={player}
-                      onClaim={handleClaimFreeAgent}
-                      isClaiming={claiming[player.id]}
-                      userCoins={teamCoins}
-                      disabled={!selectedTeam}
-                    />
-                  ))}
-                </div>
-              )}
-
-              {/* Empty State */}
-              {!freeAgencyLoading && freeAgents.length === 0 && (
-                <div className="text-center py-12">
-                  <svg className="w-16 h-16 mx-auto text-primary-black-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                  </svg>
-                  <h3 className="text-lg font-semibold text-primary-black-50 mb-2">
-                    No free agents available
-                  </h3>
-                  <p className="text-sm text-primary-black-400">
-                    Check back tomorrow for new waiver wire players.
-                  </p>
-                </div>
-              )}
-            </>
+            </div>
+          ) : freeAgents.length > 0 ? (
+            <div>
+              {freeAgents.map((player, index) => (
+                <FreeAgentRow key={player.id} player={player} index={index} />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-primary-black-400 text-sm">
+              No free agents available. Check back tomorrow.
+            </div>
           )}
         </div>
       </div>
-    </>
+    </div>
   );
 }
