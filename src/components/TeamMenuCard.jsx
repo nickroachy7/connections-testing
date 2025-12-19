@@ -111,8 +111,6 @@ export default function TeamMenuCard({
               
               {/* Stats Row - matches TeamBanner exactly */}
               <div className="flex items-center gap-1.5 text-[11px] mt-1">
-                <span className="font-bold text-white/80">#{globalRank || '--'}</span>
-                <span className="text-white/30">•</span>
                 <div className="flex items-center gap-0.5">
                   <span className="font-bold text-green-400">{team.wins || 0}</span>
                   <span className="text-white/50">-</span>

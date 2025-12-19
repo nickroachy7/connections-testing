@@ -287,7 +287,6 @@ export default function PackOpening() {
 
       if (packError) throw packError
 
-      success('Cards added to your collection!')
       revalidator.revalidate()
       
       // Navigate to starting lineup

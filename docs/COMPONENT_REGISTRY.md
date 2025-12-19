@@ -100,6 +100,11 @@ All components are organized into clear categories:
 | `EmptyState` | No data placeholder | `icon?`, `message`, `action?` |
 | `ErrorBoundary` | Error fallback | `children`, `fallback?` |
 
+### Prompts & CTAs
+| Component | Purpose | Props |
+|-----------|---------|-------|
+| `EnterContestPrompt` | Prompt users to join contests when not in one | `week`, `onEnterClick`, `size?` |
+
 ### Navigation
 | Component | Purpose | Props |
 |-----------|---------|-------|

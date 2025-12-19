@@ -831,10 +831,8 @@ export default function TeamMatchupBanner({
                   </div>
                 )}
                 
-                {/* Inline Stats Row: Rank, Record, Coins, Lives */}
+                {/* Inline Stats Row: Record, Coins, Lives */}
                 <div className="flex items-center gap-2 text-xs mt-1.5">
-                  {!isInLeague && <span className="font-dk-display font-bold text-white/90">#{globalRank || '--'}</span>}
-                  {!isInLeague && <span className="text-white/40">•</span>}
                   <div className="flex items-center gap-1">
                     <span className="font-dk-display font-bold text-green-400">{displayWins}</span>
                     <span className="text-white/60">-</span>
@@ -965,10 +963,8 @@ export default function TeamMatchupBanner({
                         </div>
                       )}
 
-                      {/* Inline Stats Row: Rank, Record, Coins, Lives */}
+                      {/* Inline Stats Row: Record, Coins, Lives */}
                       <div className="flex items-center gap-3 text-sm mt-2">
-                        {!isInLeague && <span className="font-dk-display font-bold text-white/90">#{globalRank || '--'}</span>}
-                        {!isInLeague && <span className="text-white/40">•</span>}
                         <div className="flex items-center gap-1">
                           <span className="font-dk-display font-bold text-green-400">{displayWins}</span>
                           <span className="text-white/60">-</span>

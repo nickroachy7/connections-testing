@@ -9,6 +9,7 @@ import { usePrevious } from '../hooks/usePrevious';
 import TeamScoreBanner from './TeamScoreBanner';
 import ContestBannerCarousel from './ContestBannerCarousel';
 import TeamInfoExpanded from './TeamInfoExpanded';
+import EnterContestPrompt from './ui/EnterContestPrompt';
 
 const BANNER_THEMES = [
   { id: 'default', name: 'Classic Dark', bg: 'bg-dk-black-secondary' },
@@ -849,10 +850,8 @@ export default function TeamBanner({
                   </div>
                 )}
                 
-                {/* Inline Stats Row: Rank, Record, Coins, Lives, Tickets */}
+                {/* Inline Stats Row: Record, Coins, Lives, Tickets */}
                 <div className="flex items-center gap-1.5 text-[11px] mt-1">
-                  {!isInLeague && <span className="font-dk-display font-bold text-white/80">#{globalRank || '--'}</span>}
-                  {!isInLeague && <span className="text-white/30">•</span>}
                   <div className="flex items-center gap-0.5">
                     <span className="font-dk-display font-bold text-green-400">{displayWins}</span>
                     <span className="text-white/50">-</span>
@@ -938,7 +937,8 @@ export default function TeamBanner({
                 canEnterMore={canEnterMoreContests}
                 remainingEntries={contestRemainingEntries}
               />
-            ) : (
+            ) : isInContest || isInLeague ? (
+            /* Only show TeamScoreBanner if actually in a contest or league */
             <TeamScoreBanner
               week={displayWeek?.week}
               isLive={isLive}
@@ -966,6 +966,13 @@ export default function TeamBanner({
               contestWeek={contestWeek}
               onContestClick={isInContest && !isInLeague ? () => navigate(contestContext?.contestId ? `contests?expand=${contestContext.contestId}` : 'contests') : undefined}
               lineupReady={hasWeeklyLineup || (lineup && lineup.length > 0)}
+            />
+            ) : (
+            /* Not in any contest - show prompt to enter contests */
+            <EnterContestPrompt
+              week={displayWeek?.week}
+              onEnterClick={() => navigate('contests')}
+              size="mobile"
             />
             )}
           </div>
@@ -1006,10 +1013,8 @@ export default function TeamBanner({
                         </div>
                       )}
 
-                      {/* Inline Stats Row: Rank, Record, Coins, Lives */}
+                      {/* Inline Stats Row: Record, Coins, Lives */}
                       <div className="flex items-center gap-3 text-sm mt-2">
-                        {!isInLeague && <span className="font-dk-display font-bold text-white/90">#{globalRank || '--'}</span>}
-                        {!isInLeague && <span className="text-white/40">•</span>}
                         <div className="flex items-center gap-1">
                           <span className="font-dk-display font-bold text-green-400">{displayWins}</span>
                           <span className="text-white/60">-</span>
@@ -1052,7 +1057,7 @@ export default function TeamBanner({
                           <div className="h-5 bg-primary-black-700 rounded w-20" />
                         </div>
                       </div>
-                    ) : (
+                    ) : isInContest || isInLeague ? (
                     <TeamScoreBanner
                       week={displayWeek?.week}
                       isLive={isLive}
@@ -1080,6 +1085,13 @@ export default function TeamBanner({
                       contestWeek={contestWeek}
                       onContestClick={isInContest && !isInLeague ? () => navigate('contests') : undefined}
                       lineupReady={hasWeeklyLineup || (lineup && lineup.length > 0)}
+                    />
+                    ) : (
+                    /* Not in any contest - show prompt to enter contests */
+                    <EnterContestPrompt
+                      week={displayWeek?.week}
+                      onEnterClick={() => navigate('contests')}
+                      size="desktop"
                     />
                     )}
                   </div>
