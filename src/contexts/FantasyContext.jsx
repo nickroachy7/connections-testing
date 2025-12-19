@@ -124,24 +124,30 @@ export function FantasyProvider({ children, user, activeTeam, initialInventory }
       
       setCurrentWeek({ week: weekNumber, year: seasonYear });
       
-      // CRITICAL FIX: Load games for the TEAM's current week, not the NFL's current week
-      // This prevents showing stale data when team is behind/ahead of real NFL schedule
-      const teamWeek = activeTeam?.current_week || weekNumber;
+      // CRITICAL: Determine which week to use for game data
+      // - If team.current_week > NFL week: Team hasn't started yet, show upcoming games for their start week
+      // - Otherwise: Team is active, ALWAYS use NFL's current week for live data
+      // Previously this was using team.current_week even when it was behind NFL week, causing stale data
+      const teamStartWeek = activeTeam?.current_week || weekNumber;
+      const teamHasNotStarted = teamStartWeek > weekNumber;
+      
+      // Use NFL's current week for active teams, team's start week for teams that haven't started
+      const displayWeekNumber = teamHasNotStarted ? teamStartWeek : weekNumber;
       
       // If team hasn't started yet (team.current_week > NFL week), fetch NEXT week's games from API
-      if (activeTeam?.current_week && activeTeam.current_week > weekNumber) {
-        console.log('🎮 [FantasyContext] Team starts week', activeTeam.current_week, '- fetching upcoming games from API');
+      if (teamHasNotStarted) {
+        console.log('🎮 [FantasyContext] Team starts week', teamStartWeek, '- fetching upcoming games from API');
         
         try {
           // Fetch next week's games from BallDontLie API
           const response = await getGames({ 
             seasons: [seasonYear], 
-            weeks: [activeTeam.current_week],
+            weeks: [teamStartWeek],
             per_page: 100 
           });
           
           const upcomingGames = response?.data || [];
-          console.log('🎮 [FantasyContext] Fetched', upcomingGames.length, 'games for week', activeTeam.current_week);
+          console.log('🎮 [FantasyContext] Fetched', upcomingGames.length, 'games for week', teamStartWeek);
           
           if (upcomingGames.length > 0 && playersData && playersData.length > 0) {
             const gameDataMap = new Map();
@@ -163,7 +169,7 @@ export function FantasyProvider({ children, user, activeTeam, initialInventory }
                 gameDataMap.set(playerCard.player_card.player_id, {
                   gameStatus: 'scheduled',
                   currentPoints: 0,
-                  weekNumber: activeTeam.current_week,
+                  weekNumber: teamStartWeek,
                   homeTeam: teamGame.home_team?.abbreviation,
                   awayTeam: teamGame.visitor_team?.abbreviation,
                   homeScore: null,
@@ -190,16 +196,17 @@ export function FantasyProvider({ children, user, activeTeam, initialInventory }
         return;
       }
       
-      console.log('🎮 [FantasyContext] Loading game data for team week:', teamWeek);
+      // Active team: Use NFL's current week for live game data
+      console.log('🎮 [FantasyContext] Loading game data for NFL week:', weekNumber);
       
-      // Load games for TEAM's current week (not NFL's current week)
+      // Load games for NFL's current week (for active teams that have already started)
       const { data: gamesData, error: gamesError } = await supabase
         .from('game_scores')
         .select('*')
-        .eq('week_number', teamWeek)
+        .eq('week_number', weekNumber)
         .eq('season_year', seasonYear);
       
-      console.log('🎮 [FantasyContext] Games query result:', { teamWeek, seasonYear, gamesCount: gamesData?.length, error: gamesError });
+      console.log('🎮 [FantasyContext] Games query result:', { weekNumber, seasonYear, gamesCount: gamesData?.length, error: gamesError });
       
       if (gamesError) {
         console.error('Error loading games:', gamesError);
@@ -211,19 +218,13 @@ export function FantasyProvider({ children, user, activeTeam, initialInventory }
         return;
       }
       
-      // FIXED: Always show current week's games - don't fall back to previous week
-      // This ensures:
-      // 1. Pre-game: Players see scheduled matchups with game times
-      // 2. Live: Players see live scores
-      // 3. Final: Players see final results
-      // Previously this would show Week 15's final results during Week 16 pre-game, which was confusing
-      let displayWeek = teamWeek;
-      let displayGames = gamesData;
+      // Use NFL's current week for display
+      const displayGames = gamesData;
       
       // Load player stats for display week
       const gameIds = displayGames.map(g => g.game_id);
       
-      console.log(`🎮 [FantasyContext] Loading stats for Week ${displayWeek}, game IDs:`, gameIds);
+      console.log(`🎮 [FantasyContext] Loading stats for Week ${weekNumber}, game IDs:`, gameIds);
       
       const { data: statsData, error: statsError } = await supabase
         .from('player_game_stats')
@@ -258,7 +259,7 @@ export function FantasyProvider({ children, user, activeTeam, initialInventory }
             currentPoints: stat.fantasy_points || 0,
             stats: stat.stats,
             lastUpdated: stat.last_updated,
-            weekNumber: teamWeek,
+            weekNumber: weekNumber,
             homeTeam: game.home_team,
             awayTeam: game.away_team,
             homeScore: game.home_score,
@@ -299,7 +300,7 @@ export function FantasyProvider({ children, user, activeTeam, initialInventory }
               awayScore: teamGame.away_score,
               opponent: opponent,
               isHome: isHome,
-              weekNumber: teamWeek
+              weekNumber: weekNumber
             });
           }
         }
@@ -310,7 +311,7 @@ export function FantasyProvider({ children, user, activeTeam, initialInventory }
     } catch (err) {
       console.error('Error loading live game data:', err);
     }
-  }, [activeTeam?.current_week]); // Only depend on activeTeam week - uses passed inventoryData parameter
+  }, []); // Removed dependency on activeTeam.current_week - this function always uses NFL's current week
 
   // Helper: Load projections and game data (without fetching inventory)
   // FIXED: Removed query to non-existent weekly_projections table

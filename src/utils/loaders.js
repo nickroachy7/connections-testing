@@ -49,9 +49,16 @@ export async function teamManagerLoader({ params }) {
   try {
     const user = await requireAuth();
     
-    const [profile, teams] = await Promise.all([
+    const [profile, teams, nflConfig] = await Promise.all([
       loadUserProfile(user.id),
-      getUserTeams(user.id)
+      getUserTeams(user.id),
+      // Also fetch current NFL week to sync team if needed
+      supabase
+        .from('nfl_season_config')
+        .select('current_week')
+        .eq('is_active', true)
+        .single()
+        .then(({ data }) => data)
     ]);
     
     // Get team from URL param if available
@@ -69,6 +76,22 @@ export async function teamManagerLoader({ params }) {
     
     if (!activeTeam) {
       return { user, profile, teams, activeTeam: null, inventory: { players: [], tokens: [] } };
+    }
+    
+    // SYNC CHECK: If team's current_week is behind NFL's current_week, sync it
+    // This handles cases where advance-week hasn't run yet or team was created mid-season
+    if (nflConfig?.current_week && activeTeam.current_week < nflConfig.current_week && !activeTeam.simulated_season_id) {
+      console.log(`📅 Syncing team ${activeTeam.team_name} from week ${activeTeam.current_week} to ${nflConfig.current_week}`);
+      const { data: updatedTeam, error: updateError } = await supabase
+        .from('teams')
+        .update({ current_week: nflConfig.current_week })
+        .eq('id', activeTeam.id)
+        .select()
+        .single();
+      
+      if (!updateError && updatedTeam) {
+        activeTeam = updatedTeam;
+      }
     }
     
     const inventory = await getUserInventory(user.id, activeTeam.id);
