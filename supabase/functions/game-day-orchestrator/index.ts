@@ -572,7 +572,7 @@ Deno.serve(async (req) => {
     }
 
     // ═══════════════════════════════════════════════════════════════
-    // STEP 8: Fetch player stats for live/final games
+    // STEP 8: Fetch player stats for live/final games (WITH PAGINATION)
     // ═══════════════════════════════════════════════════════════════
     if (liveGameIds.length > 0 || gamesFinal > 0) {
       console.log(`📊 Fetching player stats for ${liveGameIds.length} live games...`)
@@ -590,16 +590,32 @@ Deno.serve(async (req) => {
         if (!isLiveOrFinal) continue
 
         try {
-          const statsResponse = await fetchWithRetry(
-            `https://api.balldontlie.io/nfl/v1/stats?game_ids[]=${game.id}`,
-            { headers: { 'Authorization': apiKey } }
-          )
-
-          if (!statsResponse.ok) continue
-
-          const statsData = await statsResponse.json()
+          // Fetch ALL pages of player stats using cursor pagination
+          let allPlayerStats: any[] = []
+          let cursor: number | null = null
+          let pageCount = 0
           
-          for (const stat of statsData.data || []) {
+          do {
+            const url = cursor 
+              ? `https://api.balldontlie.io/nfl/v1/stats?game_ids[]=${game.id}&cursor=${cursor}`
+              : `https://api.balldontlie.io/nfl/v1/stats?game_ids[]=${game.id}`
+            
+            const statsResponse = await fetchWithRetry(url, { headers: { 'Authorization': apiKey } })
+            
+            if (!statsResponse.ok) {
+              console.error(`Failed to fetch stats for game ${game.id} (page ${pageCount + 1})`)
+              break
+            }
+            
+            const statsData = await statsResponse.json()
+            allPlayerStats = allPlayerStats.concat(statsData.data || [])
+            cursor = statsData.meta?.next_cursor || null
+            pageCount++
+          } while (cursor)
+          
+          console.log(`Game ${game.id}: Fetched ${allPlayerStats.length} player stats across ${pageCount} pages`)
+          
+          for (const stat of allPlayerStats) {
             const { data: playerCard } = await supabase
               .from('player_cards')
               .select('id')
