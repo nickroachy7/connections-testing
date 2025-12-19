@@ -23,11 +23,17 @@ export default function AvailableContestBanner({
     current_entries,
     win_condition = 'median',
     scoring_format = 'ppr',
+    scoring_type = 'half_ppr',
+    coin_reward = 50,
+    entry_cost = 1,
     status
   } = contest;
+  
+  // Use scoring_type if scoring_format not available
+  const effectiveScoringFormat = scoring_format || scoring_type?.replace('_', '') || 'half_ppr';
 
   const contestConfig = getContestTypeConfig(win_condition);
-  const scoringConfig = getScoringFormatConfig(scoring_format);
+  const scoringConfig = getScoringFormatConfig(effectiveScoringFormat);
   const ContestIcon = contestConfig.icon;
 
   const spotsRemaining = max_entries ? max_entries - current_entries : null;
@@ -40,38 +46,31 @@ export default function AvailableContestBanner({
   return (
     <div className="bg-primary-black-900 rounded-xl overflow-hidden">
       {/* ========================================
-          ROW 1: Header - Icon, Name, Description, Count
+          ROW 1: Header - Icon, Name, Count
           ======================================== */}
-      <div className="px-3 py-2.5 border-b border-primary-black-700/50">
+      <div className="px-3 py-2.5 border-b border-primary-black-800">
         <div className="flex items-center justify-between">
-          {/* Left: Icon + Name + Description */}
+          {/* Left: Icon + Name */}
           <div className="flex items-center gap-2 min-w-0 flex-1">
-            {/* Contest Type Icon - Colored */}
-            <div className={`flex-shrink-0 ${contestConfig.bgColor} rounded-lg p-1.5`}>
-              <ContestIcon className={`w-4 h-4 ${contestConfig.color}`} />
+            {/* Contest Type Icon - Subtle */}
+            <div className="flex-shrink-0 bg-primary-black-800 rounded-lg p-1.5">
+              <ContestIcon className="w-4 h-4 text-white/60" />
             </div>
             
             {/* Name + Description */}
             <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-1.5">
-                <span className="text-sm font-bold text-white truncate">{name}</span>
-                <span className="text-[10px] text-white/40">•</span>
-                <span className="text-[10px] text-white/50 truncate hidden sm:inline">
-                  {displayDescription}
-                </span>
-              </div>
-              {/* Mobile description - show on separate line */}
-              <p className="text-[10px] text-white/50 truncate sm:hidden mt-0.5">
+              <span className="text-sm font-bold text-white truncate block">{name}</span>
+              <p className="text-[10px] text-white/40 truncate mt-0.5">
                 {displayDescription}
               </p>
             </div>
           </div>
 
           {/* Right: Participant Count */}
-          <div className="flex items-center gap-1 flex-shrink-0 ml-2">
-            <Users className="w-3.5 h-3.5 text-white/50" />
+          <div className="flex items-center gap-1 flex-shrink-0 ml-2 bg-primary-black-800 rounded px-2 py-1">
+            <Users className="w-3 h-3 text-white/40" />
             <span className="text-xs text-white/60 font-medium">
-              {current_entries}/{max_entries || '∞'}
+              {spotsRemaining !== null ? `${spotsRemaining} left` : current_entries}
             </span>
           </div>
         </div>
@@ -80,12 +79,12 @@ export default function AvailableContestBanner({
       {/* ========================================
           ROW 2: Contest Details - Win Condition, Scoring, Field Size
           ======================================== */}
-      <div className="px-3 py-2 border-b border-primary-black-700/30">
+      <div className="px-3 py-2 border-b border-primary-black-800">
         <div className="flex items-center justify-between text-[11px]">
           {/* Win Condition */}
           <div className="flex items-center gap-1.5">
-            <span className="text-white/40 uppercase tracking-wide">Win:</span>
-            <span className={`font-semibold ${contestConfig.color}`}>
+            <span className="text-white/30 uppercase tracking-wide">Win:</span>
+            <span className="font-medium text-white/70">
               {contestConfig.label}
             </span>
           </div>
@@ -95,8 +94,8 @@ export default function AvailableContestBanner({
 
           {/* Scoring Format */}
           <div className="flex items-center gap-1.5">
-            <span className="text-white/40 uppercase tracking-wide">Scoring:</span>
-            <span className="font-semibold text-white/80">
+            <span className="text-white/30 uppercase tracking-wide">Scoring:</span>
+            <span className="font-medium text-white/70">
               {scoringConfig.shortLabel}
             </span>
           </div>
@@ -106,8 +105,8 @@ export default function AvailableContestBanner({
 
           {/* Field Size */}
           <div className="flex items-center gap-1.5">
-            <span className="text-white/40 uppercase tracking-wide">Field:</span>
-            <span className="font-semibold text-white/80">
+            <span className="text-white/30 uppercase tracking-wide">Field:</span>
+            <span className="font-medium text-white/70">
               {max_entries || '∞'}
             </span>
           </div>
@@ -117,40 +116,35 @@ export default function AvailableContestBanner({
       {/* ========================================
           ROW 3: Stakes - Risk | Reward | Join Button
           ======================================== */}
-      <div className="px-3 py-2.5 bg-primary-black-800/50">
+      <div className="px-3 py-2">
         <div className="flex items-center justify-between">
-          {/* Left: Risk & Reward */}
-          <div className="flex items-center gap-4">
+          {/* Left: Risk & Reward - Compact */}
+          <div className="flex items-center gap-3">
             {/* Risk */}
-            <div className="flex items-center gap-1.5">
-              <span className="text-[10px] text-white/40 uppercase tracking-wide">Risk:</span>
-              <div className="flex items-center gap-0.5">
-                <Heart className="w-3.5 h-3.5 text-red-400 fill-red-400" />
-              </div>
+            <div className="flex items-center gap-1">
+              <Heart className="w-3 h-3 text-red-500 fill-red-500" />
+              <span className="text-xs font-medium text-white/60">{entry_cost}</span>
             </div>
 
-            {/* Reward */}
-            <div className="flex items-center gap-1.5">
-              <span className="text-[10px] text-white/40 uppercase tracking-wide">Reward:</span>
-              <div className="flex items-center gap-1">
-                <Coins className="w-3.5 h-3.5 text-yellow-400" />
-                <span className="text-xs font-semibold text-yellow-400">Coins</span>
-              </div>
+            {/* Reward - Only coins get color */}
+            <div className="flex items-center gap-1">
+              <Coins className="w-3 h-3 text-yellow-500" />
+              <span className="text-xs font-medium text-yellow-500">{coin_reward}</span>
             </div>
           </div>
 
           {/* Right: Join Button */}
           <div className="flex-shrink-0">
             {isFull ? (
-              <div className="px-4 py-1.5 rounded-full bg-primary-black-700 text-[11px] font-semibold text-primary-black-400 uppercase">
+              <div className="px-4 py-1.5 rounded-lg bg-primary-black-800 text-[11px] font-medium text-white/40 uppercase">
                 Full
               </div>
             ) : status !== 'open' ? (
-              <div className="px-4 py-1.5 rounded-full bg-primary-black-700 text-[11px] font-semibold text-primary-black-400 uppercase">
+              <div className="px-4 py-1.5 rounded-lg bg-primary-black-800 text-[11px] font-medium text-white/40 uppercase">
                 {status === 'locked' ? 'Locked' : 'Closed'}
               </div>
             ) : disabled ? (
-              <div className="px-4 py-1.5 rounded-full bg-primary-black-700 text-[11px] font-semibold text-primary-black-400 uppercase">
+              <div className="px-4 py-1.5 rounded-lg bg-primary-black-800 text-[11px] font-medium text-white/40 uppercase">
                 Join
               </div>
             ) : (
@@ -159,7 +153,7 @@ export default function AvailableContestBanner({
                   e.stopPropagation();
                   onJoin?.(contest);
                 }}
-                className="px-5 py-1.5 rounded-full bg-primary-green-500 hover:bg-primary-green-400 text-[11px] font-bold text-primary-black-950 uppercase transition-colors"
+                className="px-5 py-1.5 rounded-lg bg-primary-green-500 hover:bg-primary-green-400 text-[11px] font-bold text-primary-black-950 uppercase transition-colors"
               >
                 Join
               </button>
@@ -180,6 +174,9 @@ AvailableContestBanner.propTypes = {
     current_entries: PropTypes.number,
     win_condition: PropTypes.oneOf(['median', 'h2h', 'top_points', 'survivor']),
     scoring_format: PropTypes.oneOf(['ppr', 'half_ppr', 'standard']),
+    scoring_type: PropTypes.oneOf(['standard', 'half_ppr', 'full_ppr']),
+    coin_reward: PropTypes.number,
+    entry_cost: PropTypes.number,
     status: PropTypes.string.isRequired
   }).isRequired,
   onJoin: PropTypes.func,

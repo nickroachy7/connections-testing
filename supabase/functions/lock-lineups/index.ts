@@ -255,6 +255,20 @@ Deno.serve(async (req) => {
 
     console.log(`Created ${snapshotsCreated} lineup snapshots`)
 
+    // ============================================
+    // LOCK PUBLIC CONTESTS FOR THIS WEEK
+    // ============================================
+    console.log('Locking public contests for the week...')
+    
+    const { data: lockContestsResult, error: lockContestsError } = await supabase
+      .rpc('lock_weekly_contests', { p_week: weekNumber, p_season: seasonYear })
+    
+    if (lockContestsError) {
+      console.error('Error locking contests:', lockContestsError)
+    } else {
+      console.log(`Locked contests:`, lockContestsResult)
+    }
+
     return new Response(
       JSON.stringify({ 
         success: true, 
@@ -263,6 +277,7 @@ Deno.serve(async (req) => {
         snapshots_created: snapshotsCreated,
         games_starting: upcomingGames.length,
         teams_affected: Array.from(teams),
+        contests_locked: lockContestsResult?.locked_contests || 0,
         note: 'All players (lineup + bench) are locked when their game starts (with 2-minute buffer)'
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }

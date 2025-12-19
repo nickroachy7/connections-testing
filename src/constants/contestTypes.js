@@ -80,7 +80,17 @@ export const SCORING_FORMATS = {
     shortLabel: 'PPR',
     description: '1 point per reception'
   },
+  full_ppr: {
+    label: 'Full PPR',
+    shortLabel: 'PPR',
+    description: '1 point per reception'
+  },
   half_ppr: {
+    label: 'Half PPR',
+    shortLabel: '0.5 PPR',
+    description: '0.5 points per reception'
+  },
+  halfppr: {
     label: 'Half PPR',
     shortLabel: '0.5 PPR',
     description: '0.5 points per reception'

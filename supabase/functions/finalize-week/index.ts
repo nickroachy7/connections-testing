@@ -175,6 +175,31 @@ Deno.serve(async (req) => {
       }
     }
 
+    // ============================================
+    // PROCESS PUBLIC CONTEST RESULTS
+    // ============================================
+    console.log('Processing public contest results...')
+    
+    // First, handle incomplete H2H contests (only 1 entrant - cancel and refund)
+    const { data: incompleteResult, error: incompleteError } = await supabase
+      .rpc('handle_incomplete_contests', { p_week: weekNumber, p_season: seasonYear })
+    
+    if (incompleteError) {
+      console.error('Error handling incomplete contests:', incompleteError)
+    } else {
+      console.log(`Handled incomplete contests:`, incompleteResult)
+    }
+    
+    // Process contest results (H2H and median contests)
+    const { data: contestResult, error: contestError } = await supabase
+      .rpc('process_contest_results', { p_week: weekNumber, p_season: seasonYear })
+    
+    if (contestError) {
+      console.error('Error processing contest results:', contestError)
+    } else {
+      console.log(`Processed contest results:`, contestResult)
+    }
+
     return new Response(
       JSON.stringify({ 
         success: true, 
@@ -183,7 +208,11 @@ Deno.serve(async (req) => {
         wins,
         losses,
         eliminated,
-        global_median: globalMedian.toFixed(2)
+        global_median: globalMedian.toFixed(2),
+        contests: {
+          incomplete_handled: incompleteResult?.refunded_contests || 0,
+          entries_processed: contestResult?.processed_entries || 0
+        }
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     )

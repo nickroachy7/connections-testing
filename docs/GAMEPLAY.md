@@ -307,20 +307,115 @@ Each contest type offers Standard, Half PPR, and Full PPR variants.
 
 ---
 
-### 7. Economy & Rewards
+### 7. Weekly Contests (Lives System)
+
+Weekly contests allow teams to compete for coin rewards by risking their Lives. This is the primary way to earn coins and advance in the game.
+
+#### Lives System
+
+**How Lives Work**
+- Each team starts with a number of Lives (based on contest type, typically 3)
+- Lives = `max_losses - current_losses`
+- You can enter **one contest per Life per week**
+- Win = Keep your Life + Earn Coins
+- Lose = Lose a Life
+- When Lives reach 0, your team is eliminated
+
+**Example**
+```
+Team starts with 3 Lives (0 losses, max_losses = 3)
+
+Week 1: Enter 2 Duels (using 2 lives)
+- Win first Duel: Keep life, earn 50 coins
+- Lose second Duel: Lose 1 life (now 2 lives remaining)
+
+Week 2: Can enter up to 2 contests (2 lives remaining)
+```
+
+#### Available Contest Types
+
+**Duel (Head-to-Head)**
+| Property | Value |
+|----------|-------|
+| Size | 2 Teams |
+| Win Condition | Outscore your opponent |
+| Reward | 50 Coins |
+| Risk | 1 Life |
+
+- You are matched against one other team
+- Higher score wins and keeps their Life
+- Lower score loses a Life
+- Ties: Both keep their Lives, split the reward
+
+**Arena (Median Pool)**
+| Property | Value |
+|----------|-------|
+| Size | 12 Teams |
+| Win Condition | Score at or above the median |
+| Reward | 100 Coins |
+| Risk | 1 Life |
+
+- Compete against 11 other teams
+- Top 6 scores (at/above median) WIN and earn coins
+- Bottom 6 scores (below median) LOSE a Life
+- Higher reward reflects higher competition
+
+#### Contest Flow
+
+**1. Browse Available Contests**
+- Navigate to Contests page
+- View available Duels and Arenas
+- See current entry count, spots remaining
+- See Risk (lives) and Reward (coins) clearly
+
+**2. Enter a Contest**
+- Click "Join" on any available contest
+- Confirm entry in modal (shows stakes)
+- Entry is locked until week finalizes
+- Your Life is "at risk" but not deducted yet
+
+**3. Week Plays Out**
+- Games run Sunday-Monday
+- Your lineup scores points
+- No changes allowed after lock
+
+**4. Results Processing (Tuesday)**
+- After week finalizes:
+  - H2H: Scores compared, winner determined
+  - Arena: Median calculated, winners/losers determined
+- Winners: Coins added to team balance
+- Losers: Loss added to team record (Life lost)
+
+**5. Contest Replenishment**
+- When a contest fills up, a new one spawns automatically
+- There's always at least one of each type available
+- Enter as many contests as you have Lives
+
+#### Strategy Tips
+
+- **Conservative**: Enter 1 contest per week, preserve Lives
+- **Aggressive**: Enter max contests, maximize coin potential
+- **Mixed**: Enter Duel for smaller guaranteed reward, Arena for higher stakes
+- **Risk Assessment**: Duels are 50/50, Arenas depend on field quality
+
+---
+
+### 8. Economy & Rewards
 
 #### Coin System
 
 **Earning Coins**
-- Starting balance: 1000 coins
-- Weekly pack reward: 500 coins (for active teams)
+- Starting balance: 200 coins (rebalanced)
+- Weekly contest wins: 50-100 coins (based on contest type)
 - Win bonuses: Coming soon
 - Achievement rewards: Coming soon
 
 **Spending Coins**
-- Standard Pack: 500 coins
-- Premium Pack: 1000 coins
-- Future: Team customization, cosmetics
+- Bronze Pack: 150 coins
+- Silver Pack: 400 coins
+- Gold Pack: 750 coins
+- Elite Pack: 1500 coins
+- Free Agency Claims: 40-75 coins per player
 
 #### Inventory Management
 
@@ -337,7 +432,7 @@ Each contest type offers Standard, Half PPR, and Full PPR variants.
 
 ---
 
-### 8. Leaderboards
+### 9. Leaderboards
 
 #### Contest Leaderboards
 - Ranked within same contest type (fair comparison)
@@ -360,7 +455,7 @@ Each contest type offers Standard, Half PPR, and Full PPR variants.
 
 ---
 
-### 9. Team Management
+### 10. Team Management
 
 #### Team Selection Page
 - View all your teams
@@ -386,7 +481,7 @@ Each contest type offers Standard, Half PPR, and Full PPR variants.
 
 ---
 
-### 10. Live Scoring Experience
+### 11. Live Scoring Experience
 
 #### Real-Time Updates (Game Days)
 
@@ -414,7 +509,7 @@ Each contest type offers Standard, Half PPR, and Full PPR variants.
 
 ---
 
-### 11. Player Cards & Progression
+### 12. Player Cards & Progression
 
 #### Card Tiers
 - **Elite**: Top 1% players (highest projections)
@@ -438,7 +533,7 @@ Each contest type offers Standard, Half PPR, and Full PPR variants.
 
 ---
 
-### 12. Navigation & UX
+### 13. Navigation & UX
 
 #### Main Navigation
 
@@ -481,7 +576,7 @@ Each contest type offers Standard, Half PPR, and Full PPR variants.
 
 ---
 
-### 13. Private Leagues & Contest Configuration
+### 14. Private Leagues & Contest Configuration
 
 #### Creating a League
 
@@ -561,7 +656,7 @@ Commissioners create private leagues with full control over contest rules:
 
 ---
 
-### 14. User States & Flows
+### 15. User States & Flows
 
 #### New User → First Team
 ```
@@ -590,7 +685,7 @@ Team Selection → Choose Team A → Manage
 
 ---
 
-### 14. Notifications & Feedback
+### 16. Notifications & Feedback
 
 #### Toast Notifications
 - Pack purchase confirmation
@@ -614,7 +709,7 @@ Team Selection → Choose Team A → Manage
 
 ---
 
-### 15. Future Features (Not Yet Implemented)
+### 17. Future Features (Not Yet Implemented)
 
 - **Achievements**: Unlock badges for milestones
 - **Tournaments**: Bracket-style competitions
