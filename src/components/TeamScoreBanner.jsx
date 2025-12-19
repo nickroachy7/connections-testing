@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import { Trophy, Target, Swords, TrendingUp, Users, ChevronRight, Clock, CheckCircle, Zap } from 'lucide-react';
+import { Trophy, Target, Swords, TrendingUp, Users, ChevronRight, Clock, CheckCircle, Zap, Heart, Coins } from 'lucide-react';
 
 /**
  * TeamScoreBanner - Week status and score display with contest integration
@@ -8,7 +8,7 @@ import { Trophy, Target, Swords, TrendingUp, Users, ChevronRight, Clock, CheckCi
  * 1. Contest/Week identification (name, week, type)
  * 2. Current status (upcoming, live, final)
  * 3. Performance metrics (score, rank, comparison)
- * 4. Action prompt (view contest)
+ * 4. Stakes: Risk (heart) | Reward (coins)
  * 
  * Design principles:
  * - Upcoming: Focus on readiness, hide meaningless scores
@@ -42,6 +42,8 @@ export default function TeamScoreBanner({
   contestMedianScore = null,
   contestRank = null,
   contestWeek = null,
+  contestEntryCost = 1,
+  contestCoinReward = 50,
   noDataYet = false,
   teamStartsNextWeek = null,
   onContestClick = null,
@@ -401,6 +403,24 @@ export default function TeamScoreBanner({
             )}
           </div>
         </div>
+        
+        {/* Stakes Row - Risk | Win */}
+        <div className={`border-t border-primary-black-800 ${isMobile ? 'px-3 py-1.5' : 'px-4 py-2'}`}>
+          <div className="flex items-center gap-4">
+            {/* Risk */}
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] uppercase tracking-wide text-white/40">Risk</span>
+              <Heart className="w-3 h-3 text-red-500 fill-red-500" />
+              <span className="text-xs font-medium text-white/60">{contestEntryCost}</span>
+            </div>
+            {/* Win */}
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] uppercase tracking-wide text-white/40">Win</span>
+              <Coins className="w-3 h-3 text-yellow-500" />
+              <span className="text-xs font-medium text-yellow-500">{contestCoinReward}</span>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -505,6 +525,8 @@ TeamScoreBanner.propTypes = {
   contestMedianScore: PropTypes.number,
   contestRank: PropTypes.number,
   contestWeek: PropTypes.number,
+  contestEntryCost: PropTypes.number,
+  contestCoinReward: PropTypes.number,
   noDataYet: PropTypes.bool,
   teamStartsNextWeek: PropTypes.number,
   onContestClick: PropTypes.func,

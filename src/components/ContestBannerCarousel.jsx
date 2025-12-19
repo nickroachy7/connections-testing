@@ -58,6 +58,8 @@ const MemoizedContestBanner = memo(function MemoizedContestBanner({
       contestMedianScore={contestItem.contestMedian}
       contestRank={contestItem.contestRank}
       contestWeek={contestItem.eligibleWeek}
+      contestEntryCost={contestItem.entryCost}
+      contestCoinReward={contestItem.coinReward}
       onContestClick={handleClick}
       lineupReady={lineupReady}
     />

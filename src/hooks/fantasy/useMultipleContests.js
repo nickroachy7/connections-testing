@@ -138,6 +138,8 @@ export function useMultipleContests(teamId) {
             current_entries,
             scoring_type,
             win_condition,
+            entry_cost,
+            coin_reward,
             template:public_contest_templates(
               icon,
               difficulty
@@ -244,7 +246,10 @@ export function useMultipleContests(teamId) {
           // Key props for TeamScoreBanner
           contestName: contest.name,
           winCondition: contest.win_condition,
-          maxEntries: contest.max_entries
+          maxEntries: contest.max_entries,
+          // Stakes - Risk/Reward
+          entryCost: contest.entry_cost || 1,
+          coinReward: contest.coin_reward || 50
         };
       }));
 
