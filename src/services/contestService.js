@@ -236,6 +236,8 @@ export async function getTeamContestEntries(teamId, week = null, season = null) 
           status,
           week,
           season,
+          entry_cost,
+          coin_reward,
           template:public_contest_templates (
             icon,
             difficulty

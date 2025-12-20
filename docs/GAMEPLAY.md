@@ -404,12 +404,19 @@ Week 2: Can enter up to 2 contests (2 lives remaining)
 
 #### Coin System (Micro-Economy)
 
-**Target Balance Range: 5-100 coins**
+**Target Balance Range: 25-150 coins**
 
 **Earning Coins**
-- Starting balance: 25 coins
-- Duel wins: 5 coins
-- Arena wins: 10 coins
+- Starting balance: 50 coins
+- Contest wins: 25-75 coins (varies by contest type)
+  - Duel: 25 coins
+  - Sprint Survivor: 30 coins
+  - PPR Sprint: 35 coins
+  - Elite Four: 35 coins
+  - Weekly Showdown: 40 coins
+  - The Grind: 45 coins
+  - Gauntlet: 50 coins
+  - Arena: 75 coins
 - Quick selling players: 1-8 coins (based on rarity)
 - Quick selling tokens: 2-8 coins
 

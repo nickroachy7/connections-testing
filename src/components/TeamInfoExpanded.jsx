@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import PropTypes from 'prop-types';
 import { supabase } from '../services/supabase';
 import { useToast } from '../contexts/ToastContext';
+import { useAuth } from '../hooks/useAuth';
 import { 
-  ChevronDown, ChevronUp, Camera, Palette, CheckCircle, XCircle, Settings
+  ChevronDown, ChevronUp, Camera, Palette, CheckCircle, XCircle, Trash2
 } from 'lucide-react';
 
 const BANNER_THEMES = [
@@ -30,12 +32,16 @@ export default function TeamInfoExpanded({
   inventory,
   selectedTheme,
   onThemeChange,
-  onTeamUpdate
+  onTeamUpdate,
+  showDeleteOption = false
 }) {
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const { success: toastSuccess, showError } = useToast();
   const [loading, setLoading] = useState(true);
   const [weeklyHistory, setWeeklyHistory] = useState([]);
   const [showThemes, setShowThemes] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   
   // Customization state
   const [editedName, setEditedName] = useState(team?.team_name || '');
@@ -145,6 +151,33 @@ export default function TeamInfoExpanded({
     } catch (err) {
       console.error('Error saving theme:', err);
       showError('Failed to save theme');
+    }
+  };
+
+  // Delete team handler
+  const handleDeleteTeam = async () => {
+    if (!confirm(`Are you sure you want to delete "${team.team_name}"? This will permanently delete all players, tokens, lineups, and data associated with this team.`)) {
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      const { error } = await supabase.rpc('delete_team', {
+        p_team_id: team.id,
+        p_user_id: user.id
+      });
+
+      if (error) throw error;
+
+      toastSuccess(`Team "${team.team_name}" has been deleted`);
+      
+      // Navigate back to team selection
+      navigate('/fantasy');
+    } catch (error) {
+      console.error('Error deleting team:', error);
+      showError(error.message || 'Failed to delete team');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -289,6 +322,29 @@ export default function TeamInfoExpanded({
           ))}
         </div>
       )}
+
+      {/* Delete Team Option (when enabled) */}
+      {showDeleteOption && (
+        <div className="pt-3 mt-3 border-t border-red-500/20">
+          <button
+            onClick={handleDeleteTeam}
+            disabled={isDeleting}
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 hover:border-red-500/50 text-red-400 hover:text-red-300 rounded-lg transition-all disabled:opacity-50 text-xs font-medium"
+          >
+            {isDeleting ? (
+              <>
+                <div className="w-3 h-3 border-2 border-red-400/30 border-t-red-400 rounded-full animate-spin" />
+                <span>Deleting...</span>
+              </>
+            ) : (
+              <>
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Delete Team</span>
+              </>
+            )}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -309,4 +365,5 @@ TeamInfoExpanded.propTypes = {
   selectedTheme: PropTypes.string,
   onThemeChange: PropTypes.func,
   onTeamUpdate: PropTypes.func,
+  showDeleteOption: PropTypes.bool,
 };

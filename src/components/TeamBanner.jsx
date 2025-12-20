@@ -904,6 +904,7 @@ export default function TeamBanner({
                     if (data.banner_theme) setBannerTheme(data.banner_theme);
                   }
                 }}
+                showDeleteOption={true}
               />
             )}
           </div>

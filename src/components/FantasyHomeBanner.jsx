@@ -8,9 +8,9 @@ import NavigationTabs from './NavigationTabs';
 export default function FantasyHomeBanner() {
   // Main Navigation Items - HOME, FANTASY, TBD, PROFILE
   const navItems = [
-    { path: '/home', label: 'HOME', enabled: true },
+    { path: '/home', label: 'HOME', enabled: false },
     { path: '/fantasy', label: 'FANTASY', enabled: true },
-    { path: '/tbd', label: 'TBD', enabled: true },
+    { path: '/tbd', label: 'TBD', enabled: false },
     { path: '/profile', label: 'PROFILE', enabled: true }
   ];
 

@@ -249,7 +249,7 @@ export function useMultipleContests(teamId) {
           maxEntries: contest.max_entries,
           // Stakes - Risk/Reward
           entryCost: contest.entry_cost || 1,
-          coinReward: contest.coin_reward || 5
+          coinReward: contest.coin_reward || 25
         };
       }));
 
