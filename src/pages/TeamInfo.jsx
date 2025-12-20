@@ -142,10 +142,12 @@ export default function TeamInfo() {
       if (updateError) throw updateError;
       
       setTeamImage(publicUrl);
+      success('Team photo updated');
       if (refetchTeamData) refetchTeamData();
     } catch (err) {
       console.error('Error uploading image:', err);
       setCustomError(err.message || 'Failed to upload image');
+      showError('Failed to upload image');
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -166,10 +168,12 @@ export default function TeamInfo() {
         .eq('id', activeTeam.id);
       
       if (nameError) throw nameError;
+      success('Team name saved');
       if (refetchTeamData) refetchTeamData();
     } catch (err) {
       console.error('Error saving team name:', err);
       setCustomError(err.message || 'Failed to save team name');
+      showError('Failed to save team name');
     } finally {
       setSaving(false);
     }
@@ -192,6 +196,7 @@ export default function TeamInfo() {
       } else {
         // Also update localStorage for backwards compatibility
         localStorage.setItem(`bannerTheme_${activeTeam.id}`, themeId);
+        if (refetchTeamData) refetchTeamData();
       }
     } catch (err) {
       console.error('Error saving theme:', err);

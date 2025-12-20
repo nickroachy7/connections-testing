@@ -1,25 +1,29 @@
 import { useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { supabase } from '../services/supabase';
+import { useToast } from '../contexts/ToastContext';
 import { 
-  ChevronDown, ChevronUp, Camera, Palette, CheckCircle, XCircle
+  ChevronDown, ChevronUp, Camera, Palette, CheckCircle, XCircle, Settings
 } from 'lucide-react';
 
 const BANNER_THEMES = [
-  { id: 'default', name: 'Classic', preview: '#1a1a1a' },
-  { id: 'ocean', name: 'Ocean', preview: 'linear-gradient(135deg, #1e3a8a, #164e63)' },
-  { id: 'forest', name: 'Forest', preview: 'linear-gradient(135deg, #064e3b, #134e4a)' },
-  { id: 'sunset', name: 'Sunset', preview: 'linear-gradient(135deg, #7c2d12, #831843)' },
-  { id: 'purple', name: 'Purple', preview: 'linear-gradient(135deg, #581c87, #312e81)' },
-  { id: 'crimson', name: 'Fire', preview: 'linear-gradient(135deg, #7f1d1d, #713f12)' },
+  { id: 'default', name: 'Classic Dark', preview: '#1a1a1a' },
+  { id: 'ocean', name: 'Ocean Blue', preview: 'linear-gradient(135deg, #1e3a8a, #164e63)' },
+  { id: 'forest', name: 'Forest Green', preview: 'linear-gradient(135deg, #064e3b, #134e4a)' },
+  { id: 'sunset', name: 'Sunset Orange', preview: 'linear-gradient(135deg, #7c2d12, #831843)' },
+  { id: 'purple', name: 'Royal Purple', preview: 'linear-gradient(135deg, #581c87, #312e81)' },
+  { id: 'crimson', name: 'Fire Red', preview: 'linear-gradient(135deg, #7f1d1d, #713f12)' },
   { id: 'midnight', name: 'Midnight', preview: 'linear-gradient(135deg, #0f172a, #1e1b4b)' },
   { id: 'emerald', name: 'Emerald', preview: 'linear-gradient(135deg, #064e3b, #365314)' },
-  { id: 'rose', name: 'Rose', preview: 'linear-gradient(135deg, #831843, #7f1d1d)' },
-  { id: 'arctic', name: 'Arctic', preview: 'linear-gradient(135deg, #164e63, #312e81)' }
+  { id: 'rose', name: 'Rose Gold', preview: 'linear-gradient(135deg, #831843, #7f1d1d)' },
+  { id: 'arctic', name: 'Arctic Ice', preview: 'linear-gradient(135deg, #164e63, #312e81)' }
 ];
 
 /**
- * TeamInfoExpanded - Compact inline expandable content for team info
+ * TeamInfoExpanded - Compact inline expandable content for team info/settings
+ * 
+ * This component provides team customization (name, photo, theme) and stats display.
+ * Used in TeamBanner's expandable panel.
  */
 export default function TeamInfoExpanded({ 
   team, 
@@ -28,6 +32,7 @@ export default function TeamInfoExpanded({
   onThemeChange,
   onTeamUpdate
 }) {
+  const { success: toastSuccess, showError } = useToast();
   const [loading, setLoading] = useState(true);
   const [weeklyHistory, setWeeklyHistory] = useState([]);
   const [showThemes, setShowThemes] = useState(false);
@@ -35,6 +40,7 @@ export default function TeamInfoExpanded({
   // Customization state
   const [editedName, setEditedName] = useState(team?.team_name || '');
   const [teamImage, setTeamImage] = useState(team?.team_image_url || null);
+  const [localTheme, setLocalTheme] = useState(selectedTheme || team?.banner_theme || 'forest');
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [customError, setCustomError] = useState(null);
@@ -45,8 +51,10 @@ export default function TeamInfoExpanded({
       loadTeamData();
       setEditedName(team.team_name || '');
       setTeamImage(team.team_image_url || null);
+      // Initialize theme from database
+      setLocalTheme(team.banner_theme || selectedTheme || 'forest');
     }
-  }, [team?.id]);
+  }, [team?.id, team?.banner_theme]);
 
   const loadTeamData = async () => {
     try {
@@ -84,11 +92,14 @@ export default function TeamInfoExpanded({
         .from('team-images').upload(fileName, file, { cacheControl: '3600', upsert: false });
       if (uploadError) throw uploadError;
       const { data: { publicUrl } } = supabase.storage.from('team-images').getPublicUrl(uploadData.path);
-      await supabase.from('teams').update({ team_image_url: publicUrl }).eq('id', team.id);
+      const { error: updateError } = await supabase.from('teams').update({ team_image_url: publicUrl }).eq('id', team.id);
+      if (updateError) throw updateError;
       setTeamImage(publicUrl);
+      toastSuccess('Team photo updated');
       onTeamUpdate?.();
     } catch (err) {
       setCustomError('Upload failed');
+      showError('Failed to upload image');
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -99,12 +110,41 @@ export default function TeamInfoExpanded({
     if (!editedName.trim() || editedName === team?.team_name) return;
     try {
       setSaving(true);
-      await supabase.from('teams').update({ team_name: editedName.trim() }).eq('id', team.id);
+      setCustomError(null);
+      const { error } = await supabase.from('teams').update({ team_name: editedName.trim() }).eq('id', team.id);
+      if (error) throw error;
+      toastSuccess('Team name saved');
       onTeamUpdate?.();
     } catch (err) {
       setCustomError('Save failed');
+      showError('Failed to save team name');
     } finally {
       setSaving(false);
+    }
+  };
+
+  // Save theme to database AND update parent state
+  const handleThemeChange = async (themeId) => {
+    setLocalTheme(themeId);
+    onThemeChange?.(themeId); // Update parent state immediately for visual feedback
+    
+    try {
+      const { error } = await supabase
+        .from('teams')
+        .update({ banner_theme: themeId })
+        .eq('id', team.id);
+      
+      if (error) {
+        console.error('Error saving theme:', error);
+        showError('Failed to save theme');
+        return;
+      }
+      
+      // Also update localStorage for backwards compatibility
+      localStorage.setItem(`bannerTheme_${team.id}`, themeId);
+    } catch (err) {
+      console.error('Error saving theme:', err);
+      showError('Failed to save theme');
     }
   };
 
@@ -192,8 +232,8 @@ export default function TeamInfoExpanded({
             <span className="text-xs font-medium text-white">Theme</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded border border-white/30" style={{ background: BANNER_THEMES.find(t => t.id === selectedTheme)?.preview }} />
-            <span className="text-[11px] text-white/50">{BANNER_THEMES.find(t => t.id === selectedTheme)?.name}</span>
+            <div className="w-4 h-4 rounded border border-white/30" style={{ background: BANNER_THEMES.find(t => t.id === localTheme)?.preview }} />
+            <span className="text-[11px] text-white/50">{BANNER_THEMES.find(t => t.id === localTheme)?.name}</span>
             {showThemes ? <ChevronUp className="w-3.5 h-3.5 text-white/40" /> : <ChevronDown className="w-3.5 h-3.5 text-white/40" />}
           </div>
         </button>
@@ -203,9 +243,9 @@ export default function TeamInfoExpanded({
             {BANNER_THEMES.map((theme) => (
               <button
                 key={theme.id}
-                onClick={() => onThemeChange?.(theme.id)}
+                onClick={() => handleThemeChange(theme.id)}
                 className={`flex flex-col items-center gap-1 p-1.5 rounded-lg transition-all ${
-                  selectedTheme === theme.id ? 'bg-primary-green-500/20 ring-1 ring-primary-green-500' : 'hover:bg-white/5'
+                  localTheme === theme.id ? 'bg-primary-green-500/20 ring-1 ring-primary-green-500' : 'hover:bg-white/5'
                 }`}
               >
                 <div className="w-8 h-8 rounded border border-white/20" style={{ background: theme.preview }} />

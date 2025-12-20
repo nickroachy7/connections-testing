@@ -890,9 +890,19 @@ export default function TeamBanner({
                 inventory={contextInventory}
                 selectedTheme={bannerTheme}
                 onThemeChange={(themeId) => setBannerTheme(themeId)}
-                onTeamUpdate={() => {
-                  if (team?.team_image_url) setTeamImage(team.team_image_url);
-                  if (team?.team_name) setLocalTeamName(team.team_name);
+                onTeamUpdate={async () => {
+                  // Refetch team data after updates
+                  const { data, error } = await supabase
+                    .from('teams')
+                    .select('team_image_url, team_name, banner_theme')
+                    .eq('id', teamId)
+                    .single();
+                  
+                  if (!error && data) {
+                    setTeamImage(data.team_image_url);
+                    setLocalTeamName(data.team_name);
+                    if (data.banner_theme) setBannerTheme(data.banner_theme);
+                  }
                 }}
               />
             )}
