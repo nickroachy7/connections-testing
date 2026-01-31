@@ -7,7 +7,7 @@ class ErrorBoundary extends Component {
     this.state = { hasError: false, error: null, errorInfo: null };
   }
 
-  static getDerivedStateFromError(error) {
+  static getDerivedStateFromError(_error) {
     return { hasError: true };
   }
 
@@ -36,7 +36,7 @@ class ErrorBoundary extends Component {
               We encountered an unexpected error. Please try refreshing the page or return to the dashboard.
             </p>
 
-            {process.env.NODE_ENV === 'development' && this.state.error && (
+            {import.meta.env.MODE === 'development' && this.state.error && (
               <div className="bg-primary-black-900 rounded-xl p-4 mb-8 text-left">
                 <p className="text-red-500 font-mono text-sm mb-2">{this.state.error.toString()}</p>
                 <pre className="text-primary-black-400 font-mono text-xs overflow-auto">

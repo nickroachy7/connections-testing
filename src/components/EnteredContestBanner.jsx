@@ -16,16 +16,13 @@ import { supabase } from '../services/supabase';
  */
 function EnteredContestBanner({
   contest,
-  entry,
   teamId,
   userScore = 0,
   projectedScore = 0,
   opponentScore = null,
-  opponentName = null,
   medianScore = 0,
   rank = null,
   isLive = false,
-  isFinal = false,
   isUpcoming = true,
   lineupReady = false,
   defaultExpanded = false,
@@ -40,7 +37,6 @@ function EnteredContestBanner({
   const [liveOpponentScore, setLiveOpponentScore] = useState(null);
 
   const {
-    id,
     name,
     description,
     max_entries,
@@ -210,24 +206,6 @@ function EnteredContestBanner({
     setIsExpanded(!isExpanded);
     onClick?.();
   };
-
-  // Rank display helpers
-  const getRankDisplay = (r) => {
-    if (r === 1) return { icon: Crown, color: 'text-yellow-400', bg: 'bg-yellow-500/20' };
-    if (r === 2) return { icon: Medal, color: 'text-gray-300', bg: 'bg-gray-500/20' };
-    if (r === 3) return { icon: Medal, color: 'text-amber-600', bg: 'bg-amber-600/20' };
-    return { icon: null, color: 'text-primary-black-400', bg: 'bg-primary-black-700' };
-  };
-
-  const getRankText = (r) => {
-    if (!r) return '—';
-    if (r === 1) return '1st';
-    if (r === 2) return '2nd';
-    if (r === 3) return '3rd';
-    return `#${r}`;
-  };
-
-  const myRank = standings.findIndex(s => s.team_id === teamId) + 1 || rank;
 
   return (
     <div className="rounded-xl overflow-hidden">
