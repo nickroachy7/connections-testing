@@ -25,12 +25,24 @@ export function sortPlayersByName(players, ascending = true) {
 /**
  * Sort players by position
  * @param {Array} players - Array of players
+ * @param {Object} sport - Sport config object (optional, uses current sport if not provided)
  * @returns {Array} Sorted players
  */
-export function sortPlayersByPosition(players) {
+export function sortPlayersByPosition(players, sport = null) {
   if (!players || !Array.isArray(players)) return [];
   
-  const positionOrder = { QB: 1, RB: 2, WR: 3, TE: 4 };
+  // Build position order from sport config
+  let positionOrder = {};
+  
+  if (sport) {
+    sport.positions.forEach((pos, index) => {
+      positionOrder[pos.id] = index + 1;
+      positionOrder[pos.shortName] = index + 1;
+    });
+  } else {
+    // Fallback to NFL order if no sport provided
+    positionOrder = { QB: 1, RB: 2, WR: 3, TE: 4, K: 5, DEF: 6 };
+  }
   
   return [...players].sort((a, b) => {
     const orderA = positionOrder[a.position] || 999;
