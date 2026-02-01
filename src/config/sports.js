@@ -10,12 +10,12 @@ export const SPORTS = {
     fullName: 'National Football League',
     enabled: true,
     positions: [
-      { id: 'QB', name: 'Quarterback', shortName: 'QB' },
-      { id: 'RB', name: 'Running Back', shortName: 'RB' },
-      { id: 'WR', name: 'Wide Receiver', shortName: 'WR' },
-      { id: 'TE', name: 'Tight End', shortName: 'TE' },
-      { id: 'K', name: 'Kicker', shortName: 'K' },
-      { id: 'DEF', name: 'Defense', shortName: 'DEF' }
+      { id: 'QB', name: 'Quarterback', shortName: 'QB', color: { bg: 'bg-red-600', text: 'text-white' } },
+      { id: 'RB', name: 'Running Back', shortName: 'RB', color: { bg: 'bg-primary-green-600', text: 'text-white' } },
+      { id: 'WR', name: 'Wide Receiver', shortName: 'WR', color: { bg: 'bg-blue-600', text: 'text-white' } },
+      { id: 'TE', name: 'Tight End', shortName: 'TE', color: { bg: 'bg-purple-600', text: 'text-white' } },
+      { id: 'K', name: 'Kicker', shortName: 'K', color: { bg: 'bg-orange-600', text: 'text-white' } },
+      { id: 'DEF', name: 'Defense', shortName: 'DEF', color: { bg: 'bg-gray-600', text: 'text-white' } }
     ],
     statCategories: {
       passing: {
