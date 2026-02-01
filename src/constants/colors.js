@@ -5,62 +5,10 @@
  * Import these instead of defining colors inline.
  */
 
-// Position colors - used for lineup position badges
-export const POSITION_COLORS = {
-  QB: {
-    bg: 'bg-red-600',
-    text: 'text-white',
-    border: 'border-red-600',
-    classes: 'bg-red-600 text-white'
-  },
-  RB: {
-    bg: 'bg-primary-green-600',
-    text: 'text-white',
-    border: 'border-primary-green-600',
-    classes: 'bg-primary-green-600 text-white'
-  },
-  RB1: {
-    bg: 'bg-primary-green-600',
-    text: 'text-white',
-    border: 'border-primary-green-600',
-    classes: 'bg-primary-green-600 text-white'
-  },
-  RB2: {
-    bg: 'bg-primary-green-600',
-    text: 'text-white',
-    border: 'border-primary-green-600',
-    classes: 'bg-primary-green-600 text-white'
-  },
-  WR: {
-    bg: 'bg-blue-600',
-    text: 'text-white',
-    border: 'border-blue-600',
-    classes: 'bg-blue-600 text-white'
-  },
-  WR1: {
-    bg: 'bg-blue-600',
-    text: 'text-white',
-    border: 'border-blue-600',
-    classes: 'bg-blue-600 text-white'
-  },
-  WR2: {
-    bg: 'bg-blue-600',
-    text: 'text-white',
-    border: 'border-blue-600',
-    classes: 'bg-blue-600 text-white'
-  },
-  WR3: {
-    bg: 'bg-blue-600',
-    text: 'text-white',
-    border: 'border-blue-600',
-    classes: 'bg-blue-600 text-white'
-  },
-  TE: {
-    bg: 'bg-purple-600',
-    text: 'text-white',
-    border: 'border-purple-600',
-    classes: 'bg-purple-600 text-white'
-  },
+import { getCurrentSport } from '../config/sports';
+
+// Special positions (FLEX, BENCH, etc.) that aren't sport-specific
+const SPECIAL_POSITION_COLORS = {
   FLEX: {
     bg: 'bg-yellow-600',
     text: 'text-black',
@@ -102,16 +50,39 @@ const DEFAULT_POSITION_COLOR = {
 };
 
 /**
- * Get position color configuration
+ * Get position color configuration - sport-aware
  * @param {string} position - Position key (QB, RB, WR, etc.)
+ * @param {string} sportId - Optional sport ID, defaults to current sport
  * @returns {object} Color configuration with bg, text, border, classes
  */
-export function getPositionColor(position) {
+export function getPositionColor(position, sportId = null) {
   if (!position) return DEFAULT_POSITION_COLOR;
+  
   const upperPosition = position.toUpperCase().replace(/\d/g, '');
-  return POSITION_COLORS[position?.toUpperCase()] || 
-         POSITION_COLORS[upperPosition] || 
-         DEFAULT_POSITION_COLOR;
+  
+  // Check special positions first
+  if (SPECIAL_POSITION_COLORS[upperPosition] || SPECIAL_POSITION_COLORS[position?.toUpperCase()]) {
+    return SPECIAL_POSITION_COLORS[upperPosition] || SPECIAL_POSITION_COLORS[position?.toUpperCase()];
+  }
+  
+  // Get from current sport config
+  try {
+    const sport = sportId ? getSportById(sportId) : getCurrentSport();
+    const positionConfig = sport.positions.find(p => p.id === upperPosition || p.shortName === upperPosition);
+    
+    if (positionConfig?.color) {
+      return {
+        bg: positionConfig.color.bg,
+        text: positionConfig.color.text,
+        border: positionConfig.color.bg.replace('bg-', 'border-'),
+        classes: `${positionConfig.color.bg} ${positionConfig.color.text}`
+      };
+    }
+  } catch (error) {
+    console.warn(`Could not find position color for ${position}:`, error);
+  }
+  
+  return DEFAULT_POSITION_COLOR;
 }
 
 /**

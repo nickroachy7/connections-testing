@@ -2,6 +2,7 @@ import { createBrowserRouter, RouterProvider, Outlet, redirect } from 'react-rou
 import { lazy, Suspense } from 'react'
 import ErrorBoundary from './components/ErrorBoundary'
 import { ToastProvider } from './contexts/ToastContext'
+import { SportProvider } from './contexts/SportContext'
 import LoadingSpinner from './components/LoadingSpinner'
 import Header from './components/Header'
 import Footer from './components/Footer'
@@ -273,9 +274,11 @@ const router = createBrowserRouter([
 function App() {
   return (
     <ErrorBoundary>
-      <ToastProvider>
-        <RouterProvider router={router} />
-      </ToastProvider>
+      <SportProvider>
+        <ToastProvider>
+          <RouterProvider router={router} />
+        </ToastProvider>
+      </SportProvider>
     </ErrorBoundary>
   )
 }

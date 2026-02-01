@@ -1,7 +1,10 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Link, useSearchParams, useLoaderData, useNavigate } from 'react-router-dom'
+import PositionFilterButtons from '../components/PositionFilterButtons'
+import { useSport } from '../contexts/SportContext'
 
 function Players() {
+  const { currentSport } = useSport();
   const { players: initialPlayers, fantasyPoints: initialFantasyPoints, searchTerm: initialSearch, positionFilter: initialPosition, sortBy: initialSort } = useLoaderData();
   const [searchParams, setSearchParams] = useSearchParams()
   const navigate = useNavigate();
@@ -86,7 +89,7 @@ return (
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-4xl md:text-5xl font-dk-display font-black text-dk-white-primary mb-2">
-                NFL <span className="text-dk-green-primary">PLAYERS</span>
+                {currentSport.name} <span className="text-dk-green-primary">PLAYERS</span>
               </h1>
               <p className="text-dk-white-secondary font-dk text-lg">Search player database by name, position, and team</p>
             </div>
@@ -124,57 +127,11 @@ return (
           
           {/* Filter Options Row */}
           <div className="flex flex-wrap gap-3">
-            {/* Position Filter Buttons */}
-            <button 
-              className={`px-4 py-2 rounded-dk font-dk-display font-bold transition-all duration-200 text-sm ${
-                positionFilter === 'all' 
-                  ? 'bg-dk-green-primary text-dk-black-primary' 
-                  : 'bg-dk-black-tertiary text-dk-white-secondary border border-dk-black-light hover:bg-dk-black-light'
-              }`}
-              onClick={() => handlePositionFilter('all')}
-            >
-              ALL
-            </button>
-            <button 
-              className={`px-4 py-2 rounded-dk font-dk-display font-bold transition-all duration-200 text-sm ${
-                positionFilter === 'QB' 
-                  ? 'bg-dk-orange-primary text-dk-white-primary' 
-                  : 'bg-dk-black-tertiary text-dk-white-secondary border border-dk-black-light hover:bg-dk-black-light'
-              }`}
-              onClick={() => handlePositionFilter('QB')}
-            >
-              QB
-            </button>
-            <button 
-              className={`px-4 py-2 rounded-dk font-dk-display font-bold transition-all duration-200 text-sm ${
-                positionFilter === 'RB' 
-                  ? 'bg-dk-orange-primary text-dk-white-primary' 
-                  : 'bg-dk-black-tertiary text-dk-white-secondary border border-dk-black-light hover:bg-dk-black-light'
-              }`}
-              onClick={() => handlePositionFilter('RB')}
-            >
-              RB
-            </button>
-            <button 
-              className={`px-4 py-2 rounded-dk font-dk-display font-bold transition-all duration-200 text-sm ${
-                positionFilter === 'WR' 
-                  ? 'bg-dk-orange-primary text-dk-white-primary' 
-                  : 'bg-dk-black-tertiary text-dk-white-secondary border border-dk-black-light hover:bg-dk-black-light'
-              }`}
-              onClick={() => handlePositionFilter('WR')}
-            >
-              WR
-            </button>
-            <button 
-              className={`px-4 py-2 rounded-dk font-dk-display font-bold transition-all duration-200 text-sm ${
-                positionFilter === 'TE' 
-                  ? 'bg-dk-orange-primary text-dk-white-primary' 
-                  : 'bg-dk-black-tertiary text-dk-white-secondary border border-dk-black-light hover:bg-dk-black-light'
-              }`}
-              onClick={() => handlePositionFilter('TE')}
-            >
-              TE
-            </button>
+            {/* Position Filter Buttons - Dynamic based on current sport */}
+            <PositionFilterButtons 
+              activePosition={positionFilter}
+              onFilterChange={handlePositionFilter}
+            />
             
             {/* Sort Dropdown */}
             <select 
