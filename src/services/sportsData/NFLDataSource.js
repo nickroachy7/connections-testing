@@ -1,4 +1,4 @@
-import { BalldontlieNFLAPI } from '@balldontlie/sdk';
+import { BalldontlieAPI } from '@balldontlie/sdk';
 import { BaseSportDataSource } from './BaseSportDataSource.js';
 
 /**
@@ -7,7 +7,7 @@ import { BaseSportDataSource } from './BaseSportDataSource.js';
 export class NFLDataSource extends BaseSportDataSource {
   constructor(apiKey) {
     super(apiKey);
-    this.api = new BalldontlieNFLAPI({ apiKey });
+    this.api = new BalldontlieAPI({ apiKey });
     this.sportCode = 'nfl';
   }
 
@@ -45,31 +45,8 @@ export class NFLDataSource extends BaseSportDataSource {
     }
   }
 
-  async getLiveGameData(gameId) {
-    try {
-      const response = await this.api.nfl.getLiveBoxScore(gameId);
-      return this.normalizeGameData(response.data);
-    } catch (error) {
-      console.error('Error fetching NFL live game data:', error);
-      throw error;
-    }
-  }
-
-  async getProjections(options = {}) {
-    try {
-      const { week, season = 2024, playerIds } = options;
-      const params = { season };
-      
-      if (week) params.week = week;
-      if (playerIds) params.player_ids = playerIds;
-      
-      const response = await this.api.nfl.getProjections(params);
-      return response.data.map(proj => this.normalizeProjection(proj));
-    } catch (error) {
-      console.error('Error fetching NFL projections:', error);
-      throw error;
-    }
-  }
+  // Note: BallDontLie API does not currently support live box scores or projections
+  // These methods would need to be implemented with a different data source
 
   async getSchedule(options = {}) {
     try {
@@ -105,15 +82,15 @@ export class NFLDataSource extends BaseSportDataSource {
       firstName: rawPlayer.first_name,
       lastName: rawPlayer.last_name,
       fullName: `${rawPlayer.first_name} ${rawPlayer.last_name}`,
-      position: rawPlayer.position,
+      position: rawPlayer.position_abbreviation || rawPlayer.position,
       team: rawPlayer.team?.abbreviation || null,
       teamId: rawPlayer.team?.id || null,
-      jerseyNumber: rawPlayer.number,
-      status: rawPlayer.status || 'active',
+      jerseyNumber: rawPlayer.jersey_number,
+      status: 'active', // BallDontLie doesn't provide status
       height: rawPlayer.height,
       weight: rawPlayer.weight,
       age: rawPlayer.age,
-      experience: rawPlayer.years_exp,
+      experience: rawPlayer.experience,
       college: rawPlayer.college,
       rawData: rawPlayer // Keep original for reference
     };
@@ -153,25 +130,6 @@ export class NFLDataSource extends BaseSportDataSource {
     };
   }
 
-  normalizeProjection(rawProj) {
-    return {
-      playerId: rawProj.player_id,
-      week: rawProj.week,
-      season: rawProj.season,
-      projectedPoints: rawProj.fantasy_points || 0,
-      stats: {
-        passYards: rawProj.pass_yards || 0,
-        passTouchdowns: rawProj.pass_touchdowns || 0,
-        rushYards: rawProj.rush_yards || 0,
-        rushTouchdowns: rawProj.rush_touchdowns || 0,
-        receptions: rawProj.receptions || 0,
-        receivingYards: rawProj.receiving_yards || 0,
-        receivingTouchdowns: rawProj.receiving_touchdowns || 0
-      },
-      rawData: rawProj
-    };
-  }
-
   normalizeGame(rawGame) {
     return {
       id: rawGame.id,
@@ -179,30 +137,24 @@ export class NFLDataSource extends BaseSportDataSource {
       sportCode: this.sportCode,
       season: rawGame.season,
       week: rawGame.week,
-      homeTeam: rawGame.home_team?.abbreviation,
-      awayTeam: rawGame.visitor_team?.abbreviation,
-      homeTeamId: rawGame.home_team?.id,
-      awayTeamId: rawGame.visitor_team?.id,
+      homeTeam: {
+        name: rawGame.home_team?.full_name || rawGame.home_team?.name,
+        abbreviation: rawGame.home_team?.abbreviation,
+        id: rawGame.home_team?.id
+      },
+      awayTeam: {
+        name: rawGame.visitor_team?.full_name || rawGame.visitor_team?.name,
+        abbreviation: rawGame.visitor_team?.abbreviation,
+        id: rawGame.visitor_team?.id
+      },
       homeScore: rawGame.home_team_score,
       awayScore: rawGame.visitor_team_score,
       status: rawGame.status,
       date: rawGame.date,
+      venue: rawGame.venue,
       isLive: rawGame.status === 'In Progress',
       isFinal: rawGame.status === 'Final',
       rawData: rawGame
-    };
-  }
-
-  normalizeGameData(rawGameData) {
-    // Transform live box score data
-    return {
-      gameId: rawGameData.id,
-      status: rawGameData.status,
-      homeScore: rawGameData.home_team_score,
-      awayScore: rawGameData.visitor_team_score,
-      quarter: rawGameData.period,
-      timeRemaining: rawGameData.time,
-      playerStats: rawGameData.player_stats?.map(stat => this.normalizeStats(stat)) || []
     };
   }
 
@@ -211,7 +163,7 @@ export class NFLDataSource extends BaseSportDataSource {
       id: rawTeam.id,
       externalId: rawTeam.id.toString(),
       sportCode: this.sportCode,
-      name: rawTeam.full_name,
+      name: rawTeam.full_name || rawTeam.name,
       abbreviation: rawTeam.abbreviation,
       city: rawTeam.city,
       conference: rawTeam.conference,
