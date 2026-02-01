@@ -15,6 +15,12 @@ const Header = () => {
 
   return (
     <header className="bg-primary-black-900/95 backdrop-blur-md sticky top-0 z-[110]">
+      {/* Staging Environment Banner - Visible for deployment test */}
+      <div className="bg-gradient-to-r from-purple-600/30 via-blue-600/30 to-purple-600/30 border-b border-purple-500/50 px-4 py-2 text-center">
+        <span className="text-sm font-bold text-purple-200 animate-pulse">
+          ⚡ STAGING DEPLOYMENT TEST ⚡
+        </span>
+      </div>
       <div className="px-4 pt-4 pb-3">
         <div className="flex items-center justify-between relative h-8">
           {/* Back Button - Left */}
